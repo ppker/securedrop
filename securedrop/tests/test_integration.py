@@ -10,8 +10,8 @@ import journalist_app as journalist_app_module
 from bs4 import BeautifulSoup
 from db import db
 from encryption import EncryptionManager
-from flask import escape
 from journalist_app.sessions import session
+from markupsafe import escape
 from source_app.session_manager import SessionManager
 from store import Storage
 from tests import utils
@@ -260,7 +260,7 @@ def _helper_test_reply(journalist_app, source_app, test_journo, test_reply):
         login_journalist(
             app, test_journo["username"], test_journo["password"], test_journo["otp_secret"]
         )
-        for i in range(2):
+        for _i in range(2):
             resp = app.post(
                 "/reply",
                 data=dict(filesystem_id=filesystem_id, message=test_reply),
@@ -432,7 +432,7 @@ def test_delete_collection(mocker, source_app, journalist_app, test_journo):
         text = resp.data.decode("utf-8")
         assert escape(f"The account and data for the source {col_name} have been deleted.") in text
 
-        assert "There are no submissions!" in text
+        assert "There are no submissions." in text
 
         # Make sure the collection is deleted from the filesystem
         def assertion():

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple, Union
 
 import i18n
+import server_os
 import template_filters
 import version
 from db import db
@@ -19,8 +20,6 @@ from werkzeug.exceptions import HTTPException, default_exceptions
 
 _insecure_views = ["main.login", "static"]
 _insecure_api_views = ["api.get_token", "api.get_endpoints"]
-# Timezone-naive datetime format expected by SecureDrop Client
-API_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 def get_logo_url(app: Flask) -> str:
@@ -54,6 +53,11 @@ def create_app(config: SecureDropConfig) -> Flask:
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SQLALCHEMY_DATABASE_URI"] = config.DATABASE_URI
+
+    # Check if the server OS is past EOL; if so, we'll display banners
+    app.config["OS_PAST_EOL"] = server_os.is_os_past_eol()
+    app.config["OS_NEEDS_MIGRATION_FIXES"] = server_os.needs_migration_fixes()
+
     db.init_app(app)
 
     class JSONEncoder(json.JSONEncoder):
@@ -61,7 +65,7 @@ def create_app(config: SecureDropConfig) -> Flask:
 
         def default(self, obj: "Any") -> "Any":
             if isinstance(obj, datetime):
-                return obj.strftime(API_DATETIME_FORMAT)
+                return obj.isoformat()
             super().default(obj)
 
     app.json_encoder = JSONEncoder
@@ -109,6 +113,8 @@ def create_app(config: SecureDropConfig) -> Flask:
         """Store commonly used values in Flask's special g object"""
 
         i18n.set_locale(config)
+        g.show_os_past_eol_warning = app.config["OS_PAST_EOL"]
+        g.show_os_needs_migration_fixes = app.config["OS_NEEDS_MIGRATION_FIXES"]
 
         if InstanceConfig.get_default().organization_name:
             g.organization_name = (  # pylint: disable=assigning-non-slot

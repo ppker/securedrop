@@ -20,8 +20,7 @@ random.seed("◔ ⌣ ◔")
 
 def assert_valid_timestamp(timestamp: str) -> None:
     """verify the timestamp is encoded in the format we want"""
-    dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
-    assert timestamp == datetime.strptime(timestamp, dt_format).strftime(dt_format)
+    assert timestamp == datetime.fromisoformat(timestamp).isoformat()
 
 
 def test_unauthenticated_user_gets_all_endpoints(journalist_app):
@@ -817,9 +816,7 @@ def test_authorized_user_can_add_reply(
 
         source = Source.query.get(source_id)
 
-        expected_filename = "{}-{}-reply.gpg".format(
-            source.interaction_count, source.journalist_filename
-        )
+        expected_filename = f"{source.interaction_count}-{source.journalist_filename}-reply.gpg"
 
         expected_filepath = Path(app_storage.path(source.filesystem_id, expected_filename))
 

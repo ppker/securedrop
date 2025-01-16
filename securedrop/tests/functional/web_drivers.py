@@ -41,7 +41,7 @@ def _create_torbrowser_driver(
 ) -> TorBrowserDriver:
     logging.info("Creating TorBrowserDriver")
     log_file = open(_LOGFILE_PATH, "a")
-    log_file.write("\n\n[%s] Running Functional Tests\n" % str(datetime.now()))
+    log_file.write(f"\n\n[{datetime.now()}] Running Functional Tests\n")
     log_file.flush()
 
     # Don't use Tor when reading from localhost, and turn off private
@@ -87,14 +87,10 @@ def _create_firefox_driver(
 ) -> webdriver.Firefox:
     logging.info("Creating Firefox web driver")
 
-    profile = webdriver.FirefoxProfile()
-    if accept_languages is not None:
-        profile.set_preference("intl.accept_languages", accept_languages)
-        profile.update_preferences()
-
     firefox_options = webdriver.FirefoxOptions()
     firefox_options.binary_location = _FIREFOX_PATH
-    firefox_options.profile = profile
+    if accept_languages is not None:
+        firefox_options.set_preference("intl.accept_languages", accept_languages)
 
     firefox_driver = None
     for i in range(_DRIVER_RETRY_COUNT):
@@ -111,6 +107,10 @@ def _create_firefox_driver(
 
     if not firefox_driver:
         raise Exception("Could not create Firefox web driver")
+
+    # Add this attribute to the returned driver object so that tests using this
+    # fixture can know what locale it's parameterized with.
+    firefox_driver.locale = accept_languages  # type: ignore[attr-defined]
 
     return firefox_driver
 

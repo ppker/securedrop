@@ -29,27 +29,7 @@ update-admin-pip-requirements:  ## Update admin requirements.
 .PHONY: update-python3-requirements
 update-python3-requirements:  ## Update Python 3 requirements with pip-compile.
 	@echo "███ Updating Python 3 requirements files..."
-	@SLIM_BUILD=1 $(DEVSHELL) pip-compile --generate-hashes \
-		--allow-unsafe \
-		--output-file requirements/python3/develop-requirements.txt \
-		requirements/python3/translation-requirements.in \
-		requirements/python3/develop-requirements.in
-	@SLIM_BUILD=1 $(DEVSHELL) pip-compile --generate-hashes \
-		--allow-unsafe \
-		--output-file requirements/python3/test-requirements.txt \
-		requirements/python3/test-requirements.in
-	@SLIM_BUILD=1 $(DEVSHELL) pip-compile --generate-hashes \
-				--allow-unsafe \
-		--output-file requirements/python3/requirements.txt \
-		requirements/python3/requirements.in
-	@SLIM_BUILD=1 $(DEVSHELL) pip-compile --generate-hashes \
-		--allow-unsafe \
-		--output-file requirements/python3/bootstrap-requirements.txt \
-		requirements/python3/bootstrap-requirements.in
-	@SLIM_BUILD=1 $(DEVSHELL) pip-compile --generate-hashes \
-		--allow-unsafe \
-		--output-file requirements/python3/translation-requirements.txt \
-		requirements/python3/translation-requirements.in
+	@SLIM_BUILD=1 $(DEVSHELL) $(SDBIN)/update-requirements
 
 .PHONY: update-pip-requirements
 update-pip-requirements: update-admin-pip-requirements update-python3-requirements ## Update all requirements with pip-compile.
@@ -60,16 +40,6 @@ update-pip-requirements: update-admin-pip-requirements update-python3-requiremen
 # Static analysis
 #
 #################
-
-.PHONY: check-black
-check-black: ## Check Python source code formatting with black
-	@echo "███ Running black check..."
-	@black --check --diff .
-	@echo
-
-.PHONY: black
-black: ## Update Python source code formatting with black
-	@black securedrop .
 
 .PHONY: ansible-config-lint
 ansible-config-lint: ## Run custom Ansible linting tasks.
@@ -94,21 +64,25 @@ app-lint-full: ## Test pylint compliance, with no checks disabled.
 	@echo
 
 .PHONY: check-ruff
-check-ruff:  ## Lint Python source files.
+check-ruff:  ## Check linting and formatting of Python source files.
 	@echo "███ Running ruff..."
-	@ruff check . --show-source
+	@ruff format . --diff
+	@ruff check .
 	@echo
 
 .PHONY: ruff
 ruff: ## Update Python source file formatting.
+	@ruff format .
 	@ruff check . --fix
+
+fix: ruff ## Apply automatic fixes.
 
 # The --disable=names is required to use the BEM syntax
 # # https://csswizardry.com/2013/01/mindbemding-getting-your-head-round-bem-syntax/
 .PHONY: html-lint
 html-lint:  ## Validate HTML in web application template files.
 	@echo "███ Linting application templates..."
-	@html_lint.py --printfilename --disable=optional_tag,extra_whitespace,indentation,names,quotation \
+	@html_lint.py --printfilename --disable=optional_tag,extra_whitespace,indentation,names,quotation,protocol \
 		securedrop/source_templates/*.html securedrop/journalist_templates/*.html
 	@echo
 
@@ -136,10 +110,16 @@ yamllint:  ## Lint YAML files (does not validate syntax!).
 	@yamllint --strict .
 	@echo
 
+.PHONY: zizmor
+zizmor:  ## Lint GitHub Actions workflows.
+	@echo "███ Linting GitHub Actions workflows..."
+	@zizmor .
+	@echo
+
 # While the order mostly doesn't matter here, keep "check-ruff" first, since it
 # gives the broadest coverage and runs (and therefore fails) fastest.
 .PHONY: lint
-lint: check-ruff ansible-config-lint app-lint check-black html-lint shellcheck typelint yamllint check-strings check-supported-locales check-desktop-files ## Runs all lint checks
+lint: check-ruff ansible-config-lint app-lint html-lint shellcheck typelint yamllint zizmor check-strings check-supported-locales check-desktop-files ## Runs all lint checks
 
 .PHONY: safety
 safety:  ## Run `safety check` to check python dependencies for vulnerabilities.
@@ -206,6 +186,13 @@ safety:  ## Run `safety check` to check python dependencies for vulnerabilities.
 		--ignore 71680 \
 		--ignore 71681 \
 		--ignore 71684 \
+		--ignore 73302 \
+		--ignore 73711 \
+		--ignore 73889 \
+		--ignore 73969 \
+		--ignore 74221 \
+		--ignore 74261 \
+		--ignore 74735 \
 		--full-report -r $$req_file \
 		&& echo -e '\n' \
 		|| exit 1; \
@@ -272,7 +259,7 @@ demo-landing-page: ## Serve the landing page for the SecureDrop demo
 .PHONY: staging
 staging:  ## Create a local staging environment in virtual machines (Focal)
 	@echo "███ Creating staging environment on Ubuntu Focal..."
-	@$(SDROOT)/devops/scripts/create-staging-env focal
+	@$(SDROOT)/devops/scripts/create-staging-env
 	@echo
 
 .PHONY: testinfra
@@ -451,9 +438,10 @@ $(DESKTOP_POT): ${DESKTOP_BASE}/*.in
 		--output-file $@
 	@rm ${DESKTOP_LOCALE_DIR}/*.po
 
-# Render desktop list from "i18n.json".
+# Render the list of desktop locales from those in entries "i18n.json" that
+# include a "desktop" key.
 $(DESKTOP_I18N_CONF):
-	@jq --raw-output '.supported_locales[].desktop' ${I18N_CONF} > $@
+	@jq --raw-output '.supported_locales[].desktop | values' ${I18N_CONF} > $@
 
 ## Supported locales
 

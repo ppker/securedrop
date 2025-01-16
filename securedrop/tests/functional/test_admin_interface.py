@@ -169,7 +169,7 @@ def _create_second_journalist(config_in_use: SecureDropConfig) -> None:
         db_session_for_sd_servers.commit()
 
 
-@pytest.fixture()
+@pytest.fixture
 def sd_servers_with_second_journalist(
     setup_journalist_key_and_gpg_folder: Tuple[str, Path],
     setup_rqworker: Tuple[str, Path],
@@ -328,7 +328,7 @@ class TestAdminInterfaceEditAndDeleteUser:
 
         # When the admin deletes the second journalist
         journ_app_nav.admin_visits_admin_interface()
-        for i in range(15):
+        for _i in range(15):
             try:
                 journ_app_nav.nav_helper.safe_click_by_css_selector(".delete-user a")
                 journ_app_nav.nav_helper.wait_for(

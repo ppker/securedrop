@@ -2,6 +2,7 @@
 Description=job to clean SecureDrop tmp dir daily
 
 [Service]
+Type=exec
 ExecStart=/var/www/securedrop/manage.py clean-tmp
 PrivateDevices=yes
 PrivateTmp=yes

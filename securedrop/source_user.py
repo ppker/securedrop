@@ -153,7 +153,7 @@ class _SourceScryptManager:
         self._backend = default_backend()
 
     # Use @lru_cache to not recompute the same values over and over for the same user
-    @lru_cache
+    @lru_cache  # noqa: B019
     def derive_source_gpg_secret(self, source_passphrase: "DicewarePassphrase") -> str:
         scrypt_for_gpg_secret = scrypt.Scrypt(
             length=64,
@@ -166,7 +166,7 @@ class _SourceScryptManager:
         hashed_passphrase = scrypt_for_gpg_secret.derive(source_passphrase.encode("utf-8"))
         return b32encode(hashed_passphrase).decode("utf-8")
 
-    @lru_cache
+    @lru_cache  # noqa: B019
     def derive_source_filesystem_id(self, source_passphrase: "DicewarePassphrase") -> str:
         scrypt_for_filesystem_id = scrypt.Scrypt(
             length=64,

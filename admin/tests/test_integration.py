@@ -47,7 +47,7 @@ securedrop_supported_locales:
 - es_ES
 smtp_relay: smtp.gmail.com
 smtp_relay_port: 587
-ssh_users: sd
+ssh_users: sdadmin
 """
 
 JOURNALIST_ALERT_OUTPUT = """app_hostname: app
@@ -80,7 +80,7 @@ securedrop_supported_locales:
 - es_ES
 smtp_relay: smtp.gmail.com
 smtp_relay_port: 587
-ssh_users: sd
+ssh_users: sdadmin
 """
 
 HTTPS_OUTPUT_NO_POW = """app_hostname: app
@@ -113,7 +113,7 @@ securedrop_supported_locales:
 - es_ES
 smtp_relay: smtp.gmail.com
 smtp_relay_port: 587
-ssh_users: sd
+ssh_users: sdadmin
 """
 
 
@@ -531,7 +531,7 @@ GIT_CONFIG = """[core]
 """
 
 
-@pytest.fixture()
+@pytest.fixture
 def securedrop_git_repo(tmpdir):
     cwd = os.getcwd()
     os.chdir(str(tmpdir))
@@ -650,7 +650,7 @@ def test_update_fails_when_no_signature_present(securedrop_git_repo):
     child = pexpect.spawn(f"coverage run {cmd} --root {ansible_base} update")
     output = child.read()
     assert b"Updated to SecureDrop" not in output
-    assert b"Signature verification failed" in output
+    assert b"Update failed: Missing or invalid signature" in output
 
     child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
     child.close()
@@ -682,7 +682,7 @@ def test_update_with_duplicate_branch_and_tag(securedrop_git_repo):
     # Verify that we do not falsely check out a branch instead of a tag.
     assert b"Switched to branch" not in output
     assert b"Updated to SecureDrop" not in output
-    assert b"Signature verification failed" in output
+    assert b"Update failed: Branch name collision detected" in output
 
     child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
     child.close()

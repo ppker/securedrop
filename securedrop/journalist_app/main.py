@@ -138,9 +138,7 @@ def make_blueprint() -> Blueprint:
             return redirect(url_for("col.col", filesystem_id=g.filesystem_id))
 
         g.source.interaction_count += 1
-        filename = "{}-{}-reply.gpg".format(
-            g.source.interaction_count, g.source.journalist_filename
-        )
+        filename = f"{g.source.interaction_count}-{g.source.journalist_filename}-reply.gpg"
         EncryptionManager.get_default().encrypt_journalist_reply(
             for_source=g.source,
             reply_in=form.message.data,
@@ -163,12 +161,10 @@ def make_blueprint() -> Blueprint:
             # with responses to sources. It's possible the exception message
             # could contain information we don't want to write to disk.
             current_app.logger.error(
-                "Reply from '{}' (ID {}) failed: {}!".format(
-                    session.get_user().username, session.get_uid(), exc.__class__
-                )
+                f"Reply from '{session.get_user().username}' (ID {session.get_uid()}) "
+                f"failed: {exc.__class__}!"
             )
         else:
-
             flash(
                 Markup(
                     "<b>{}</b> {}".format(
@@ -181,8 +177,8 @@ def make_blueprint() -> Blueprint:
                 ),
                 "success",
             )
-        finally:
-            return redirect(url_for("col.col", filesystem_id=g.filesystem_id))
+
+        return redirect(url_for("col.col", filesystem_id=g.filesystem_id))
 
     @view.route("/bulk", methods=("POST",))
     def bulk() -> Union[str, werkzeug.Response]:

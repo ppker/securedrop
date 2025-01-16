@@ -20,7 +20,6 @@
 attribute creation and handling.
 """
 
-
 import atexit
 import codecs
 import encodings
@@ -101,7 +100,7 @@ class GPGMeta(type):
             # Otherwise to _agent_proc will be saved not "gpg-agent" process buth an other.
             if ownership_match:
                 log.debug("Effective UIDs of this process and gpg-agent match")
-                setattr(cls, "_agent_proc", proc)
+                cls._agent_proc = proc
                 return True
 
         return False
@@ -297,7 +296,9 @@ class GPGBase:
                 :param list path: A list of strings to update the PATH with.
                 """
                 log.debug("Updating system path...")
-                os.environ = environment
+                # This assignment doesn't reset the environment, but it does reset the monkey-patch
+                # as intended. Leaving as-is from upstream.
+                os.environ = environment  # noqa: B003
                 new_path = ":".join([p for p in path])
                 if "PATH" in os.environ:
                     new_path = ":".join([os.environ["PATH"], new_path])
@@ -531,7 +532,8 @@ class GPGBase:
 
         if self.keyring:
             cmd.append("--no-default-keyring --keyring %s" % self.keyring)
-        if self.secring:
+        if self.secring and self.binary_version != "2.4.4":
+            # In GnuPG 2.4.4, --secret-keyring has no effect
             cmd.append("--secret-keyring %s" % self.secring)
 
         if passphrase:
@@ -718,7 +720,7 @@ class GPGBase:
 
         self.verbose = verbose
 
-    def _collect_output(self, process, result, writer=None, stdin=None):  # type: ignore[no-untyped-def] # noqa
+    def _collect_output(self, process, result, writer=None, stdin=None):  # type: ignore[no-untyped-def]
         """Drain the subprocesses output streams, writing the collected output
         to the result. If a writer thread (writing to the subprocess) is given,
         make sure it's joined before returning. If a stdin stream is given,
@@ -749,7 +751,7 @@ class GPGBase:
         stderr.close()
         stdout.close()
 
-    def _handle_io(self, args, file, result, passphrase=False, binary=False):  # type: ignore[no-untyped-def] # noqa
+    def _handle_io(self, args, file, result, passphrase=False, binary=False):  # type: ignore[no-untyped-def]
         """Handle a call to GPG - pass input data, collect output data."""
         p = self._open_subprocess(args, passphrase)
         if not binary:
@@ -1042,7 +1044,7 @@ class GPGBase:
 
         return result
 
-    def _add_recipient_string(self, args, hidden_recipients, recipient):  # type: ignore[no-untyped-def] # noqa
+    def _add_recipient_string(self, args, hidden_recipients, recipient):  # type: ignore[no-untyped-def]
         if isinstance(hidden_recipients, (list, tuple)):
             if [s for s in hidden_recipients if recipient in str(s)]:
                 args.append("--hidden-recipient %s" % recipient)

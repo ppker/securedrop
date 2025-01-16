@@ -4,6 +4,7 @@ import uuid
 from os import path
 from unittest import mock
 
+import pytest
 from db import db
 from journalist_app import create_app
 from sqlalchemy import text
@@ -192,20 +193,14 @@ class DowngradeTester(Helper):
             sql = "SELECT * FROM submissions"
             submissions = db.engine.execute(text(sql)).fetchall()
             for submission in submissions:
-                try:
-                    # this should produce an exception since the column is gone
+                with pytest.raises(NoSuchColumnError):
                     submission["checksum"]
-                except NoSuchColumnError:
-                    pass
 
             sql = "SELECT * FROM replies"
             replies = db.engine.execute(text(sql)).fetchall()
             for reply in replies:
-                try:
-                    # this should produce an exception since the column is gone
-                    submission["checksum"]
-                except NoSuchColumnError:
-                    pass
+                with pytest.raises(NoSuchColumnError):
+                    reply["checksum"]
 
     def add_revoked_token(self):
         params = {

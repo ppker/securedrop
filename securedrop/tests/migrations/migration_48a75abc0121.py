@@ -240,7 +240,7 @@ class UpgradeTester(Helper):
                     self.add_file(i)
 
             # add 30 replies from randomly-selected journalists to randomly-selected sources
-            for i in range(30):
+            for _i in range(30):
                 selected_journo = random.randint(0, self.JOURNO_NUM)
                 selected_source = random.randint(0, self.SOURCE_NUM)
                 self.add_reply(selected_journo, selected_source)
@@ -328,7 +328,7 @@ class DowngradeTester(Helper):
                     self.add_file(i)
 
             # add 30 replies from randomly-selected journalists to randomly-selected sources
-            for i in range(30):
+            for _i in range(30):
                 selected_journo = random.randint(0, self.JOURNO_NUM)
                 selected_source = random.randint(0, self.SOURCE_NUM)
                 self.add_reply(selected_journo, selected_source)

@@ -85,10 +85,9 @@ def make_blueprint() -> Blueprint:
                     gettext("Unable to process the image file. Please try another one."),
                     "logo-error",
                 )
-            finally:
-                return redirect(url_for("admin.manage_config") + "#config-logoimage")
+            return redirect(url_for("admin.manage_config") + "#config-logoimage")
         else:
-            for field, errors in list(logo_form.errors.items()):
+            for errors in logo_form.errors.values():
                 for error in errors:
                     flash(error, "logo-error")
             return render_template(
@@ -118,7 +117,7 @@ def make_blueprint() -> Blueprint:
             flash(gettext("Preferences saved."), "submission-preferences-success")
             return redirect(url_for("admin.manage_config") + "#config-preventuploads")
         else:
-            for field, errors in list(form.errors.items()):
+            for errors in list(form.errors.values()):
                 for error in errors:
                     flash(
                         gettext("Preferences not updated.") + " " + error,
@@ -139,7 +138,7 @@ def make_blueprint() -> Blueprint:
                 flash(gettext("Failed to update organization name."), "org-name-error")
             return redirect(url_for("admin.manage_config") + "#config-orgname")
         else:
-            for field, errors in list(form.errors.items()):
+            for errors in list(form.errors.values()):
                 for error in errors:
                     flash(error, "org-name-error")
         return redirect(url_for("admin.manage_config") + "#config-orgname")
@@ -216,7 +215,7 @@ def make_blueprint() -> Blueprint:
                         ),
                         "error",
                     )
-                    current_app.logger.error("Adding user " "'{}' failed: {}".format(username, e))
+                    current_app.logger.error("Adding user " f"'{username}' failed: {e}")
 
             if form_valid:
                 if new_user.is_totp:
@@ -423,9 +422,8 @@ def make_blueprint() -> Blueprint:
             abort(403)
         elif not user:
             current_app.logger.error(
-                "Admin {} tried to delete nonexistent user with pk={}".format(
-                    session.get_user().username, user_id
-                )
+                f"Admin {session.get_user().username} tried to delete nonexistent user with "
+                f"pk={user_id}"
             )
             abort(404)
         elif user.is_deleted_user():
@@ -456,9 +454,8 @@ def make_blueprint() -> Blueprint:
 
         if user.id == session.get_uid():
             current_app.logger.error(
-                "Admin {} tried to change their password without validation.".format(
-                    session.get_user().username
-                )
+                f"Admin {session.get_user().username} tried to change their password without "
+                "validation."
             )
             abort(403)
 

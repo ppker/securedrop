@@ -83,7 +83,7 @@ def normalize_timestamps(logged_in_source: SourceUser) -> None:
         rc = subprocess.call(args)
         if rc != 0:
             current_app.logger.warning(
-                "Couldn't normalize submission " "timestamps (touch exited with %d)" % rc
+                f"Couldn't normalize submission timestamps (touch exited with {rc})"
             )
 
 

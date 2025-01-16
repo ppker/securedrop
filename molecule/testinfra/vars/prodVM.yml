@@ -31,20 +31,6 @@ pip_deps:
   - name: 'Flask'
     version: '2.0.3'
 
-apparmor_complain: []
-
-apparmor_enforce:
-  focal:
-    - "sbin/dhclient"
-    - "/usr/lib/NetworkManager/nm-dhcp-client.action"
-    - "/usr/lib/connman/scripts/dhclient-script"
-    - "/usr/sbin/tcpdump"
-    - "system_tor"
-    - "/usr/sbin/apache2"
-    - "/usr/sbin/apache2//DEFAULT_URI"
-    - "/usr/sbin/apache2//HANDLING_UNTRUSTED_INPUT"
-    - "/usr/sbin/tor"
-
 tor_services:
   - name: journalistv3
     ports:

@@ -18,8 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       locales: ${{ steps.locales.outputs.locales }}
+    env:
+      GITHUB_ACTOR: ${{ github.actor }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Generate locale list
         id: locales
         run: |
@@ -28,7 +32,7 @@ jobs:
           # 2. A scheduled run
           # 3. A push to a `l10n-*` branch
           # Two and Three are checked above, so we just need to check One.
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.actor }}" = "weblate-fpf" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${GITHUB_ACTOR}" = "weblate-fpf" ]; then
             echo "locales=$(make supported-locales)" >> "$GITHUB_OUTPUT"
           else
             if [ "${{ github.event_name }}" != "pull_request" ]; then
@@ -48,11 +52,20 @@ jobs:
       fail-fast: false
       matrix:
         locale: ${{ fromJson(needs.locales.outputs.locales) }}
+    env:
+      LOCALES: ${{ matrix.locale }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Build image
         run: |
           DOCKER_BUILD_VERBOSE=true ./securedrop/bin/dev-shell true
       - name: Run translation tests
         run: |
-          LOCALES="${{ matrix.locale }}" make translation-test
+          make translation-test
+      - name: Save screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.locale }}
+          path: securedrop/tests/functional/pageslayout/screenshots/

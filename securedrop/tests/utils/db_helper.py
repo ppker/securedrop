@@ -170,7 +170,7 @@ def bulk_setup_for_seen_only(journo: Journalist, storage: Storage) -> List[Dict]
 
     setup_collection = []
 
-    for i in range(random.randint(2, 4)):
+    for _i in range(random.randint(2, 4)):
         collection = {}
 
         source, _ = init_source(storage)

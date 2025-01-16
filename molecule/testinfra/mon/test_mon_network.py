@@ -9,9 +9,8 @@ securedrop_test_vars = testutils.securedrop_test_vars
 testinfra_hosts = [securedrop_test_vars.monitor_hostname]
 
 
-@pytest.mark.skip_in_prod()
+@pytest.mark.skip_in_prod
 def test_mon_iptables_rules(host):
-
     local = host.get_host("local://")
 
     # Build a dict of variables to pass to jinja for iptables comparison
@@ -20,7 +19,7 @@ def test_mon_iptables_rules(host):
         default_interface=host.check_output("ip r | head -n 1 | awk '{ print $5 }'"),
         tor_user_id=host.check_output("id -u debian-tor"),
         time_service_user=host.check_output("id -u systemd-timesync"),
-        ssh_group_gid=host.check_output("getent group ssh | cut -d: -f3"),
+        ssh_group_gid=host.check_output("getent group sdssh | cut -d: -f3"),
         postfix_user_id=host.check_output("id -u postfix"),
         dns_server=securedrop_test_vars.dns_server,
     )
@@ -32,9 +31,7 @@ def test_mon_iptables_rules(host):
     # Build iptables scrape cmd, purge comments + counters
     iptables = r"iptables-save | sed 's/ \[[0-9]*\:[0-9]*\]//g' | egrep -v '^#'"
     environment = os.environ.get("SECUREDROP_TESTINFRA_TARGET_HOST", "staging")
-    iptables_file = "{}/iptables-mon-{}.j2".format(
-        os.path.dirname(os.path.abspath(__file__)), environment
-    )
+    iptables_file = f"{os.path.dirname(os.path.abspath(__file__))}/iptables-mon-{environment}.j2"
 
     # template out a local iptables jinja file
     jinja_iptables = Template(open(iptables_file).read())
@@ -54,7 +51,7 @@ def test_mon_iptables_rules(host):
         assert iptables_expected == iptables
 
 
-@pytest.mark.skip_in_prod()
+@pytest.mark.skip_in_prod
 @pytest.mark.parametrize(
     "ossec_service",
     [

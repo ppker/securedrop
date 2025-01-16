@@ -2,6 +2,7 @@
 Description=job to check for disconnected submissions in the database
 
 [Service]
+Type=exec
 ExecStart=/bin/bash -c "/var/www/securedrop/manage.py check-disconnected-db-submissions > /var/lib/securedrop/disconnected_db_submissions.txt"
 PrivateDevices=yes
 PrivateTmp=yes

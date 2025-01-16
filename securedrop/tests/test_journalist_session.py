@@ -13,7 +13,7 @@ from two_factor import TOTP
 NEW_PASSWORD = "another correct horse battery staple generic passphrase"
 
 
-@pytest.fixture()
+@pytest.fixture
 def redis(config):
     return Redis(**config.REDIS_KWARGS)
 
@@ -292,7 +292,7 @@ def test_session_api_login(journalist_app, test_journo, redis):
         # Then the expiration date returned in `get_token` response also conforms to the same rules
         assert (
             datetime.now(timezone.utc)
-            < datetime.strptime(resp.json["expiration"], "%Y-%m-%dT%H:%M:%S.%f%z")
+            < datetime.fromisoformat(resp.json["expiration"])
             < (
                 datetime.now(timezone.utc)
                 + timedelta(seconds=journalist_app.config["SESSION_LIFETIME"])

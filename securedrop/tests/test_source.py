@@ -14,8 +14,9 @@ import pytest
 import version
 from db import db
 from encryption import EncryptionManager, GpgDecryptError, GpgKeyNotFoundError
-from flask import escape, g, request, session, url_for
+from flask import g, request, session, url_for
 from journalist_app.utils import delete_collection
+from markupsafe import escape
 from models import InstanceConfig, Reply, Source
 from passphrases import PassphraseGenerator
 from source_app import api as source_app_api
@@ -812,9 +813,8 @@ def test_login_with_overly_long_codename(source_app):
         assert resp.status_code == 200
         text = resp.data.decode("utf-8")
         assert (
-            "Field must be between 1 and {} characters long.".format(
-                PassphraseGenerator.MAX_PASSPHRASE_LENGTH
-            )
+            f"Field must be between 1 and {PassphraseGenerator.MAX_PASSPHRASE_LENGTH} characters "
+            "long."
         ) in text
 
 

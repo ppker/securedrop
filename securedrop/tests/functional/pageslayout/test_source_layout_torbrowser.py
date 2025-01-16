@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+
 import pytest
 from tbselenium.utils import disable_js
 from tests.functional.app_navigators.source_app_nav import SourceAppNavigator
@@ -22,16 +23,14 @@ from tests.functional.pageslayout.utils import list_locales, save_static_data
 
 
 @pytest.mark.parametrize("locale", list_locales())
-@pytest.mark.pagelayout()
+@pytest.mark.pagelayout
 class TestSourceLayoutTorBrowser:
     def test_index_and_logout(self, locale, sd_servers):
         # Given a source user accessing the app from their browser
-        locale_with_commas = locale.replace("_", "-")
         with SourceAppNavigator.using_tor_browser_web_driver(
             source_app_base_url=sd_servers.source_app_base_url,
-            accept_languages=locale_with_commas,
+            accept_languages=locale,
         ) as navigator:
-
             # And they have disabled JS in their browser
             disable_js(navigator.driver)
 

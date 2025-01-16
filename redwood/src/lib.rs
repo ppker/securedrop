@@ -169,12 +169,7 @@ fn encrypt(
 
     // In reverse order, we set up a writer that will write an encrypted and
     // armored message to a newly-created file at `destination`.
-    // TODO: Use `File::create_new()` once it's stabilized: https://github.com/rust-lang/rust/issues/105135
-    let sink = File::options()
-        .read(true)
-        .write(true)
-        .create_new(true)
-        .open(destination)?;
+    let sink = File::create_new(destination)?;
     let mut writer = BufWriter::new(sink);
     let message = Message::new(&mut writer);
     let message = if armor.unwrap_or(false) {

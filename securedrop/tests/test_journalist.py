@@ -15,10 +15,11 @@ import pytest
 from db import db
 from encryption import EncryptionManager, GpgKeyNotFoundError
 from flaky import flaky
-from flask import escape, g, url_for
+from flask import g, url_for
 from flask_babel import gettext, ngettext
 from journalist_app.sessions import session
 from journalist_app.utils import mark_seen
+from markupsafe import escape
 from models import (
     InstanceConfig,
     InvalidPasswordLength,
@@ -364,7 +365,7 @@ def test_login_valid_credentials(config, journalist_app, test_journo, locale):
             follow_redirects=True,
         )
         assert page_language(resp.data) == language_tag(locale)
-        msgids = ["All Sources", "There are no submissions!"]
+        msgids = ["All Sources", "There are no submissions."]
         with xfail_untranslated_messages(config, locale, msgids):
             resp_text = resp.data.decode("utf-8")
             for msgid in msgids:
@@ -1184,7 +1185,6 @@ def test_admin_edits_user_invalid_username_deleted(
 
 
 def test_admin_resets_user_hotp_format_non_hexa(journalist_app, test_admin, test_journo):
-
     with journalist_app.test_client() as app:
         login_journalist(
             app,
@@ -1225,7 +1225,6 @@ def test_admin_resets_user_hotp_format_non_hexa(journalist_app, test_admin, test
 def test_admin_resets_user_hotp_format_too_short(
     journalist_app, test_admin, test_journo, the_secret
 ):
-
     with journalist_app.test_client() as app:
         login_journalist(
             app,
@@ -1256,8 +1255,9 @@ def test_admin_resets_user_hotp_format_too_short(
             assert journo.is_totp
 
             ins.assert_message_flashed(
-                "HOTP secrets are 40 characters long"
-                " - you have entered {num}.".format(num=len(the_secret.replace(" ", ""))),
+                "HOTP secrets are 40 characters long" " - you have entered {num}.".format(
+                    num=len(the_secret.replace(" ", ""))
+                ),
                 "error",
             )
 
@@ -1294,7 +1294,6 @@ def test_admin_resets_user_hotp(journalist_app, test_admin, test_journo):
 
 
 def test_admin_resets_user_hotp_error(mocker, journalist_app, test_admin, test_journo):
-
     bad_secret = "0123456789ABCDZZ0123456789ABCDZZ01234567"
     error_message = "SOMETHING WRONG!"
     mocked_error_logger = mocker.patch("journalist.app.logger.error")
@@ -1716,10 +1715,7 @@ def test_deleted_user_cannot_login(config, journalist_app, locale):
             ]
             with xfail_untranslated_messages(config, locale, msgids):
                 ins.assert_message_flashed(
-                    "{} {}".format(
-                        gettext(msgids[0]),
-                        gettext(msgids[1]),
-                    ),
+                    f"{gettext(msgids[0])} {gettext(msgids[1])}",
                     "error",
                 )
 
@@ -3502,7 +3498,7 @@ def test_download_selected_submissions_previously_downloaded(
             )
 
 
-@pytest.fixture()
+@pytest.fixture
 def selected_missing_files(journalist_app, test_source, app_storage):
     """Fixture for the download tests with missing files in storage."""
     source = Source.query.get(test_source["id"])
@@ -4030,3 +4026,45 @@ def test_journalist_deletion(journalist_app, app_storage):
     assert len(SeenReply.query.filter_by(journalist_id=deleted.id).all()) == 2
     # And there are no login attempts
     assert JournalistLoginAttempt.query.all() == []
+
+
+def test_user_sees_os_warning_if_server_past_eol(config, journalist_app, test_journo):
+    journalist_app.config.update(OS_PAST_EOL=True, OS_NEAR_EOL=False)
+    with journalist_app.test_client() as app:
+        login_journalist(
+            app, test_journo["username"], test_journo["password"], test_journo["otp_secret"]
+        )
+
+        resp = app.get(url_for("main.index"))
+
+    text = resp.data.decode("utf-8")
+    assert 'id="os-past-eol"' in text, text
+    assert 'id="os-near-eol"' not in text, text
+
+
+def test_user_sees_os_warning_if_migration_fixes(config, journalist_app, test_journo):
+    journalist_app.config.update(OS_PAST_EOL=False, OS_NEEDS_MIGRATION_FIXES=True)
+    with journalist_app.test_client() as app:
+        login_journalist(
+            app, test_journo["username"], test_journo["password"], test_journo["otp_secret"]
+        )
+
+        resp = app.get(url_for("main.index"))
+
+    text = resp.data.decode("utf-8")
+    assert 'id="os-past-eol"' not in text, text
+    assert 'id="os-near-eol"' in text, text
+
+
+def test_user_does_not_see_os_warning_if_server_is_current(config, journalist_app, test_journo):
+    journalist_app.config.update(OS_PAST_EOL=False, OS_NEEDS_MIGRATION_FIXES=False)
+    with journalist_app.test_client() as app:
+        login_journalist(
+            app, test_journo["username"], test_journo["password"], test_journo["otp_secret"]
+        )
+
+        resp = app.get(url_for("main.index"))
+
+    text = resp.data.decode("utf-8")
+    assert 'id="os-past-eol"' not in text, text
+    assert 'id="os-near-eol"' not in text, text

@@ -43,7 +43,7 @@ class NavigationHelper:
         el = WebDriverWait(self.driver, self._TIMEOUT, self._POLL_FREQUENCY).until(
             expected_conditions.element_to_be_clickable((By.ID, element_id))
         )
-        el.location_once_scrolled_into_view
+        assert el.location_once_scrolled_into_view
         el.click()
         return el
 
@@ -76,7 +76,7 @@ class NavigationHelper:
 
         """
         els = self.wait_for(lambda: self.driver.find_elements(By.CSS_SELECTOR, selector))
-        for el in els:
+        for _el in els:
             clickable_el = WebDriverWait(self.driver, self._TIMEOUT, self._POLL_FREQUENCY).until(
                 expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
             )
@@ -128,7 +128,7 @@ class NavigationHelper:
             """Expect an alert to not be present."""
             try:
                 alert = self.driver.switch_to.alert
-                alert.text
+                alert.text  # noqa: B018
                 return False
             except NoAlertPresentException:
                 return True

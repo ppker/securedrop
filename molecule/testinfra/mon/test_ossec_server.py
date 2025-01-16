@@ -5,7 +5,6 @@ import testutils
 
 securedrop_test_vars = testutils.securedrop_test_vars
 testinfra_hosts = [securedrop_test_vars.monitor_hostname]
-python_version = securedrop_test_vars.python_version
 
 
 def test_ossec_connectivity(host):
@@ -32,7 +31,7 @@ def test_ossec_service_start_style(host):
 
 
 # Permissions don't match between Ansible and OSSEC deb packages postinst.
-@pytest.mark.xfail()
+@pytest.mark.xfail
 @pytest.mark.parametrize(
     "keyfile",
     [
@@ -59,7 +58,7 @@ def test_ossec_keyfiles(host, keyfile):
 
 
 # Permissions don't match between Ansible and OSSEC deb packages postinst.
-@pytest.mark.xfail()
+@pytest.mark.xfail
 def test_procmail_log(host):
     """
     Ensure procmail log file exist with proper ownership.
