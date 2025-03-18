@@ -4,7 +4,17 @@
 
 set -euxo pipefail
 
+# --- BEGIN keep this section in sync with securedrop-client, so that build logs
+# from both repositories can be verified in the same way. ---
+
 git --no-pager log -1 --oneline --show-signature --no-color
+# We intentionally want the git tag list to be word-split
+# shellcheck disable=SC2046
+git --no-pager tag -v $(git tag --points-at HEAD)
+# Record if we're building with local (i.e., post-signature) changes present.
+git status --short
+
+# --- END keep this section in sync. ---
 
 export UBUNTU_VERSION="${UBUNTU_VERSION:-focal}"
 
