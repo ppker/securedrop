@@ -49,7 +49,6 @@ def create_app(config: SecureDropConfig) -> Flask:
     i18n.configure(config, app)
 
     @app.before_request
-    @ignore_static
     def setup_i18n() -> None:
         """Store i18n-related values in Flask's special g object"""
         i18n.set_locale(config)
