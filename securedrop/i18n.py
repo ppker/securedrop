@@ -142,13 +142,9 @@ def validate_locale_configuration(config: SecureDropConfig, babel: Babel) -> Set
     available.add(Locale.parse(FALLBACK_LOCALE))
 
     # These locales are supported in the current version of securedrop-app-code.
-    try:
-        with open(I18N_CONF) as i18n_conf_file:
-            i18n_conf = json.load(i18n_conf_file)
-        supported = parse_locale_set(i18n_conf["supported_locales"].keys())
-    # I18N_CONF may not be available under test.
-    except FileNotFoundError:
-        supported = available
+    with open(I18N_CONF) as i18n_conf_file:
+        i18n_conf = json.load(i18n_conf_file)
+    supported = parse_locale_set(i18n_conf["supported_locales"].keys())
 
     # These locales were configured via "securedrop-admin sdconfig", meaning
     # they were present on the Admin Workstation at "securedrop-admin" runtime.
