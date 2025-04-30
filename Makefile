@@ -256,7 +256,7 @@ dev-tor:  ## Run the development server with onion services in a Docker containe
 
 .PHONY:
 dev-get-id:  ## Get the ID of the running "make dev" or "make dev-tor" container.
-	@$(OCI_BIN) ps --format json --filter "name=securedrop-dev" | jq -r ".ID"
+	@$(OCI_BIN) ps --format json --filter "name=securedrop-dev" --format '{{.ID}}'
 
 .PHONY:
 dev-enter:  ## Start a shell directly in the running "make dev" or "make dev-tor" container.
