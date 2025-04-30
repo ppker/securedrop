@@ -8,6 +8,11 @@ STABLE_VER := $(shell cat molecule/shared/stable.ver)
 SDBIN := $(SDROOT)/securedrop/bin
 DEVSHELL := $(SDBIN)/dev-shell
 
+ifdef USE_PODMAN
+OCI_BIN=podman
+else
+OCI_BIN=docker
+endif
 
 ######################################
 #
@@ -250,18 +255,18 @@ dev-tor:  ## Run the development server with onion services in a Docker containe
 	@echo
 
 .PHONY:
-dev-get-id:  ## (DOCKER ONLY) Get the ID of the running "make dev" or "make dev-tor" container.
-	@docker ps --format json --filter "name=securedrop-dev" | jq -r ".ID"
+dev-get-id:  ## Get the ID of the running "make dev" or "make dev-tor" container.
+	@$(OCI_BIN) ps --format json --filter "name=securedrop-dev" | jq -r ".ID"
 
 .PHONY:
-dev-enter:  ## (DOCKER ONLY) Start a shell directly in the running "make dev" or "make dev-tor" container.
-	@docker exec -it \
+dev-enter:  ## Start a shell directly in the running "make dev" or "make dev-tor" container.
+	@$(OCI_BIN) exec -it \
 		$(shell make -s dev-get-id) \
 		bash
 
 .PHONY: dev-load-data
-dev-load-data:  ## (DOCKER ONLY) Run "loaddata.py" in the running "make dev" or "make dev-tor" container. Set $NUM_JOURNALISTS and/or $NUM_SOURCES on the command line as needed.
-	@docker exec -it \
+dev-load-data:  ## Run "loaddata.py" in the running "make dev" or "make dev-tor" container. Set $NUM_JOURNALISTS and/or $NUM_SOURCES on the command line as needed.
+	@$(OCI_BIN) exec -it \
 		-e NUM_JOURNALISTS \
 		-e NUM_SOURCES \
 		$(shell make -s dev-get-id) \
