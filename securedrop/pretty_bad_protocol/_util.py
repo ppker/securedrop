@@ -100,7 +100,7 @@ def _copy_data(instream, outstream):  # type: ignore[no-untyped-def]
         except TypeError as te:
             # XXX FIXME This appears to happen because
             # _threaded_copy_data() sometimes passes the `outstream` as an
-            # object with type <_io.BufferredWriter> and at other times
+            # object with type <_io.BufferedWriter> and at other times
             # with type <encodings.utf_8.StreamWriter>.  We hit the
             # following error when the `outstream` has type
             # <encodings.utf_8.StreamWriter>.
@@ -393,7 +393,7 @@ def _threaded_copy_data(instream, outstream):  # type: ignore[no-untyped-def]
     :param file outstream: The file descriptor of a tmpfile to write to.
     """
     copy_thread = threading.Thread(target=_copy_data, args=(instream, outstream))
-    copy_thread.setDaemon(True)
+    copy_thread.daemon = True
     log.debug("%r, %r, %r", copy_thread, instream, outstream)
     copy_thread.start()
     return copy_thread
@@ -406,7 +406,7 @@ def _which(executable, flags=os.X_OK, abspath_only=False, disallow_symlinks=Fals
 
     On newer versions of MS-Windows, the PATHEXT environment variable will be
     set to the list of file extensions for files considered executable. This
-    will normally include things like ".EXE". This fuction will also find files
+    will normally include things like ".EXE". This function will also find files
     with the given name ending with any of these extensions.
 
     On MS-Windows the only flag that has any meaning is os.F_OK. Any other
