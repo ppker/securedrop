@@ -388,7 +388,7 @@ class GPGBase:
         If unspecified, use $HOME/.config/python-gnupg. If specified, ensure
         that the ``directory`` does not contain various shell escape
         characters. If ``directory`` is not found, it will be automatically
-        created. Lastly, the ``direcory`` will be checked that the EUID has
+        created. Lastly, the ``directory`` will be checked that the EUID has
         read and write permissions for it.
 
         :param str directory: A relative or absolute path to the directory to
@@ -491,7 +491,7 @@ class GPGBase:
             except OSError:
                 log.error(
                     "Could neither invoke nor terminate a gpg process... "
-                    "Are you sure you specified the corrent (and full) "
+                    "Are you sure you specified the correct (and full) "
                     "path to the gpg binary?"
                 )
 
@@ -728,13 +728,13 @@ class GPGBase:
         """
         stderr = codecs.getreader(self._encoding)(process.stderr)
         rr = threading.Thread(target=self._read_response, args=(stderr, result))
-        rr.setDaemon(True)
+        rr.daemon = True
         log.debug("stderr reader: %r", rr)
         rr.start()
 
         stdout = process.stdout
         dr = threading.Thread(target=self._read_data, args=(stdout, result))
-        dr.setDaemon(True)
+        dr.daemon = True
         log.debug("stdout reader: %r", dr)
         dr.start()
 
