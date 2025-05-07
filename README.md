@@ -72,6 +72,4 @@ The wordlist we use to generate source passphrases come from various sources:
 
 ## Acknowledgments
 
-A huge thank you to all SecureDrop contributors! You can find a list of 
-code and documentation contributors in the ["Contributors"](https://github.com/freedomofpress/securedrop/graphs/contributors)
-tab on GitHub, and or a comprehensive view of code, documentation and translation contributors , check out the combined list [here](https://github.com/freedomofpress/securedrop-i18n/graphs/contributors). Thanks to our friends at PyUp for sponsoring a subscription to their [Python security database](https://pyup.io).
+A huge thank you to all SecureDrop contributors! You can find a list of code and documentation contributors in the ["Contributors"](https://github.com/freedomofpress/securedrop/graphs/contributors) tab on GitHub. SecureDrop is translated into many languages by a community of volunteers; please [see our Weblate instance for details](https://weblate.securedrop.org/projects/securedrop/#information). Thanks to our friends at PyUp for sponsoring a subscription to their [Python security database](https://pyup.io).
