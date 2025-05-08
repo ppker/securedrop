@@ -69,6 +69,16 @@ def test_page_not_found(source_app):
             ins.assert_template_used("notfound.html")
 
 
+def test_static_asset_not_found(source_app):
+    """Verify that requesting a missing asset returns the expected template and
+    HTTP status."""
+    with InstrumentedApp(source_app) as ins:
+        with source_app.test_client() as app:
+            resp = app.get("/static/foo")
+            assert resp.status_code == 404
+            ins.assert_template_used("notfound.html")
+
+
 def test_orgname_default_set(source_app):
     class dummy_current:
         organization_name = None
