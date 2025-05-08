@@ -229,6 +229,7 @@ def test_paxctld_focal(host):
     assert host.package("paxctld").is_installed
     f = host.file("/etc/paxctld.conf")
     assert f.is_file
+    assert f.contains("^/usr/sbin/apache2\tm")
 
     s = host.service("paxctld")
     assert s.is_enabled
@@ -237,15 +238,6 @@ def test_paxctld_focal(host):
     # The securedrop-grsec metapackage will copy the config
     # out of /opt/ to ensure the file is always clobbered on changes.
     assert host.file("/opt/securedrop/paxctld.conf").is_file
-
-    hostname = host.check_output("hostname -s")
-    assert ("app" in hostname) or ("mon" in hostname)
-
-    # Under Focal, apache2 pax flags managed by securedrop-grsec metapackage.
-    # Both hosts, app & mon, should have the same exemptions. Check precedence
-    # between install-local-packages & apt-test repo for securedrop-grsec.
-    if "app" in hostname:
-        assert f.contains("^/usr/sbin/apache2\tm")
 
 
 @pytest.mark.parametrize(
