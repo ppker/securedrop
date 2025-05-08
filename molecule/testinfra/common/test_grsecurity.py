@@ -148,6 +148,7 @@ def test_grsecurity_paxtest(host):
     """
     if host.system_info.codename == "noble":
         pytest.skip("FIXME: paxtest is returning unclear output on noble")
+    installed_paxtest = False
     if not host.exists("/usr/bin/paxtest"):
         warnings.warn("Installing paxtest to run kernel tests", stacklevel=1)
         with host.sudo():
@@ -156,6 +157,7 @@ def test_grsecurity_paxtest(host):
             assert host.run("apt-get update").rc == 0
             tries = 0
             while not host.exists("/usr/bin/paxtest"):
+                installed_paxtest = True
                 cmd = host.run("apt-get install --yes paxtest")
                 if cmd.rc == 0:
                     continue
@@ -196,8 +198,9 @@ def test_grsecurity_paxtest(host):
 
         assert paxtest_results == paxtest_expected
     finally:
-        with host.sudo():
-            host.run("apt-get remove -y paxtest")
+        if installed_paxtest:
+            with host.sudo():
+                host.run("apt-get remove -y paxtest")
 
 
 def test_apt_autoremove(host):
