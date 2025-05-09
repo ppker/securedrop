@@ -34,6 +34,9 @@ def orbot_web_driver(sd_servers):
     profile.update_preferences()
     orbot_web_driver = webdriver.Firefox(options=orbot_options)
 
+    # Set a null locale so this driver behaves the same as the others
+    orbot_web_driver.locale = None  # type: ignore[attr-defined]
+
     try:
         driver_user_agent = orbot_web_driver.execute_script("return navigator.userAgent")
         assert driver_user_agent == orbot_user_agent
@@ -57,7 +60,8 @@ class TestSourceAppBrowserWarnings:
         # Then they see a warning
         warning_banner = navigator.driver.find_element(By.ID, "browser-tb")
         assert warning_banner.is_displayed()
-        assert "It is recommended to use Tor Browser" in warning_banner.text
+        if navigator.accept_languages in [None, "en_US"]:
+            assert "It is recommended to use Tor Browser" in warning_banner.text
 
         # And they are able to dismiss the warning
         warning_dismiss_button = navigator.driver.find_element(By.ID, "browser-tb-close")
@@ -82,7 +86,8 @@ class TestSourceAppBrowserWarnings:
         # Then they see a warning
         warning_banner = navigator.driver.find_element(By.ID, "browser-android")
         assert warning_banner.is_displayed()
-        assert "use the desktop version of Tor Browser" in warning_banner.text
+        if navigator.accept_languages in [None, "en_US"]:
+            assert "use the desktop version of Tor Browser" in warning_banner.text
 
         # And they are able to dismiss the warning
         warning_dismiss_button = navigator.driver.find_element(By.ID, "browser-android-close")
@@ -107,4 +112,5 @@ class TestSourceAppBrowserWarnings:
         # Then they see a warning
         banner = navigator.driver.find_element(By.ID, "browser-security-level")
         assert banner.is_displayed()
-        assert "Security Level is too low" in banner.text
+        if navigator.accept_languages in [None, "en_US"]:
+            assert "Security Level is too low" in banner.text

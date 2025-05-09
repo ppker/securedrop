@@ -142,12 +142,14 @@ class TestAdminInterfaceAddUser:
         error_msg = journ_app_nav.nav_helper.wait_for(
             lambda: journ_app_nav.driver.find_element(By.CSS_SELECTOR, ".form-validation-error")
         )
+        assert len(error_msg.text) > 0
 
         # And they see the corresponding error message
-        assert (
-            "This username is invalid because it is reserved for internal use "
-            "by the software." in error_msg.text
-        )
+        if journ_app_nav.driver.locale in [None, "en_US"]:
+            assert (
+                "This username is invalid because it is reserved for internal use "
+                "by the software." in error_msg.text
+            )
 
 
 # Tests for editing a user need a second journalist user to be created
@@ -240,7 +242,8 @@ class TestAdminInterfaceEditAndDeleteUser:
         # Then it succeeds
         def user_edited():
             flash_msg = journ_app_nav.driver.find_element(By.CSS_SELECTOR, ".flash")
-            assert "Account updated." in flash_msg.text
+            if journ_app_nav.driver.locale in [None, "en_US"]:
+                assert "Account updated." in flash_msg.text
 
         journ_app_nav.nav_helper.wait_for(user_edited)
 
@@ -261,7 +264,8 @@ class TestAdminInterfaceEditAndDeleteUser:
         # Then it fails
         def user_edited():
             flash_msg = journ_app_nav.driver.find_element(By.CSS_SELECTOR, ".flash")
-            assert "Invalid username" in flash_msg.text
+            if journ_app_nav.driver.locale in [None, "en_US"]:
+                assert "Invalid username" in flash_msg.text
 
         journ_app_nav.nav_helper.wait_for(user_edited)
 
@@ -420,7 +424,8 @@ class TestAdminInterfaceEditConfig:
     def _admin_submits_instance_settings_form(journ_app_nav: JournalistAppNavigator) -> None:
         def preferences_saved():
             flash_msg = journ_app_nav.driver.find_element(By.CSS_SELECTOR, ".flash")
-            assert "Preferences saved." in flash_msg.text
+            if journ_app_nav.driver.locale in [None, "en_US"]:
+                assert "Preferences saved." in flash_msg.text
 
         journ_app_nav.nav_helper.wait_for(preferences_saved, timeout=20)
 

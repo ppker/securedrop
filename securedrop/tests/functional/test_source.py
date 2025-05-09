@@ -60,13 +60,15 @@ class TestSourceAppCodenameHints:
         confirmation_text_first_submission = navigator.source_submits_a_message()
 
         # And they see the expected confirmation messages for a first submission on first login
-        assert self.FIRST_SUBMISSION_TEXT in confirmation_text_first_submission
+        if navigator.accept_languages in [None, "en_US"]:
+            assert self.FIRST_SUBMISSION_TEXT in confirmation_text_first_submission
 
         # And when they submit a second message
         confirmation_text_second_submission = navigator.source_submits_a_message()
 
         # Then they don't see the messages since it's not their first submission
-        assert self.FIRST_SUBMISSION_TEXT not in confirmation_text_second_submission
+        if navigator.accept_languages in [None, "en_US"]:
+            assert self.FIRST_SUBMISSION_TEXT not in confirmation_text_second_submission
 
     def test_submission_notifications_on_second_login(self, sd_servers, tor_browser_web_driver):
         navigator = SourceAppNavigator(
@@ -91,13 +93,15 @@ class TestSourceAppCodenameHints:
         confirmation_text_first_submission = navigator.source_submits_a_message()
 
         # And they see the expected confirmation messages for a first submission on second login
-        assert self.FIRST_SUBMISSION_TEXT in confirmation_text_first_submission
+        if navigator.accept_languages in [None, "en_US"]:
+            assert self.FIRST_SUBMISSION_TEXT in confirmation_text_first_submission
 
         # And when they submit a second message
         confirmation_text_second_submission = navigator.source_submits_a_message()
 
         # Then they don't see the messages since it's not their first submission
-        assert self.FIRST_SUBMISSION_TEXT not in confirmation_text_second_submission
+        if navigator.accept_languages in [None, "en_US"]:
+            assert self.FIRST_SUBMISSION_TEXT not in confirmation_text_second_submission
 
 
 class TestSourceAppDownloadJournalistKey:
@@ -167,7 +171,7 @@ class TestSourceAppCodenamesInMultipleTabs:
         # Then the submission fails and the user sees the corresponding flash message in Tab B
         self._assert_is_on_lookup_page(navigator)
         notification = self._extract_flash_message_content(navigator)
-        if not navigator.accept_languages:
+        if navigator.driver.locale in [None, "en_US"]:
             assert "You are already logged in." in notification
 
         # And the user's actual codename is the one initially generated in Tab A
@@ -220,7 +224,7 @@ class TestSourceAppCodenamesInMultipleTabs:
         # Then they get redirected to /lookup with the corresponding flash message
         self._assert_is_on_lookup_page(navigator)
         notification = self._extract_flash_message_content(navigator)
-        if not navigator.accept_languages:
+        if navigator.driver.locale in [None, "en_US"]:
             assert "You were redirected because you are already logged in." in notification
 
         # And the user's actual codename is the expected one

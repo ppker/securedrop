@@ -32,4 +32,5 @@ class TestSourceUserCancels:
 
         # And the right message is displayed
         heading = source_app_nav.driver.find_element(By.ID, "submit-heading")
-        assert heading.text == "Submit Files or Messages"
+        if source_app_nav.accept_languages in [None, "en_US"]:
+            assert heading.text == "Submit Files or Messages"
