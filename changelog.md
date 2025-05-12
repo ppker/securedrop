@@ -2,7 +2,27 @@
 
 ## 2.13.0~rc1
 
-*
+
+
+## 2.12.8
+
+* Do fully automated upgrade of 100% of mon servers (#7540)
+
+## 2.12.7
+
+* Do fully automated upgrade of 40% of mon servers (#7536)
+
+## 2.12.6
+
+* Do fully automated upgrade of 20% of mon servers (#7531)
+
+## 2.12.5
+
+* Do fully automated upgrade of 100% of app servers (#7530)
+
+## 2.12.4
+
+* Do fully automated upgrade of 60% of app servers (#7523)
 
 ## 2.12.3
 
