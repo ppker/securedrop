@@ -148,6 +148,7 @@ def test_grsecurity_paxtest(host):
     """
     if host.system_info.codename == "noble":
         pytest.skip("FIXME: paxtest is returning unclear output on noble")
+    installed_paxtest = False
     if not host.exists("/usr/bin/paxtest"):
         warnings.warn("Installing paxtest to run kernel tests", stacklevel=1)
         with host.sudo():
@@ -156,6 +157,7 @@ def test_grsecurity_paxtest(host):
             assert host.run("apt-get update").rc == 0
             tries = 0
             while not host.exists("/usr/bin/paxtest"):
+                installed_paxtest = True
                 cmd = host.run("apt-get install --yes paxtest")
                 if cmd.rc == 0:
                     continue
@@ -196,8 +198,9 @@ def test_grsecurity_paxtest(host):
 
         assert paxtest_results == paxtest_expected
     finally:
-        with host.sudo():
-            host.run("apt-get remove -y paxtest")
+        if installed_paxtest:
+            with host.sudo():
+                host.run("apt-get remove -y paxtest")
 
 
 def test_apt_autoremove(host):
@@ -226,6 +229,7 @@ def test_paxctld_focal(host):
     assert host.package("paxctld").is_installed
     f = host.file("/etc/paxctld.conf")
     assert f.is_file
+    assert f.contains("^/usr/sbin/apache2\tm")
 
     s = host.service("paxctld")
     assert s.is_enabled
@@ -234,15 +238,6 @@ def test_paxctld_focal(host):
     # The securedrop-grsec metapackage will copy the config
     # out of /opt/ to ensure the file is always clobbered on changes.
     assert host.file("/opt/securedrop/paxctld.conf").is_file
-
-    hostname = host.check_output("hostname -s")
-    assert ("app" in hostname) or ("mon" in hostname)
-
-    # Under Focal, apache2 pax flags managed by securedrop-grsec metapackage.
-    # Both hosts, app & mon, should have the same exemptions. Check precedence
-    # between install-local-packages & apt-test repo for securedrop-grsec.
-    if "app" in hostname:
-        assert f.contains("^/usr/sbin/apache2\tm")
 
 
 @pytest.mark.parametrize(
