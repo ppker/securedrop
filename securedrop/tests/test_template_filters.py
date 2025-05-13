@@ -10,6 +10,24 @@ from flask import session
 from tests.test_i18n import create_config_for_i18n_test
 
 
+def test_nl2br(source_app):
+    """Test the filter integrated with a Jinja2 environment."""
+    template = source_app.jinja_env.from_string("{{ text|nl2br }}")
+    result = template.render(text="Line1\nLine2")
+
+    assert result == "Line1<br>\nLine2"
+
+
+def test_nl2br_escaping(source_app):
+    """Test the filter with unsafe HTML in a Jinja2 environment."""
+    template = source_app.jinja_env.from_string("{{ text|nl2br }}")
+    result = template.render(text="<script>alert('xss')</script>\n<b>Bold</b>")
+
+    assert (
+        result == "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;<br>\n&lt;b&gt;Bold&lt;/b&gt;"
+    )
+
+
 def verify_rel_datetime_format(app):
     with app.test_client() as c:
         c.get("/")
