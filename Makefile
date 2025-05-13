@@ -8,6 +8,11 @@ STABLE_VER := $(shell cat molecule/shared/stable.ver)
 SDBIN := $(SDROOT)/securedrop/bin
 DEVSHELL := $(SDBIN)/dev-shell
 
+ifdef USE_PODMAN
+OCI_BIN=podman
+else
+OCI_BIN=docker
+endif
 
 ######################################
 #
@@ -250,6 +255,24 @@ dev-tor:  ## Run the development server with onion services in a Docker containe
 	@echo "███ Starting development server with onion services..."
 	@OFFSET_PORTS='false' DOCKER_BUILD_VERBOSE='true' USE_TOR='true' SLIM_BUILD=1 $(DEVSHELL) $(SDBIN)/run
 	@echo
+
+.PHONY:
+dev-get-id:  ## Get the ID of the running "make dev" or "make dev-tor" container.
+	@$(OCI_BIN) ps --format json --filter "name=securedrop-dev" --format '{{.ID}}'
+
+.PHONY:
+dev-enter:  ## Start a shell directly in the running "make dev" or "make dev-tor" container.
+	@$(OCI_BIN) exec -it \
+		$(shell make -s dev-get-id) \
+		bash
+
+.PHONY: dev-load-data
+dev-load-data:  ## Run "loaddata.py" in the running "make dev" or "make dev-tor" container. Set $NUM_JOURNALISTS and/or $NUM_SOURCES on the command line as needed.
+	@$(OCI_BIN) exec -it \
+		-e NUM_JOURNALISTS \
+		-e NUM_SOURCES \
+		$(shell make -s dev-get-id) \
+		./loaddata.py $(SD_LOADDATA_ARGS)
 
 .PHONY: demo-landing-page
 demo-landing-page: ## Serve the landing page for the SecureDrop demo
