@@ -28,7 +28,7 @@ class SourceAppNavigator:
         self.driver = web_driver
 
         # Some string-based tests check this to avoid failing on translated strings.
-        self.accept_languages = accept_languages
+        self.accept_languages = self.driver.locale  # type: ignore[attr-defined]
 
     @classmethod
     @contextmanager
@@ -71,7 +71,7 @@ class SourceAppNavigator:
         self.nav_helper.safe_click_by_css_selector("#create-form button")
 
         def submit_page_loaded() -> None:
-            if not self.accept_languages:
+            if self.accept_languages in [None, "en_US"]:
                 headline = self.driver.find_element(By.ID, "submit-heading")
                 # Message will either be "Submit Messages" or "Submit Files or Messages" depending
                 #  on whether file uploads are allowed by the instance's config
@@ -125,7 +125,7 @@ class SourceAppNavigator:
 
         # Wait for confirmation that the message was submitted
         def message_submitted():
-            if not self.accept_languages:
+            if self.accept_languages in [None, "en_US"]:
                 notification = self.driver.find_element(By.CSS_SELECTOR, ".success")
                 assert "Thank" in notification.text
                 return notification.text
@@ -145,7 +145,7 @@ class SourceAppNavigator:
             self.nav_helper.safe_click_by_css_selector(".form-controls button")
 
             def file_submitted() -> None:
-                if not self.accept_languages:
+                if self.accept_languages in [None, "en_US"]:
                     notification = self.driver.find_element(By.CSS_SELECTOR, ".success")
                     expected_notification = "Thank you for sending this information to us"
                     assert expected_notification in notification.text

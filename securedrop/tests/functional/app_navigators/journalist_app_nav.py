@@ -34,8 +34,7 @@ class JournalistAppNavigator:
         self.nav_helper = NavigationHelper(web_driver)
         self.driver = web_driver
 
-        # Some string-based tests check this to avoid failing on translated strings.
-        self.accept_languages = accept_languages
+        self.accept_languages = self.driver.locale  # type: ignore[attr-defined]
 
     def got_expected_language(self, locale: str) -> None:
         expected = locale.replace("_", "-")
@@ -91,7 +90,7 @@ class JournalistAppNavigator:
         collections_count = self.count_sources_on_index_page()
         assert collections_count == 1
 
-        if not self.accept_languages:
+        if self.accept_languages in [None, "en_US"]:
             # There should be a "1 unread" span in the sole collection entry
             unread_span = self.driver.find_element(By.CSS_SELECTOR, "tr.unread")
             assert "1 unread" in unread_span.text
@@ -154,7 +153,7 @@ class JournalistAppNavigator:
         self.driver.find_element(By.ID, "reply-button").click()
 
         def reply_stored() -> None:
-            if not self.accept_languages:
+            if self.accept_languages in [None, "en_US"]:
                 assert "The source will receive your reply" in self.driver.page_source
 
         self.nav_helper.wait_for(reply_stored)
@@ -244,7 +243,7 @@ class JournalistAppNavigator:
         self.nav_helper.safe_click_by_id("add-user")
         self.nav_helper.wait_for(lambda: self.driver.find_element(By.ID, "username"))
 
-        if not self.accept_languages:
+        if self.accept_languages in [None, "en_US"]:
             # The add user page has a form with an "ADD USER" button
             btns = self.driver.find_elements(By.TAG_NAME, "button")
             assert "ADD USER" in [el.text for el in btns]
@@ -304,7 +303,7 @@ class JournalistAppNavigator:
 
         # Verify the two-factor authentication
         def user_token_added():
-            if not self.accept_languages:
+            if self.accept_languages in [None, "en_US"]:
                 # Successfully verifying the code should redirect to the admin
                 # interface, and flash a message indicating success
                 flash_msg = self.driver.find_elements(By.CSS_SELECTOR, ".flash")
@@ -326,7 +325,8 @@ class JournalistAppNavigator:
 
         # Logging out should redirect back to the login page
         def login_page():
-            assert "Log in to access the journalist interface" in self.driver.page_source
+            if self.accept_languages in [None, "en_US"]:
+                assert "Log in to access the journalist interface" in self.driver.page_source
 
         self.nav_helper.wait_for(login_page)
 
@@ -351,7 +351,7 @@ class JournalistAppNavigator:
         # Ensure the admin is allowed to edit the journalist
         def can_edit_user():
             h = self.driver.find_elements(By.TAG_NAME, "h1")[0]
-            if not self.accept_languages:
+            if self.accept_languages in [None, "en_US"]:
                 assert f'Edit user "{username_of_journalist_to_edit}"' == h.text
 
         self.nav_helper.wait_for(can_edit_user)

@@ -181,7 +181,10 @@ class TestJournalist:
         # Then a message shows up to say that the collection was deleted
         def collection_deleted():
             flash_msg = journ_app_nav.driver.find_element(By.CSS_SELECTOR, ".flash")
-            assert "The account and all data for the source have been deleted." in flash_msg.text
+            if journ_app_nav.accept_languages in [None, "en_US"]:
+                assert (
+                    "The account and all data for the source have been deleted." in flash_msg.text
+                )
 
         journ_app_nav.nav_helper.wait_for(collection_deleted)
 
@@ -367,10 +370,11 @@ class TestJournalist:
         def one_source_no_files():
             assert journ_app_nav.count_sources_on_index_page() == 1
             flash_msg = journ_app_nav.driver.find_element(By.CSS_SELECTOR, ".flash")
-            assert "The files and messages have been deleted" in flash_msg.text
             counts = journ_app_nav.driver.find_elements(By.CSS_SELECTOR, ".submission-count")
-            assert "0 docs" in counts[0].text
-            assert "0 messages" in counts[1].text
+            if journ_app_nav.accept_languages in [None, "en_US"]:
+                assert "The files and messages have been deleted" in flash_msg.text
+                assert "0 docs" in counts[0].text
+                assert "0 messages" in counts[1].text
 
         journ_app_nav.nav_helper.wait_for(one_source_no_files)
 
