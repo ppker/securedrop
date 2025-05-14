@@ -14,17 +14,22 @@ cd "$(git rev-parse --show-toplevel)/securedrop"
 
 uv pip compile ${COMMON_ARGS} \
     --output-file requirements/${VERSION_CODENAME}/develop-requirements.txt \
+    requirements/base-requirements.in \
     requirements/translation-requirements.in \
     requirements/develop-requirements.in
 uv pip compile ${COMMON_ARGS} \
     --output-file requirements/${VERSION_CODENAME}/test-requirements.txt \
+    requirements/base-requirements.in \
     requirements/test-requirements.in
 uv pip compile ${COMMON_ARGS} \
     --output-file requirements/${VERSION_CODENAME}/requirements.txt \
+    requirements/base-requirements.in \
     requirements/requirements.in
 uv pip compile ${COMMON_ARGS} \
     --output-file requirements/${VERSION_CODENAME}/bootstrap-requirements.txt \
+    requirements/base-requirements.in \
     requirements/bootstrap-requirements.in
 uv pip compile ${COMMON_ARGS} \
     --output-file requirements/${VERSION_CODENAME}/translation-requirements.txt \
+    requirements/base-requirements.in \
     requirements/translation-requirements.in
