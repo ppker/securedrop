@@ -1,13 +1,12 @@
 Fixes #
 
-## Description
-
 ## Test plan
 <!-- Delete this section if not applicable (e.g., some docs-only changes) -->
 
 ## Checklist
 
-<!-- If you leave any box below unchecked, please clarify where you may need support -->
+<!-- If you leave any box below unchecked, please clarify where you may need support.
+     If you're unsure, that's fine — a reviewer can help you out. -->
 
 This change accounts for:
 - [ ] any required additional documentation
