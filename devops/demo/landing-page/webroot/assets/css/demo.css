@@ -51,3 +51,6 @@ td {
     font-weight: 600;
     color: #4caf50;
 }
+.hidden {
+   display: none;
+}
