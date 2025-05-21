@@ -40,3 +40,17 @@ td {
     font-weight: bold;
     margin: 2em 0;
 }
+.copy-btn {
+    cursor: pointer;
+    vertical-align: middle;
+}
+.copiedtip {
+    margin-left: 6px;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    font-weight: 600;
+    color: #4caf50;
+}
+.hidden {
+   display: none;
+}
