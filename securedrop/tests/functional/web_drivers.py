@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from os.path import abspath, dirname, expanduser, join, realpath
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Any, Generator, Optional
 
 import tbselenium.common as cm
 from selenium import webdriver
@@ -37,105 +37,101 @@ _DRIVER_RETRY_COUNT = 3
 _DRIVER_RETRY_INTERVAL = 5
 
 
-def _create_torbrowser_driver(
-    accept_languages: Optional[str] = None,
-) -> TorBrowserDriver:
-    logging.info("Creating TorBrowserDriver")
-    log_file = open(_LOGFILE_PATH, "a")
-    log_file.write(f"\n\n[{datetime.now()}] Running Functional Tests\n")
-    log_file.flush()
+def _create_driver(
+    web_driver_type: WebDriverTypeEnum, accept_languages: Optional[str] = None, **kwargs: Any
+) -> WebDriver:
+    """
+    Creates and configures a WebDriver instance based on the specified driver class.
 
-    # Don't use Tor when reading from localhost, and turn off private
-    # browsing. We need to turn off private browsing because we won't be
-    # able to access the browser's cookies in private browsing mode. Since
-    # we use session cookies in SD anyway (in private browsing mode all
-    # cookies are set as session cookies), this should not affect session
-    # lifetime.
-    pref_dict = {
-        "network.proxy.no_proxies_on": "127.0.0.1",
-        "browser.privatebrowsing.autostart": False,
-    }
+    Args:
+        web_driver_type: The WebDriver class to instantiate (TorBrowserDriver or Firefox)
+        accept_languages: Optional language preferences string
+        **kwargs: Additional keyword arguments
 
-    Path(_TBB_PATH).mkdir(parents=True, exist_ok=True)
-    torbrowser_driver = None
-    for i in range(_DRIVER_RETRY_COUNT):
-        try:
-            torbrowser_driver = TorBrowserDriver(
-                _TBB_PATH,
-                tor_cfg=cm.USE_RUNNING_TOR,
-                pref_dict=pref_dict,
-                tbb_logfile_path=_LOGFILE_PATH,
-            )
-            if accept_languages is not None:
-                # privacy.spoof_english per
-                # <https://github.com/arkenfox/user.js/issues/1827#issuecomment-2075819482>.
-                set_tbb_pref(torbrowser_driver, "privacy.spoof_english", 1)
-                set_tbb_pref(torbrowser_driver, "intl.locale.requested", accept_languages)
+    Returns:
+        Configured WebDriver instance
 
-            logging.info("Created Tor Browser web driver")
-            torbrowser_driver.set_window_position(0, 0)
-            torbrowser_driver.set_window_size(*_BROWSER_SIZE)
-            break
-        except Exception as e:
-            logging.error("Error creating Tor Browser web driver: %s", e)
-            if i < _DRIVER_RETRY_COUNT:
-                time.sleep(_DRIVER_RETRY_INTERVAL)
+    Raises:
+        ValueError: If an unsupported driver class is provided
+        Exception: If driver creation fails after retry attempts
+    """
+    if web_driver_type not in WebDriverTypeEnum:
+        raise ValueError(f"Unsupported driver class: {web_driver_type}")
 
-    if not torbrowser_driver:
-        raise Exception("Could not create Tor Browser web driver")
+    if web_driver_type == WebDriverTypeEnum.TOR_BROWSER:
+        logging.info("Creating TorBrowserDriver")
+        log_file = open(_LOGFILE_PATH, "a")
+        log_file.write(f"\n\n[{datetime.now()}] Running Functional Tests\n")
+        log_file.flush()
 
-    # Add this attribute to the returned driver object so that tests using this
-    # fixture can know what locale it's parameterized with.
-    torbrowser_driver.locale = accept_languages  # type: ignore[attr-defined]
+        pref_dict = {
+            "network.proxy.no_proxies_on": "127.0.0.1",
+            "browser.privatebrowsing.autostart": False,
+        }
 
-    return torbrowser_driver
+        Path(_TBB_PATH).mkdir(parents=True, exist_ok=True)
+        torbrowser_driver = None
+        for i in range(_DRIVER_RETRY_COUNT):
+            try:
+                torbrowser_driver = TorBrowserDriver(
+                    _TBB_PATH,
+                    tor_cfg=cm.USE_RUNNING_TOR,
+                    pref_dict=pref_dict,
+                    tbb_logfile_path=_LOGFILE_PATH,
+                )
+                if accept_languages is not None:
+                    set_tbb_pref(torbrowser_driver, "privacy.spoof_english", 1)
+                    set_tbb_pref(torbrowser_driver, "intl.locale.requested", accept_languages)
 
+                logging.info("Created Tor Browser web driver")
+                torbrowser_driver.set_window_position(0, 0)
+                torbrowser_driver.set_window_size(*_BROWSER_SIZE)
+                break
+            except Exception as e:
+                logging.error("Error creating Tor Browser web driver: %s", e)
+                if i < _DRIVER_RETRY_COUNT:
+                    time.sleep(_DRIVER_RETRY_INTERVAL)
 
-def _create_firefox_driver(
-    accept_languages: Optional[str] = None,
-) -> webdriver.Firefox:
-    logging.info("Creating Firefox web driver")
+        if not torbrowser_driver:
+            raise Exception("Could not create Tor Browser web driver")
 
-    firefox_options = webdriver.FirefoxOptions()
-    firefox_options.binary_location = _FIREFOX_PATH
-    if accept_languages is not None:
-        firefox_options.set_preference("intl.accept_languages", accept_languages)
+        torbrowser_driver.locale = accept_languages  # type: ignore[attr-defined]
+        return torbrowser_driver
 
-    firefox_driver = None
-    for i in range(_DRIVER_RETRY_COUNT):
-        try:
-            firefox_driver = webdriver.Firefox(options=firefox_options)
-            firefox_driver.set_window_position(0, 0)
-            firefox_driver.set_window_size(*_BROWSER_SIZE)
-            logging.info("Created Firefox web driver")
-            break
-        except Exception as e:
-            logging.error("Error creating Firefox web driver: %s", e)
-            if i < _DRIVER_RETRY_COUNT:
-                time.sleep(_DRIVER_RETRY_INTERVAL)
+    else:  # Firefox driver
+        logging.info("Creating Firefox web driver")
+        firefox_options = webdriver.FirefoxOptions()
+        firefox_options.binary_location = _FIREFOX_PATH
+        if accept_languages is not None:
+            firefox_options.set_preference("intl.accept_languages", accept_languages)
 
-    if not firefox_driver:
-        raise Exception("Could not create Firefox web driver")
+        firefox_driver = None
+        for i in range(_DRIVER_RETRY_COUNT):
+            try:
+                firefox_driver = webdriver.Firefox(options=firefox_options)
+                firefox_driver.set_window_position(0, 0)
+                firefox_driver.set_window_size(*_BROWSER_SIZE)
+                logging.info("Created Firefox web driver")
+                break
+            except Exception as e:
+                logging.error("Error creating Firefox web driver: %s", e)
+                if i < _DRIVER_RETRY_COUNT:
+                    time.sleep(_DRIVER_RETRY_INTERVAL)
 
-    # Add this attribute to the returned driver object so that tests using this
-    # fixture can know what locale it's parameterized with.
-    firefox_driver.locale = accept_languages  # type: ignore[attr-defined]
+        if not firefox_driver:
+            raise Exception("Could not create Firefox web driver")
 
-    return firefox_driver
+        firefox_driver.locale = accept_languages  # type: ignore[attr-defined]
+        return firefox_driver
 
 
 @contextmanager
 def get_web_driver(
-    web_driver_type: WebDriverTypeEnum = WebDriverTypeEnum.TOR_BROWSER,
+    web_driver_type: WebDriverTypeEnum,
     accept_languages: Optional[str] = None,
 ) -> Generator[WebDriver, None, None]:
-    if web_driver_type == WebDriverTypeEnum.TOR_BROWSER:
-        web_driver = _create_torbrowser_driver(accept_languages=accept_languages)
-    elif web_driver_type == WebDriverTypeEnum.FIREFOX:
-        web_driver = _create_firefox_driver(accept_languages=accept_languages)
-    else:
-        raise ValueError(f"Unexpected value {web_driver_type}")
-
+    # Creates the webdriver based on the class inserted
+    web_driver = _create_driver(web_driver_type=web_driver_type, accept_languages=accept_languages)
     try:
         yield web_driver
     finally:
