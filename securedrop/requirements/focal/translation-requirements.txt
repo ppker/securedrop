@@ -9,6 +9,10 @@ babel==2.12.1 \
 babelgladeextractor==0.7.0 \
     --hash=sha256:bcf805e28b4bb18c8b6909a65a7cf5c7c2bcbf4ae50b164878c9682d22271798
     # via -r requirements/translation-requirements.in
+pip==25.0.1 \
+    --hash=sha256:88f96547ea48b940a3a385494e181e29fb8637898f88d88737c5049780f196ea \
+    --hash=sha256:c46efd13b6aa8279f33f2864459c8ce587ea6a1a59ee20de055868d8f7688f7f
+    # via -r requirements/base-requirements.in
 pytz==2022.2.1 \
     --hash=sha256:220f481bdafa09c3955dfbdddb7b57780e9a94f5127e35456a48589b9e0c0197 \
     --hash=sha256:cea221417204f2d1a2aa03ddae3e867921971d0d76f14d87abb4414415bbdcf5
@@ -16,4 +20,4 @@ pytz==2022.2.1 \
 setuptools==70.3.0 \
     --hash=sha256:f171bab1dfbc86b132997f26a119f6056a57950d058587841a0082e8830f9dc5 \
     --hash=sha256:fe384da74336c398e0d956d1cae0669bc02eed936cdb1d49b57de1990dc11ffc
-    # via -r requirements/translation-requirements.in
+    # via -r requirements/base-requirements.in
