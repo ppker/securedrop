@@ -42,6 +42,7 @@ RUN PATH="$PATH:/opt/cargo/bin/" \
 
 RUN sed -i 's/"localhost"\];/"localhost", "demo-source.securedrop.org"];/' /opt/securedrop/securedrop/static/js/source.js
 
+# Note: the 1001 UID is hardcoded in the deployment configuration; coordinate with Infra if it needs to change
 RUN useradd --no-create-home --home-dir /tmp --uid 1001 demo && echo "demo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     chown -R demo:demo /opt/securedrop /opt/venvs/
 
