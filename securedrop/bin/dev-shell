@@ -13,7 +13,7 @@ USE_TOR="${USE_TOR:-}"
 USE_PODMAN="${USE_PODMAN:-}"
 SLIM_BUILD="${SLIM_BUILD:-}"
 DOCKER_RUN_ARGUMENTS="${DOCKER_RUN_ARGUMENTS:-}"
-UBUNTU_VERSION="${UBUNTU_VERSION:-focal}"
+UBUNTU_VERSION="${UBUNTU_VERSION:-noble}"
 
 # Allow opting into using podman with USE_PODMAN=1
 if  [[ -n "${USE_PODMAN}" ]]; then
