@@ -19,8 +19,6 @@ jobs:
       matrix:
         build: [one, two]
         versions:
-          - ubuntu: focal
-            python: "3.8"
           - ubuntu: noble
             python: "3.12"
     # TODO: change this back to ubuntu-latest once it is consistently 24.04
@@ -50,7 +48,7 @@ jobs:
   reproducible-debs:
     strategy:
       matrix:
-        ubuntu_version: [focal, noble]
+        ubuntu_version: [noble]
     runs-on: ubuntu-latest
     container: debian:bookworm
     needs:
