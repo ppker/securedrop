@@ -1,0 +1,82 @@
+- name: Read /etc/os-release
+  slurp:
+    src: /etc/os-release
+  register: os_release_content
+
+- name: Confirm host OS is Debian
+  assert:
+    that:
+      - '"NAME=\"Debian GNU/Linux\"" in (os_release_content.content | b64decode)'
+    msg: >-
+      SecureDrop requires Tails or a Debian qube for admin environments.
+
+- name: Check that /rw/config/rc.local exists
+  stat:
+    path: /rw/config/rc.local
+  register: rc_local_check
+
+- name: Confirm that /rw/config/rc.local exists
+  assert:
+    that:
+      - rc_local_check.stat.exists
+    msg: >-
+      The file `/rw/config/rc.local` is missing. Using SecureDrop in Debian
+      requires using Qubes.
+
+- name: Check for v3 SSH auth files
+  stat:
+    path: "{{ qube_config_ansible_base }}/{{ item }}"
+  register: v3_ssh_auth_files
+  with_items:
+    - app-ssh.auth_private
+    - mon-ssh.auth_private
+
+- name: Count the number of v3 SSH auth files
+  set_fact:
+    v3_ssh_auth_file_count: "{{ v3_ssh_auth_files.results | selectattr('stat.exists') | list | count }}"
+
+- name: Check for Journalist client auth file
+  stat:
+    path: "{{ qube_config_ansible_base }}/app-journalist.auth_private"
+  register: v3_journalist_auth_file
+
+- name: Check for Source THS file
+  stat:
+    path: "{{ qube_config_ansible_base }}/app-sourcev3-ths"
+  register: v3_source_file
+
+- name: Check for Tor v3 key file
+  stat:
+    path: "{{ qube_config_ansible_base }}/tor_v3_keys.json"
+  register: v3_tor_key
+
+- name: Confirm that a valid set of SSH auth files is present
+  assert:
+    that:
+      - v3_ssh_auth_file_count == "0" or v3_ssh_auth_file_count == "2"
+    msg: >-
+      One of the SSH `.auth_private` files is missing. Please add the missing
+      file under `securedrop/install_files/ansible-base/ and retry the install command.
+
+- name: Confirm that the Journalist auth file is present
+  assert:
+    that:
+      - v3_journalist_auth_file.stat.exists
+    msg: >-
+      The `app-journalist.auth_private` file is missing. Please add the missing
+      file under `securedrop/install_files/ansible-base/ and retry the install command.
+  when:
+    - v3_source_file.stat.exists
+
+- name: Confirm that the Tor keys file is present
+  assert:
+    that:
+      - v3_tor_key.stat.exists
+    msg: >-
+      Authentication files for v3 SSH onion services were found, but the
+      corresponding `tor_v3_keys.json` file is missing. To enable updates
+      to an existing SecureDrop instance, please add this file under
+      `securedrop/install_files/ansible-base`.
+  when:
+    - enable_ssh_over_tor
+    - v3_ssh_auth_file_count == "2"

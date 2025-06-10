@@ -1,0 +1,6 @@
+---
+# Home dir in Debian qube
+qube_home: "/home/user"
+
+# Directory containing Ansible config, including site-specific customizations.
+qube_config_ansible_base: "{{ role_path }}/../.."

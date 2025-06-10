@@ -953,6 +953,18 @@ def run_tails_config(args: argparse.Namespace) -> int:
     ]
     return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
 
+@update_check_required("qubesconfig")
+def run_qubes_config(args: argparse.Namespace) -> int:
+    """Configure Qubes environment post SD install"""
+    sdlog.info("Configuring admin qube environment")
+    ansible_cmd = ansible_command() + [
+        os.path.join(args.ansible_path, "securedrop-qubes.yml"),
+        # Passing an empty inventory file to override the automatic dynamic
+        # inventory script, which fails if no site vars are configured.
+        "-i",
+        "/dev/null",
+    ]
+    return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
 
 def check_for_updates_wrapper(args: argparse.Namespace) -> int:
     check_for_updates(args)
@@ -1185,6 +1197,9 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
 
     parse_tailsconfig = subparsers.add_parser("tailsconfig", help=run_tails_config.__doc__)
     parse_tailsconfig.set_defaults(func=run_tails_config)
+
+    parse_qubesconfig = subparsers.add_parser("qubesconfig", help=run_qubes_config.__doc__)
+    parse_qubesconfig.set_defaults(func=run_qubes_config)
 
     parse_generate_tor_keys = subparsers.add_parser(
         "generate_v3_keys", help=find_or_generate_new_torv3_keys.__doc__
