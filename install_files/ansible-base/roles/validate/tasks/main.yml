@@ -1,3 +1,17 @@
 ---
-- include_tasks: validate_tails_environment.yml
-  when: securedrop_validate_tails_environment
+- name: Read /etc/os-release
+  slurp:
+    src: /etc/os-release
+  register: os_release_content
+
+- name: Include Qubes validation if Debian
+  include_tasks: validate_qubes_environment.yml
+  when:
+    - securedrop_validate_environment
+    - '"NAME=\"Debian GNU/Linux\"" in (os_release_content.content | b64decode)'
+
+- name: Include Tails validation if Tails
+  include_tasks: validate_tails_environment.yml
+  when:
+    - securedrop_validate_environment
+    - '"NAME=\"Tails\"" in (os_release_content.content | b64decode)'
