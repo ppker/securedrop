@@ -15,3 +15,10 @@
   when:
     - securedrop_validate_environment
     - '"NAME=\"Tails\"" in (os_release_content.content | b64decode)'
+
+- name: Fail if not Debian or Tails
+  assert:
+    that:
+      - '"NAME=\"Debian GNU/Linux\"" in (os_release_content.content | b64decode) or "NAME=\"Tails\"" in (os_release_content.content | b64decode)'
+    fail_msg: "SecureDrop requires Tails or a Debian qube for admin environments."
+  when: securedrop_validate_environment
