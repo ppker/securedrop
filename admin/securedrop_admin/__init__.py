@@ -953,6 +953,7 @@ def run_tails_config(args: argparse.Namespace) -> int:
     ]
     return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
 
+
 @update_check_required("qubesconfig")
 def run_qubes_config(args: argparse.Namespace) -> int:
     """Configure Qubes environment post SD install"""
@@ -965,6 +966,7 @@ def run_qubes_config(args: argparse.Namespace) -> int:
         "/dev/null",
     ]
     return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
+
 
 def check_for_updates_wrapper(args: argparse.Namespace) -> int:
     check_for_updates(args)
