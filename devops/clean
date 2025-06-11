@@ -49,6 +49,11 @@ function remove_unwanted_files() {
         $DOCKER_BIN volume remove sd-onion-services
     fi
 
+    # Remove any persistent dev datastore
+    if $DOCKER_BIN volume inspect sd-store > /dev/null; then
+        $DOCKER_BIN volume remove sd-store
+    fi
+
     # Remove extraneous copies of the git repos, pulled in
     # via the Molecule upgrade testing scenario.
     rm -rf molecule/upgrade/.molecule/sd-orig \
