@@ -16,7 +16,19 @@ urandom
 build_redwood
 maybe_create_config_py
 run_redis
-reset_demo
+
+if [[ -e /var/lib/securedrop/db.sqlite ]]; then
+    echo "Using existing SecureDrop data..."
+    # Compile translated strings
+    pybabel compile --directory translations/
+    # remove previously uploaded custom logos
+    rm -f /var/www/securedrop/static/i/custom_logo.png
+else
+    echo "Creating fresh SecureDrop data..."
+    reset_demo
+fi
+
+
 maybe_use_tor
 
 # run the batch processing services normally managed by systemd

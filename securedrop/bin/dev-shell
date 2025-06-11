@@ -122,6 +122,12 @@ function docker_run() {
         DOCKER_RUN_ARGUMENTS="${DOCKER_RUN_ARGUMENTS} --volume sd-onion-services:/var/lib/tor/services"
     fi
 
+    if [ -n "${USE_PERSISTENT_STORE:-}" ]; then
+        # Mount persistent data store
+        $DOCKER_BIN volume inspect sd-store -f " " || $DOCKER_BIN volume create sd-store
+        DOCKER_RUN_ARGUMENTS="${DOCKER_RUN_ARGUMENTS} --volume sd-store:/var/lib/securedrop"
+    fi
+
     # The --shm-size argument sets up dedicated shared memory for the
     # container. Our tests can fail with the default of 64m.
     echo "Starting ${UBUNTU_VERSION} container..."
