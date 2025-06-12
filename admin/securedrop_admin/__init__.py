@@ -938,7 +938,7 @@ def run_local_config(args: argparse.Namespace) -> int:
     """Configure either Tails or Qubes environment post SD install"""
     sdlog.info("Configuring local environment")
 
-    with open("/etc/os-release", "r") as os_release_file:
+    with open("/etc/os-release") as os_release_file:
         os_release = os_release_file.read()
 
     if 'NAME="Debian GNU/Linux"' in os_release:
