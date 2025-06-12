@@ -20,21 +20,10 @@
       on the servers, and that the `.auth_private` files are located in:
       `{{ qube_config_ansible_base }}/`.
 
-- name: Append ClientOnionAuthDir directive to torrc additions
-  become: yes
-  lineinfile:
-    dest: "/etc/tor/torrc"
-    line: "ClientOnionAuthDir /var/lib/tor/onion_auth"
-    owner: root
-    group: root
-    mode: "0444"
-    create: yes
-  when: find_v3_aths_info_result.matched >= 1
-
 - name: Create Tor onion auth directory
   become: yes
   file:
-    dest: "/var/lib/tor/onion_auth"
+    dest: "/rw/usrlocal/lib/tor/onion_auth"
     state: directory
     owner: debian-tor
     group: debian-tor
@@ -44,7 +33,7 @@
   become: yes
   copy:
     src: "{{ item }}"
-    dest: "/var/lib/tor/onion_auth/"
+    dest: "/rw/usrlocal/lib/tor/onion_auth/"
     owner: debian-tor
     group: debian-tor
     mode: "0600"
@@ -52,9 +41,26 @@
     - "{{ qube_config_ansible_base }}/*.auth_private"
   when: find_v3_aths_info_result.matched >= 1
 
-- name: Restart Tor service
+- name: Copy torrc_additions.sh to /rw/config
   become: yes
-  service:
-    name: tor
-    state: restarted
-  when: find_v3_aths_info_result.matched >= 1
+  copy:
+    src: torrc_additions.sh
+    dest: /rw/config/torrc_additions.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Execute torrc_additions.sh in /rw/config/rc.local
+  become: yes
+  lineinfile:
+    dest: "/rw/config/rc.local"
+    line: "/rw/config/torrc_additions.sh"
+    owner: root
+    group: root
+    mode: "0755"
+    create: yes
+
+- name: Run torrc_additions.sh
+  become: yes
+  command: /rw/config/torrc_additions.sh
+  register: torrc_additions_result
