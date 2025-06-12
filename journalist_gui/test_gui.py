@@ -178,7 +178,7 @@ class WindowTestCase(AppTestCase):
         child.before = before
         child.exitstatus = 0
         with mock.patch("os.remove") as mock_remove:
-            self.window.tails_thread.run()
+            self.window.local_thread.run()
 
         mock_remove.assert_called_once_with(FLAG_LOCATION)
         assert "failed=0" in self.window.output
@@ -190,10 +190,10 @@ class WindowTestCase(AppTestCase):
         before = MagicMock()
         before.decode.side_effect = ["SUDO: ", "failed=10 ERROR!!!!!"]
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
-        assert self.window.failure_reason == strings.localconfig_failed_generic_reason
+        assert self.window.failure_reason == strings.tailsconfig_failed_generic_reason
 
     @mock.patch("pexpect.spawn")
     def test_localconfigThread_sudo_password_is_wrong(self, pt):
@@ -201,10 +201,10 @@ class WindowTestCase(AppTestCase):
         before = MagicMock()
         before.decode.return_value = "stuff[sudo via ansible, key=blahblahblah"
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
-        assert self.window.failure_reason == strings.localconfig_failed_sudo_password
+        assert self.window.failure_reason == strings.tailsconfig_failed_sudo_password
 
     @mock.patch("pexpect.spawn")
     def test_localconfigThread_timeout(self, pt):
@@ -212,10 +212,10 @@ class WindowTestCase(AppTestCase):
         before = MagicMock()
         before.decode.side_effect = ["some data", pexpect.exceptions.TIMEOUT(1)]
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
-        assert self.window.failure_reason == strings.localconfig_failed_timeout
+        assert self.window.failure_reason == strings.tailsconfig_failed_timeout
 
     @mock.patch("pexpect.spawn")
     def test_localconfigThread_some_other_subprocess_error(self, pt):
@@ -225,10 +225,10 @@ class WindowTestCase(AppTestCase):
             1, "cmd", b"Generic other failure"
         )
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
-        assert self.window.failure_reason == strings.localconfig_failed_generic_reason
+        assert self.window.failure_reason == strings.tailsconfig_failed_generic_reason
 
     def test_tails_status_success(self):
         result = {"status": True, "output": "successful.", "failure_reason": ""}
