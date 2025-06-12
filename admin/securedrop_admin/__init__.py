@@ -933,39 +933,6 @@ def restore_securedrop(args: argparse.Namespace) -> int:
     return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
 
 
-@update_check_required("tailsconfig")
-def run_tails_config(args: argparse.Namespace) -> int:
-    """Configure Tails environment post SD install"""
-    sdlog.info("Configuring Tails workstation environment")
-    sdlog.info(
-        "You'll be prompted for the temporary Tails admin password,"
-        " which was set on Tails login screen"
-    )
-    ansible_cmd = ansible_command() + [
-        os.path.join(args.ansible_path, "securedrop-tails.yml"),
-        "--ask-become-pass",
-        # Passing an empty inventory file to override the automatic dynamic
-        # inventory script, which fails if no site vars are configured.
-        "-i",
-        "/dev/null",
-    ]
-    return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
-
-
-@update_check_required("qubesconfig")
-def run_qubes_config(args: argparse.Namespace) -> int:
-    """Configure Qubes environment post SD install"""
-    sdlog.info("Configuring admin qube environment")
-    ansible_cmd = ansible_command() + [
-        os.path.join(args.ansible_path, "securedrop-qubes.yml"),
-        # Passing an empty inventory file to override the automatic dynamic
-        # inventory script, which fails if no site vars are configured.
-        "-i",
-        "/dev/null",
-    ]
-    return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
-
-
 @update_check_required("localconfig")
 def run_local_config(args: argparse.Namespace) -> int:
     """Configure either Tails or Qubes environment post SD install"""
@@ -976,10 +943,29 @@ def run_local_config(args: argparse.Namespace) -> int:
 
     if 'NAME="Debian GNU/Linux"' in os_release:
         sdlog.info("Detected Debian, running Qubes configuration")
-        return run_qubes_config(args)
+        ansible_cmd = ansible_command() + [
+            os.path.join(args.ansible_path, "securedrop-qubes.yml"),
+            # Passing an empty inventory file to override the automatic dynamic
+            # inventory script, which fails if no site vars are configured.
+            "-i",
+            "/dev/null",
+        ]
+        return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
     elif 'NAME="Tails"' in os_release:
         sdlog.info("Detected Tails, running Tails configuration")
-        return run_tails_config(args)
+        sdlog.info(
+            "You'll be prompted for the temporary Tails admin password,"
+            " which was set on Tails login screen"
+        )
+        ansible_cmd = ansible_command() + [
+            os.path.join(args.ansible_path, "securedrop-tails.yml"),
+            "--ask-become-pass",
+            # Passing an empty inventory file to override the automatic dynamic
+            # inventory script, which fails if no site vars are configured.
+            "-i",
+            "/dev/null",
+        ]
+        return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
 
     sdlog.error("Unsupported OS detected. Please run the appropriate configuration script.")
     return 1
