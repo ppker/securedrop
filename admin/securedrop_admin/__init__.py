@@ -276,9 +276,7 @@ class SiteConfig:
             text = document.text
             if text != "ossec@ossec.test":
                 return True
-            raise ValidationError(
-                message=("Must be set to something other than " "ossec@ossec.test")
-            )
+            raise ValidationError(message=("Must be set to something other than ossec@ossec.test"))
 
     class ValidateOptionalEmail(ValidateEmail):
         def validate(self, document: Document) -> bool:
@@ -783,7 +781,7 @@ def update_check_required(cmd_name: str) -> Callable[[_FuncT], _FuncT]:
                     sdlog.error("Problem determining current branch status.")
 
                 sdlog.error(
-                    "Running outdated or mismatched code can cause significant " "technical issues."
+                    "Running outdated or mismatched code can cause significant technical issues."
                 )
                 sdlog.error(
                     "To display more information about your repository state, run:\n\n\t"
@@ -793,7 +791,7 @@ def update_check_required(cmd_name: str) -> Callable[[_FuncT], _FuncT]:
                     "If you are certain you want to proceed, run:\n\n\t"
                     f"./securedrop-admin --force {cmd_name}\n"
                 )
-                sdlog.error("To apply the latest updates, run:\n\n\t" "./securedrop-admin update\n")
+                sdlog.error("To apply the latest updates, run:\n\n\t./securedrop-admin update\n")
                 sdlog.error(
                     "If this fails, see the latest upgrade guide on "
                     "https://docs.securedrop.org/ for instructions."
@@ -873,8 +871,8 @@ def install_securedrop(args: argparse.Namespace) -> int:
     SiteConfig(args).load_and_update_config(prompt=False)
 
     sdlog.info("Now installing SecureDrop on remote servers.")
-    sdlog.info("You will be prompted for the sudo password on the " "servers.")
-    sdlog.info("The sudo password is only necessary during initial " "installation.")
+    sdlog.info("You will be prompted for the sudo password on the servers.")
+    sdlog.info("The sudo password is only necessary during initial installation.")
     return subprocess.check_call(
         ansible_command()
         + [os.path.join(args.ansible_path, "securedrop-prod.yml"), "--ask-become-pass"],
@@ -966,6 +964,25 @@ def run_qubes_config(args: argparse.Namespace) -> int:
         "/dev/null",
     ]
     return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
+
+
+@update_check_required("localconfig")
+def run_local_config(args: argparse.Namespace) -> int:
+    """Configure either Tails or Qubes environment post SD install"""
+    sdlog.info("Configuring local environment")
+
+    with open("/etc/os-release", "r") as os_release_file:
+        os_release = os_release_file.read()
+
+    if 'NAME="Debian GNU/Linux"' in os_release:
+        sdlog.info("Detected Debian, running Qubes configuration")
+        return run_qubes_config(args)
+    elif 'NAME="Tails"' in os_release:
+        sdlog.info("Detected Tails, running Tails configuration")
+        return run_tails_config(args)
+
+    sdlog.error("Unsupported OS detected. Please run the appropriate configuration script.")
+    return 1
 
 
 def check_for_updates_wrapper(args: argparse.Namespace) -> int:
@@ -1197,11 +1214,8 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
     parse_install = subparsers.add_parser("install", help=install_securedrop.__doc__)
     parse_install.set_defaults(func=install_securedrop)
 
-    parse_tailsconfig = subparsers.add_parser("tailsconfig", help=run_tails_config.__doc__)
-    parse_tailsconfig.set_defaults(func=run_tails_config)
-
-    parse_qubesconfig = subparsers.add_parser("qubesconfig", help=run_qubes_config.__doc__)
-    parse_qubesconfig.set_defaults(func=run_qubes_config)
+    parse_localconfig = subparsers.add_parser("localconfig", help=run_local_config.__doc__)
+    parse_localconfig.set_defaults(func=run_local_config)
 
     parse_generate_tor_keys = subparsers.add_parser(
         "generate_v3_keys", help=find_or_generate_new_torv3_keys.__doc__
