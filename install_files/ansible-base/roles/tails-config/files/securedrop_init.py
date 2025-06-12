@@ -177,7 +177,7 @@ if tails_current_version:
         )
 
     except (TypeError, ValueError):
-        sys.exit(0)  # Don't break tailsconfig trying to fix this
+        sys.exit(0)  # Don't break localconfig trying to fix this
 
     if needs_update:
         cert_name = "isrg-root-x1-cross-signed.pem"
@@ -223,7 +223,7 @@ if tails_current_version:
                 )
 
         except subprocess.CalledProcessError:
-            sys.exit(0)  # Don't break tailsconfig trying to fix this
+            sys.exit(0)  # Don't break localconfig trying to fix this
 
         except OSError:
             sys.exit(0)

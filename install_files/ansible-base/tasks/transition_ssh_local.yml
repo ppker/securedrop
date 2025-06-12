@@ -30,6 +30,6 @@
   fail:
     msg: |
       Due to the transition from ssh-over-tor to ssh-over-localnet
-      please run `./securedrop-admin tailsconfig` and then re-run
+      please run `./securedrop-admin localconfig` and then re-run
       `./securedrop-admin install` again to continue re-configuration.
   when: aths_deletion_results.changed
