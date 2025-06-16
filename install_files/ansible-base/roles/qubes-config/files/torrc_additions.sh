@@ -25,7 +25,7 @@ if [ ! -d "$ONION_AUTH_DIR" ]; then
     mkdir -p "$ONION_AUTH_DIR"
 fi
 cp /rw/config/onion_auth/* $ONION_AUTH_DIR
-chown -R debian-tor:debian-tor $ONION_AUTH_DIR
+chown -R debian-tor:debian-tor /var/lib/tor
 
 # Restart tor
 systemctl restart tor
