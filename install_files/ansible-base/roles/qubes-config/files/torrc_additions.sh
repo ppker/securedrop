@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-LINE='ClientOnionAuthDir /rw/usrlocal/lib/tor/onion_auth'
+ONION_AUTH_DIR='/var/lib/tor/onion_auth'
+LINE="ClientOnionAuthDir $ONION_AUTH_DIR"
 TORRC='/etc/tor/torrc'
 
 # Create /etc/tor directory if it doesn't exist
@@ -18,6 +19,13 @@ fi
 if ! grep -Fxq "$LINE" "$TORRC"; then
     echo "$LINE" >> "$TORRC"
 fi
+
+# Install onion_auth files in /var/lib/tor
+if [ ! -d "$ONION_AUTH_DIR" ]; then
+    mkdir -p "$ONION_AUTH_DIR"
+fi
+cp /rw/config/onion_auth/* $ONION_AUTH_DIR
+chown -R debian-tor:debian-tor $ONION_AUTH_DIR
 
 # Restart tor
 systemctl restart tor

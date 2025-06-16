@@ -23,7 +23,7 @@
 - name: Create Tor onion auth directory
   become: yes
   file:
-    dest: "/rw/usrlocal/lib/tor/onion_auth"
+    dest: "/rw/config/onion_auth"
     state: directory
     owner: debian-tor
     group: debian-tor
@@ -33,7 +33,7 @@
   become: yes
   copy:
     src: "{{ item }}"
-    dest: "/rw/usrlocal/lib/tor/onion_auth/"
+    dest: "/rw/config/onion_auth/"
     owner: debian-tor
     group: debian-tor
     mode: "0600"
