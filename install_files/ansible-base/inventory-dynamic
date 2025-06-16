@@ -156,7 +156,7 @@ def build_inventory():
     # Append SSH extra args if NOT under Tails. Necessary for testing.
     if not host_is_tails():
         for host, hostvars in inventory["_meta"]["hostvars"].items():
-            if host.endswith(".onion"):
+            if inventory["_meta"]["hostvars"][host]["ansible_host"].endswith(".onion"):
                 (inventory["_meta"]
                         ["hostvars"]
                         [host]
