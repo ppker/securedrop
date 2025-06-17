@@ -88,6 +88,7 @@
     src: "{{ restore_file }}"
     dest: /tmp/{{ restore_file }}
     partial: yes
+    use_ssh_args: true
   when: not restore_manual_transfer
 
 - name: Extract backup
