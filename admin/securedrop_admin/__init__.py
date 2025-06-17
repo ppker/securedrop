@@ -1200,7 +1200,9 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
     parse_install = subparsers.add_parser("install", help=install_securedrop.__doc__)
     parse_install.set_defaults(func=install_securedrop)
 
-    parse_localconfig = subparsers.add_parser("localconfig", help=run_local_config.__doc__)
+    parse_localconfig = subparsers.add_parser(
+        "localconfig", aliases=["tailsconfig", "qubesconfig"], help=run_local_config.__doc__
+    )
     parse_localconfig.set_defaults(func=run_local_config)
 
     parse_generate_tor_keys = subparsers.add_parser(
