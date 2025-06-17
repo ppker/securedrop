@@ -31,7 +31,7 @@ VENV_DIR = os.path.join(DIR, ".venv3")
 
 # Space-separated list of apt dependencies
 APT_DEPENDENCIES_STR = "python3-virtualenv python3-yaml python3-pip virtualenv \
-libffi-dev libssl-dev libpython3-dev sq-keyring-linter netcat-openbsd tor"
+libffi-dev libssl-dev libpython3-dev sq-keyring-linter netcat-openbsd tor rsync"
 
 
 def setup_logger(verbose: bool = False) -> None:
