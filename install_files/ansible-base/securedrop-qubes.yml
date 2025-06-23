@@ -1,0 +1,23 @@
+---
+# Configures SecureDrop persistence on Admin Workstations qubes.
+# Should be run after the servers have been installed.
+- name: Configure Debian qube for admin tools
+  hosts: localhost
+  max_fail_percentage: 0
+  any_errors_fatal: yes
+  connection: local
+  gather_facts: yes
+  environment:
+    LC_ALL: C
+  roles:
+    - role: qubes-config
+      tags: qubes-config
+  tasks:
+    - name: Configuration complete.
+      debug:
+        msg: >-
+          Successfully configured Tor for SecureDrop administration!
+
+          {% if find_v3_aths_info_result.matched > 1 %}
+          SSH aliases are set up. You can use them with 'ssh app' and 'ssh mon'.
+          {% endif %}

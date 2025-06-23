@@ -113,8 +113,8 @@ class UpdateThread(QThread):
         self.signal.emit(result)
 
 
-# This thread will handle the ./securedrop-admin tailsconfig command
-class TailsconfigThread(QThread):
+# This thread will handle the ./securedrop-admin localconfig command
+class LocalconfigThread(QThread):
     signal = pyqtSignal("PyQt_PyObject")
 
     def __init__(self):
@@ -125,12 +125,12 @@ class TailsconfigThread(QThread):
         self.sudo_password = ""
 
     def run(self):
-        tailsconfig_command = (
-            "/home/amnesia/Persistent/" "securedrop/securedrop-admin " "tailsconfig"
+        localconfig_command = (
+            "/home/amnesia/Persistent/" "securedrop/securedrop-admin " "localconfig"
         )
         self.failure_reason = ""
         try:
-            child = pexpect.spawn(tailsconfig_command)
+            child = pexpect.spawn(localconfig_command)
             child.expect("SUDO password:")
             self.output += child.before.decode("utf-8")
             child.sendline(self.sudo_password)
@@ -138,7 +138,7 @@ class TailsconfigThread(QThread):
             self.output += child.before.decode("utf-8")
             child.close()
 
-            # For Tailsconfig to be considered a success, we expect no
+            # For Localconfig to be considered a success, we expect no
             # failures in the Ansible output.
             if child.exitstatus:
                 self.update_success = False
@@ -200,13 +200,13 @@ class UpdaterApp(QtWidgets.QMainWindow, updaterUI.Ui_MainWindow):
         self.pushButton_2.clicked.connect(self.update_securedrop)
         self.update_thread = UpdateThread()
         self.update_thread.signal.connect(self.update_status)
-        self.tails_thread = TailsconfigThread()
-        self.tails_thread.signal.connect(self.tails_status)
+        self.local_thread = LocalconfigThread()
+        self.local_thread.signal.connect(self.tails_status)
         self.setup_thread = SetupThread()
         self.setup_thread.signal.connect(self.setup_status)
 
-    # At the end of this function, we will try to do tailsconfig.
-    # A new slot will handle tailsconfig output
+    # At the end of this function, we will try to do localconfig.
+    # A new slot will handle localconfig output
     def setup_status(self, result):
         "This is the slot for setup thread"
         self.output += result["output"]
@@ -223,7 +223,7 @@ class UpdaterApp(QtWidgets.QMainWindow, updaterUI.Ui_MainWindow):
             self.alert_failure(self.failure_reason)
             return
         self.progressBar.setProperty("value", 70)
-        self.call_tailsconfig()
+        self.call_localconfig()
 
     # This will update the output text after the git commands.
     def update_status(self, result):
@@ -252,10 +252,10 @@ class UpdaterApp(QtWidgets.QMainWindow, updaterUI.Ui_MainWindow):
         self.output += status_message + "\n"
         self.plainTextEdit.setPlainText(self.output)
 
-    def call_tailsconfig(self):
-        # Now let us work on tailsconfig part
+    def call_localconfig(self):
+        # Now let us work on localconfig part
         if self.update_success:
-            # Get sudo password and add an enter key as tailsconfig command
+            # Get sudo password and add an enter key as localconfig command
             # expects
             sudo_password = self.get_sudo_password()
             if not sudo_password:
@@ -263,14 +263,14 @@ class UpdaterApp(QtWidgets.QMainWindow, updaterUI.Ui_MainWindow):
                 self.failure_reason = strings.missing_sudo_password
                 self.on_failure()
                 return
-            self.tails_thread.sudo_password = sudo_password + "\n"
+            self.local_thread.sudo_password = sudo_password + "\n"
             self.update_status_bar_and_output(strings.updating_tails_env)
-            self.tails_thread.start()
+            self.local_thread.start()
         else:
             self.on_failure()
 
     def tails_status(self, result):
-        "This is the slot for Tailsconfig thread"
+        "This is the slot for Localconfig thread"
         self.output += result["output"]
         self.update_success = result["status"]
         self.failure_reason = result["failure_reason"]

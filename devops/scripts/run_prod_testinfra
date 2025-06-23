@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script to run testinfra tests against a production SecureDrop instance. 
-# Must be run on an Admin Workstation after './securedrop-admin tailsconfig'
+# Must be run on an Admin Workstation after './securedrop-admin localconfig'
 # has completed successfully.
 #
 
@@ -11,22 +11,21 @@ set -o pipefail
 function cleanup {
     deactivate
     echo "--------"
-    echo "Verification complete - to restore the default workstation environment, remove ~/Persistent/securedrop/admin/.venv3 and run 'cd ~/Persistent/securedrop && ./securedrop-admin setup'"
+    echo "Verification complete - to restore the default workstation environment, remove ./admin/.venv3 and run './securedrop-admin setup'"
 }
 trap cleanup EXIT
 
 
-# Are we in Tails?
-if [ -f "/home/amnesia/Persistent/.securedrop/securedrop_init.py" ]
+# Are we in Tails or Qubes?
+if [ -f "/home/amnesia/Persistent/.securedrop/securedrop_init.py" ] || [ -f "/rw/config/torrc_additions.sh" ]
 then
-    echo "Tails workstation detected, continuing..."
+    echo "SecureDrop Admin Workstation detected, continuing..."
 else
     echo "This script should be run on a SecureDrop Admin Workstation!"
     exit 1
 fi
 
-cd ~/Persistent/securedrop
-source admin/.venv3/bin/activate
+source ./admin/.venv3/bin/activate
 
 cd molecule/testinfra
 CI_SD_ENV=${TEST_ENV:-prod} SECUREDROP_TESTINFRA_TARGET_HOST=${TEST_ENV:-prod} py.test -v -n 2 --disable-warnings -m "not skip_in_prod"

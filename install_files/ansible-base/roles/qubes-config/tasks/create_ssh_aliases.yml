@@ -1,0 +1,64 @@
+---
+- name: Import variables
+  include_vars: "group_vars/all/site-specific"
+
+- name: Lookup v3 onion ssh files for config template
+  stat:
+    path: "{{ item }}-ssh.auth_private"
+  register: "ssh_v3_onion_lookup"
+  with_items:
+    - app
+    - mon
+
+- name: Hacky work-around to get config template working
+  set_fact:
+    mon_ip: "{{ monitor_ip }}"
+
+# Add separate lookups for app and mon to avoid unsafe conditional checks
+- name: Lookup app v3 onion ssh file
+  stat:
+    path: "app-ssh.auth_private"
+  register: "ssh_app_auth"
+
+- name: Confirm that either the app v3 onion ssh file exists or site-specific file exists
+  assert:
+    that: "ssh_app_auth.stat.exists or app_ip is defined"
+
+- name: Lookup mon v3 onion ssh file
+  stat:
+    path: "mon-ssh.auth_private"
+  register: "ssh_mon_auth"
+
+- name: Confirm that either the mon v3 onion ssh file exists or site-specific file exists
+  assert:
+    that: "ssh_mon_auth.stat.exists or monitor_ip is defined"
+
+- name: Create SSH config directory.
+  become: true
+  file:
+    state: directory
+    path: "{{ qube_home }}/.ssh"
+    mode: "0700"
+    owner: user
+    group: user
+
+- name: Create SSH alias
+  become: true
+  template:
+    src: ssh_config.j2
+    dest: "{{ item }}"
+    mode: "0600"
+    owner: user
+    group: user
+  vars:
+    # Make the configured hostnames easily available to the Jinja template.
+    # An explicit dictionary is necessary only because the unabbreviated key
+    # "monitor_hostname" prevents us from doing (e.g.) the following over
+    # a lookup based on hostnames
+    #
+    #     hostvars[inventory_hostname][svc.item+'_hostname']
+    hostnames:
+      app: "{{ app_hostname }}"
+      mon: "{{ monitor_hostname }}"
+  with_items:
+    - "{{ qube_home }}/.ssh/config"

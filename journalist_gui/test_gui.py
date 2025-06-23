@@ -109,7 +109,7 @@ class WindowTestCase(AppTestCase):
 
     @mock.patch("subprocess.check_output", return_value=b"Python dependencies for securedrop-admin")
     def test_setupThread(self, check_output):
-        with mock.patch.object(self.window, "call_tailsconfig", return_value=MagicMock()):
+        with mock.patch.object(self.window, "call_localconfig", return_value=MagicMock()):
             with mock.patch("builtins.open") as mock_open:
                 self.window.setup_thread.run()  # Call run directly
 
@@ -119,7 +119,7 @@ class WindowTestCase(AppTestCase):
 
     @mock.patch("subprocess.check_output", return_value=b"Failed to install pip dependencies")
     def test_setupThread_failure(self, check_output):
-        with mock.patch.object(self.window, "call_tailsconfig", return_value=MagicMock()):
+        with mock.patch.object(self.window, "call_localconfig", return_value=MagicMock()):
             with mock.patch("builtins.open") as mock_open:
                 self.window.setup_thread.run()  # Call run directly
 
@@ -170,7 +170,7 @@ class WindowTestCase(AppTestCase):
             assert self.window.get_sudo_password() is None
 
     @mock.patch("pexpect.spawn")
-    def test_tailsconfigThread_no_failures(self, pt):
+    def test_localconfigThread_no_failures(self, pt):
         child = pt()
         before = MagicMock()
 
@@ -178,54 +178,54 @@ class WindowTestCase(AppTestCase):
         child.before = before
         child.exitstatus = 0
         with mock.patch("os.remove") as mock_remove:
-            self.window.tails_thread.run()
+            self.window.local_thread.run()
 
         mock_remove.assert_called_once_with(FLAG_LOCATION)
         assert "failed=0" in self.window.output
         assert self.window.update_success == True
 
     @mock.patch("pexpect.spawn")
-    def test_tailsconfigThread_generic_failure(self, pt):
+    def test_localconfigThread_generic_failure(self, pt):
         child = pt()
         before = MagicMock()
         before.decode.side_effect = ["SUDO: ", "failed=10 ERROR!!!!!"]
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
         assert self.window.failure_reason == strings.tailsconfig_failed_generic_reason
 
     @mock.patch("pexpect.spawn")
-    def test_tailsconfigThread_sudo_password_is_wrong(self, pt):
+    def test_localconfigThread_sudo_password_is_wrong(self, pt):
         child = pt()
         before = MagicMock()
         before.decode.return_value = "stuff[sudo via ansible, key=blahblahblah"
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
         assert self.window.failure_reason == strings.tailsconfig_failed_sudo_password
 
     @mock.patch("pexpect.spawn")
-    def test_tailsconfigThread_timeout(self, pt):
+    def test_localconfigThread_timeout(self, pt):
         child = pt()
         before = MagicMock()
         before.decode.side_effect = ["some data", pexpect.exceptions.TIMEOUT(1)]
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
         assert self.window.failure_reason == strings.tailsconfig_failed_timeout
 
     @mock.patch("pexpect.spawn")
-    def test_tailsconfigThread_some_other_subprocess_error(self, pt):
+    def test_localconfigThread_some_other_subprocess_error(self, pt):
         child = pt()
         before = MagicMock()
         before.decode.side_effect = subprocess.CalledProcessError(
             1, "cmd", b"Generic other failure"
         )
         child.before = before
-        self.window.tails_thread.run()
+        self.window.local_thread.run()
         assert "failed=0" not in self.window.output
         assert self.window.update_success == False
         assert self.window.failure_reason == strings.tailsconfig_failed_generic_reason
