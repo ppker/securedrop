@@ -9,7 +9,7 @@ pytest==7.2.0
 requests>=2.26.0
 tox==3.28.0
 pexpect
-urllib3>=1.26.5
+urllib3>=2.5.0
 setuptools>=78.1.1
 
 # If this needs updating, search this repository for other references to "pip"
