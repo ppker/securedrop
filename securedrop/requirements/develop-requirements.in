@@ -38,7 +38,8 @@ shellcheck-py
 six>=1.16.0
 testinfra>=5.3.1
 translate-toolkit
-urllib3>=1.26.5
+urllib3>=2.5.0;python_version>="3.9"
+urllib3>=1.26.5  # or latest that supports Ubuntu Focal's Python 3.8
 uv
 yamllint
 zizmor
