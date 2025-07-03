@@ -80,3 +80,10 @@ end
 
 Note over Client: Fetch new and changed items in SourceMetadataSet.items...
 ```
+
+## API v2
+
+* -> GET /index
+* <- Reply {"sources":{"UUID":{"version": ..., "collection": {"UUID":version}}}
+* -> POST /sources {"full_sources": [UUIDs...], "partial_sources":{"source UUID":[item UUIDs...]}}
+* <- Reply {"sources":{"UUID":{"version": ..., "info":..., "collection":{"UUID": {"version":..., "info":...}}}}}
