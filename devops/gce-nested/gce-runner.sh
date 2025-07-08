@@ -5,7 +5,7 @@
 set -e
 set -u
 
-UBUNTU_VERSION="noble"
+OS_VERSION="noble"
 
 TOPLEVEL="$(git rev-parse --show-toplevel)"
 # shellcheck source=devops/gce-nested/ci-env.sh
@@ -56,6 +56,6 @@ copy_securedrop_repo
 # so register a trap to ensure the fetch always runs.
 trap fetch_junit_test_results EXIT
 
-ssh_gce "UBUNTU_VERSION=\"${UBUNTU_VERSION}\" make build-debs-notest"
-ssh_gce "UBUNTU_VERSION=\"${UBUNTU_VERSION}\" make build-debs-ossec-notest"
-ssh_gce "UBUNTU_VERSION=\"${UBUNTU_VERSION}\" make staging"
+ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-notest"
+ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-ossec-notest"
+ssh_gce "OS_VERSION=\"${OS_VERSION}\" make staging"

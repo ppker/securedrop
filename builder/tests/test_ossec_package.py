@@ -4,10 +4,11 @@ from pathlib import Path
 
 OSSEC_VERSION = "3.6.0"
 
+OS_VERSION = os.environ.get("OS_VERSION", "noble")
 SECUREDROP_ROOT = Path(
     subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
 )
-BUILD_DIRECTORY = SECUREDROP_ROOT / "build/noble"
+BUILD_DIRECTORY = SECUREDROP_ROOT / f"build/{OS_VERSION}"
 
 
 def test_ossec_binaries_are_present_agent():
