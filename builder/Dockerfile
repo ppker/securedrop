@@ -1,5 +1,5 @@
-ARG OS_VERSION=noble
-FROM ubuntu:${OS_VERSION}
+ARG BASE_IMAGE=ubuntu:noble
+FROM ${BASE_IMAGE}
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get -y update && apt-get upgrade -y && apt-get install -y \
