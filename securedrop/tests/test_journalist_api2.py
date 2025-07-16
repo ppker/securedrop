@@ -88,8 +88,9 @@ def test_index(journalist_app, test_files, journalist_api_token):
                 },
             )
 
-        # With the etag, verify we get a 304
+        # With the etag, verify we get an empty 304
         assert response2.status_code == 304
+        assert response2.calculate_content_length() == 0
 
 
 def test_index_prefix(journalist_app, test_files, journalist_api_token):
@@ -119,8 +120,9 @@ def test_index_prefix(journalist_app, test_files, journalist_api_token):
                 },
             )
 
-        # With the etag, verify we get a 304
+        # With the etag, verify we get an empty 304
         assert response2.status_code == 304
+        assert response2.calculate_content_length() == 0
 
         # Make a response with an invalid prefix ("x")
         response3 = app.get(
