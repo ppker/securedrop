@@ -46,7 +46,7 @@ def test_json_version():
     ("endpoint", "kwargs"),
     [
         ("api2.index", {}),
-        ("api2.index_prefix", {"prefix": "foo"}),
+        ("api2.index", {"prefix": "foo"}),
         # while this should be a POST request, the 403 will kick in first
         ("api2.sources", {}),
     ],
@@ -93,7 +93,7 @@ def test_index(journalist_app, test_files, journalist_api_token):
         assert response2.calculate_content_length() == 0
 
 
-def test_index_prefix(journalist_app, test_files, journalist_api_token):
+def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
     """
     Verify GET /index/<prefix> response and HTTP 304 behavior
     """
@@ -101,7 +101,7 @@ def test_index_prefix(journalist_app, test_files, journalist_api_token):
         uuid = test_files["source"].uuid
         with assert_query_count(1):
             response = app.get(
-                url_for("api2.index_prefix", prefix=uuid[0]),
+                url_for("api2.index", prefix=uuid[0]),
                 headers=get_api_headers(journalist_api_token),
             )
 
@@ -113,7 +113,7 @@ def test_index_prefix(journalist_app, test_files, journalist_api_token):
 
         with assert_query_count(1):
             response2 = app.get(
-                url_for("api2.index_prefix", prefix=uuid[0]),
+                url_for("api2.index", prefix=uuid[0]),
                 headers={
                     **get_api_headers(journalist_api_token),
                     "If-None-Match": response.headers["ETag"],
@@ -126,7 +126,7 @@ def test_index_prefix(journalist_app, test_files, journalist_api_token):
 
         # Make a response with an invalid prefix ("x")
         response3 = app.get(
-            url_for("api2.index_prefix", prefix="x"),
+            url_for("api2.index", prefix="x"),
             headers=get_api_headers(journalist_api_token),
         )
         # HTTP 200, but zero sources

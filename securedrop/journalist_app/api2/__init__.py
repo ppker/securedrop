@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
 from models import Source
@@ -24,53 +24,28 @@ def json_version(d: dict) -> str:
 
 
 @blp.get("/index")
-def index() -> Response:
-    """
-    Return the `{uuid: version}` index of all sources.
-    """
-    sources = {}
-    # Use `joinedload()` for eager loading in a single query.
-    for source in (
-        Source.query.options(joinedload(Source.star))
-        .options(joinedload(Source.submissions))
-        .options(joinedload(Source.replies))
-        .all()
-    ):
-        all_source_metadata = source.to_api_v2()
-        source_info: Dict[str, Any] = {
-            "version": json_version(all_source_metadata["source"]),
-            "collection": {},
-        }
-        for uuid, item in all_source_metadata["collection"].items():
-            source_info["collection"][uuid] = json_version(item)
-        sources[source.uuid] = source_info
-
-    index = {"sources": sources}
-    version = json_version(index)
-    response = jsonify(index)
-
-    # If the request's `If-None-Match` header matches the version,
-    # return HTTP 304 with an empty response.
-    response.set_etag(version)
-    return response.make_conditional(request)
-
-
 @blp.get("/index/<string:prefix>")
-def index_prefix(prefix: str) -> Response:
+def index(prefix: Optional[str] = None) -> Response:
     """
-    Return the index of all sources whose UUIDs begin with
-    ``prefix``.  The client MAY choose an arbitrary prefix with each
-    request: e.g., a series of requests with the prefixes ``{0...f}`` will
-    effectively shard the index into 16 shards.
+    By default, return the ``{uuid: version}`` index of all sources.
+
+    Given a ``prefix``, return the index of all sources whose UUIDs begin with
+    that prefix.  The client MAY choose an arbitrary prefix with each request:
+    e.g., a series of requests with the prefixes ``{0...f}`` will effectively
+    shard the index into 16 shards.
     """
     sources = {}
-    for source in (
+
+    # Use `joinedload()` for eager loading in a single query.
+    query = (
         Source.query.options(joinedload(Source.star))
         .options(joinedload(Source.submissions))
         .options(joinedload(Source.replies))
-        .filter(Source.uuid.startswith(prefix))
-        .all()
-    ):
+    )
+    if prefix is not None:
+        query = query.filter(Source.uuid.startswith(prefix))
+
+    for source in query.all():
         all_source_metadata = source.to_api_v2()
         source_info: Dict[str, Any] = {
             "version": json_version(all_source_metadata["source"]),
