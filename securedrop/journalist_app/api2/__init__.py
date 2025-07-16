@@ -3,10 +3,22 @@ from typing import Any, Dict, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
 from models import Source
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Query, joinedload
 from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
+
+
+def all_sources() -> Query:
+    """
+    Return a base query for all ``Sources`` with eager loading of their metadata
+    and collections.
+    """
+    return (
+        Source.query.options(joinedload(Source.star))
+        .options(joinedload(Source.submissions))
+        .options(joinedload(Source.replies))
+    )
 
 
 def json_version(d: dict) -> str:
@@ -36,12 +48,7 @@ def index(prefix: Optional[str] = None) -> Response:
     """
     sources = {}
 
-    # Use `joinedload()` for eager loading in a single query.
-    query = (
-        Source.query.options(joinedload(Source.star))
-        .options(joinedload(Source.submissions))
-        .options(joinedload(Source.replies))
-    )
+    query = all_sources()
     if prefix is not None:
         query = query.filter(Source.uuid.startswith(prefix))
 
@@ -101,12 +108,7 @@ def sources() -> Response:
     # items in their collections.
     source_lookup = set(requested["full_sources"]) | set(requested["partial_sources"].keys())
     response: Dict[str, Dict[str, Any]] = {"sources": {}}
-    for source in (
-        Source.query.options(joinedload(Source.star))
-        .options(joinedload(Source.submissions))
-        .options(joinedload(Source.replies))
-        .filter(Source.uuid.in_(str(uuid) for uuid in source_lookup))
-    ):
+    for source in all_sources().filter(Source.uuid.in_(str(uuid) for uuid in source_lookup)):
         all_source_metadata = source.to_api_v2()
         source_info: Dict[str, Any] = {"collection": {}}
         want_full = source.uuid in requested["full_sources"]
