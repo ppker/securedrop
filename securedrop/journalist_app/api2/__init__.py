@@ -26,12 +26,10 @@ def json_version(d: dict) -> str:
 @blp.get("/index")
 def index() -> Response:
     """
-    Return the index of all sources.
-
-    If the request's ``If-None-Match`` header matches the current ETag, this
-    view MUST return HTTP 304 with an empty response.
+    Return the `{uuid: version}` index of all sources.
     """
     sources = {}
+    # Use `joinedload()` for eager loading in a single query.
     for source in (
         Source.query.options(joinedload(Source.star))
         .options(joinedload(Source.submissions))
@@ -50,6 +48,9 @@ def index() -> Response:
     index = {"sources": sources}
     version = json_version(index)
     response = jsonify(index)
+
+    # If the request's `If-None-Match` header matches the version,
+    # return HTTP 304 with an empty response.
     response.set_etag(version)
     return response.make_conditional(request)
 
@@ -57,13 +58,10 @@ def index() -> Response:
 @blp.get("/index/<string:prefix>")
 def index_prefix(prefix: str) -> Response:
     """
-    OPTIONAL: Return the index of all sources whose UUIDs begin with
+    Return the index of all sources whose UUIDs begin with
     ``prefix``.  The client MAY choose an arbitrary prefix with each
     request: e.g., a series of requests with the prefixes ``{0...f}`` will
     effectively shard the index into 16 shards.
-
-    If the request's ``If-None-Match`` header matches the current ETag, this
-    view MUST return HTTP 304 with an empty response.
     """
     sources = {}
     for source in (
@@ -85,6 +83,9 @@ def index_prefix(prefix: str) -> Response:
     index = {"sources": sources}
     version = json_version(index)
     response = jsonify(index)
+
+    # If the request's `If-None-Match` header matches the version,
+    # return HTTP 304 with an empty response.
     response.set_etag(version)
     return response.make_conditional(request)
 
@@ -92,7 +93,12 @@ def index_prefix(prefix: str) -> Response:
 @blp.post("/sources")
 def sources() -> Response:
     """
-    Return the source metadata for the sources listed in the source delta.
+    Return the source metadata for the sources listed in the source delta:
+
+        {
+            "full_sources": [<source_uuid>, ...],
+            "partial_sources": {"<source_uuid>": [<item_uuid>, ...], ...}
+        }
     The client MAY choose an arbitrary source delta with each request, e.g.
     from a shard retrieved from ``/index/<prefix>``.
     """
@@ -115,7 +121,9 @@ def sources() -> Response:
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
             abort(400, "malformed request; each value in partial_sources must be a list of strings")
 
-    # All the sources we need to look up
+    # Look up both "full" and "partial" sources.  For "full" sources, return all
+    # metadata.  For "partial" sources, return metadata only for the specified
+    # items in their collections.
     source_lookup = set(requested["full_sources"]) | set(requested["partial_sources"].keys())
     response: Dict[str, Dict[str, Any]] = {"sources": {}}
     for source in (
