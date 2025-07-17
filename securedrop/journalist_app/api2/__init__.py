@@ -85,23 +85,20 @@ def sources() -> Response:
     from a shard retrieved from ``/index/<prefix>``.
     """
     # Parse and validate the request body
-    try:
-        requested = json.loads(request.data.decode())
-    except ValueError:
-        abort(400, "malformed request; invalid JSON")
+    requested = request.json
     if not isinstance(requested, dict):
-        abort(400, "malformed request")
+        abort(422, "malformed request")
     if (
         "full_sources" not in requested
         or not isinstance(requested["full_sources"], list)
         or not all(isinstance(item, str) for item in requested["full_sources"])
     ):
-        abort(400, "malformed request; full_sources must be a list of strings")
+        abort(422, "malformed request; full_sources must be a list of strings")
     if "partial_sources" not in requested or not isinstance(requested["partial_sources"], dict):
-        abort(400, "malformed request; partial_sources must be a dict")
+        abort(422, "malformed request; partial_sources must be a dict")
     for value in requested["partial_sources"].values():
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-            abort(400, "malformed request; each value in partial_sources must be a list of strings")
+            abort(422, "malformed request; each value in partial_sources must be a list of strings")
 
     # Look up both "full" and "partial" sources.  For "full" sources, return all
     # metadata.  For "partial" sources, return metadata only for the specified

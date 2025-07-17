@@ -190,18 +190,15 @@ def test_sources(journalist_app, test_files, journalist_api_token):
 
 
 @pytest.mark.parametrize(
-    ("invalid_data", "expected_error"),
+    "invalid_data",
     [
-        ("invalid json{", "malformed request; invalid JSON"),
-        ("", "malformed request; invalid JSON"),
-        # null is technically valid JSON, but still invalid for our purposes
-        ("null", "malformed request"),
+        "invalid json{",
+        "",
+        None,
     ],
 )
-def test_api2_sources_validation_invalid_json(
-    journalist_app, journalist_api_token, invalid_data, expected_error
-):
-    """Test that invalid JSON returns 400 with appropriate error message."""
+def test_api2_sources_validation_invalid_json(journalist_app, journalist_api_token, invalid_data):
+    """Test that Flask rejects invalid JSON."""
     with journalist_app.test_client() as app:
         response = app.post(
             url_for("api2.sources"),
@@ -209,7 +206,6 @@ def test_api2_sources_validation_invalid_json(
             headers=get_api_headers(journalist_api_token),
         )
         assert response.status_code == 400
-        assert expected_error in response.get_data(as_text=True)
 
 
 @pytest.mark.parametrize(
@@ -218,7 +214,6 @@ def test_api2_sources_validation_invalid_json(
         ["not", "a", "dict"],
         "string instead of dict",
         123,
-        None,
         True,
     ],
 )
@@ -232,7 +227,7 @@ def test_api2_sources_validation_non_dict_request(
             json=invalid_request,
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert "malformed request" in response.get_data(as_text=True)
 
 
@@ -263,7 +258,7 @@ def test_api2_sources_validation_full_sources_errors(
             json=request_body,
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert expected_error in response.get_data(as_text=True)
 
 
@@ -301,7 +296,7 @@ def test_api2_sources_validation_partial_sources_errors(
             json=request_body,
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert expected_error in response.get_data(as_text=True)
 
 
