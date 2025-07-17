@@ -42,12 +42,27 @@ def json_version(d: dict) -> str:
 @blp.get("/index/<string:prefix>")
 def index(prefix: Optional[str] = None) -> Response:
     """
-    By default, return the ``{uuid: version}`` index of all sources.
+    By default, return the ETag-versioned index of all sources and the items in
+    their collections, unless the client provides the ETag of the current index.
 
-    Given a ``prefix``, return the index of all sources whose UUIDs begin with
-    that prefix.  The client MAY choose an arbitrary prefix with each request:
-    e.g., a series of requests with the prefixes ``{0...f}`` will effectively
-    shard the index into 16 shards.
+        {
+            "sources": {
+                "<source_uuid>": {
+                    "version": "<source_version>",
+                    "collection": {
+                        "<item_uuid>": "<item_version>",
+                        ...
+                    }
+                }
+                ...
+            }
+        }
+
+    Given a ``prefix``, return the sub-index of all sources whose UUIDs begin
+    with that prefix, unless the client provides the ETag of the current
+    sub-index for that prefix.  The client MAY choose an arbitrary prefix with
+    each request: e.g., a series of requests with the prefixes ``{0...f}`` will
+    effectively shard the index into 16 shards.
     """
     sources = {}
 
@@ -83,12 +98,19 @@ def index(prefix: Optional[str] = None) -> Response:
 @blp.post("/sources")
 def sources() -> Response:
     """
-    Return the source metadata for the sources listed in the source delta:
+    Return the source metadata requested in the source delta.  For "full"
+    sources, return all metadata.  For "partial" sources, return metadata only
+    for the specified items in their collections, excluding the source-level
+    "info" object.
 
         {
             "full_sources": [<source_uuid>, ...],
-            "partial_sources": {"<source_uuid>": [<item_uuid>, ...], ...}
+            "partial_sources": {
+                "<source_uuid>": [<item_uuid>, ...],
+                ...
+                }
         }
+
     The client MAY choose an arbitrary source delta with each request, e.g.
     from a shard retrieved from ``/index/<prefix>``.
     """
@@ -108,9 +130,8 @@ def sources() -> Response:
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
             abort(422, "malformed request; each value in partial_sources must be a list of strings")
 
-    # Look up both "full" and "partial" sources.  For "full" sources, return all
-    # metadata.  For "partial" sources, return metadata only for the specified
-    # items in their collections.
+    # Look up all requested sources, and return both "full" and "partial"
+    # metadata in a single pass.
     source_lookup = set(requested["full_sources"]) | set(requested["partial_sources"].keys())
     response: Dict[str, Dict[str, Any]] = {"sources": {}}
     for source in all_sources().filter(Source.uuid.in_(str(uuid) for uuid in source_lookup)):
