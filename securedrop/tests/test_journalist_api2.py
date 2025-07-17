@@ -134,6 +134,23 @@ def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
         assert response3.json["sources"] == {}
 
 
+def test_index_with_invalid_prefix(journalist_app, test_files, journalist_api_token):
+    """
+    Verify that a too-long prefix is rejected.
+    """
+    with journalist_app.test_client() as app:
+        uuid = test_files["source"].uuid
+        too_long = uuid[0] * 100
+        with assert_query_count(0):
+            response = app.get(
+                url_for("api2.index", prefix=too_long),
+                headers=get_api_headers(journalist_api_token),
+            )
+
+        assert response.status_code == 422
+        assert "malformed request; prefix must be shorter than" in response.get_data(as_text=True)
+
+
 def test_sources(journalist_app, test_files, journalist_api_token):
     """
     Verify POST /sources response

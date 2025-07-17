@@ -3,10 +3,13 @@ from typing import Any, Dict, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
 from models import Source
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Query, joinedload
 from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
+
+PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 
 
 def all_sources() -> Query:
@@ -50,6 +53,11 @@ def index(prefix: Optional[str] = None) -> Response:
 
     query = all_sources()
     if prefix is not None:
+        if len(prefix) >= PREFIX_MAX_LEN:
+            abort(
+                422, f"malformed request; prefix must be shorter than {PREFIX_MAX_LEN} characters"
+            )
+
         query = query.filter(Source.uuid.startswith(prefix))
 
     for source in query.all():
