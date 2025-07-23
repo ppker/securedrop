@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Mapping, NewType, Optional, TypedDict
 
 from flask import Blueprint, abort, json, jsonify, request
 from models import Source
@@ -24,7 +24,10 @@ def all_sources() -> Query:
     )
 
 
-def json_version(d: dict) -> str:
+Version = NewType("Version", str)
+
+
+def json_version(d: Mapping) -> Version:
     """
     Calculate the version (BLAKE2s digest) of the normalized JSON representation
     of the dictionary ``d``.
@@ -35,28 +38,29 @@ def json_version(d: dict) -> str:
     """
     s = json.dumps(d, separators=[",", ":"], sort_keys=True)
     b = s.encode("utf-8")
-    return hashlib.blake2s(b).hexdigest()
+    return Version(hashlib.blake2s(b).hexdigest())
+
+
+SourceUUID = NewType("SourceUUID", str)
+ItemUUID = NewType("ItemUUID", str)
+
+
+class IndexSourceEntry(TypedDict):
+    version: Version
+    collection: Dict[ItemUUID, Version]
+
+
+class Index(TypedDict):
+    sources: Dict[SourceUUID, IndexSourceEntry]
 
 
 @blp.get("/index")
 @blp.get("/index/<string:prefix>")
 def index(prefix: Optional[str] = None) -> Response:
     """
-    By default, return the ETag-versioned index of all sources and the items in
-    their collections, unless the client provides the ETag of the current index.
-
-        {
-            "sources": {
-                "<source_uuid>": {
-                    "version": "<source_version>",
-                    "collection": {
-                        "<item_uuid>": "<item_version>",
-                        ...
-                    }
-                }
-                ...
-            }
-        }
+    By default, return the ETag-versioned ``Index`` consisting of an
+    ``IndexSourceEntry`` for each source and its collection, unless the client
+    provides the ETag of the current index.
 
     Given a ``prefix``, return the sub-index of all sources whose UUIDs begin
     with that prefix, unless the client provides the ETag of the current
@@ -77,15 +81,15 @@ def index(prefix: Optional[str] = None) -> Response:
 
     for source in query.all():
         all_source_metadata = source.to_api_v2()
-        source_info: Dict[str, Any] = {
+        source_entry: IndexSourceEntry = {
             "version": json_version(all_source_metadata["source"]),
             "collection": {},
         }
         for uuid, item in all_source_metadata["collection"].items():
-            source_info["collection"][uuid] = json_version(item)
-        sources[source.uuid] = source_info
+            source_entry["collection"][uuid] = json_version(item)
+        sources[source.uuid] = source_entry
 
-    index = {"sources": sources}
+    index: Index = {"sources": sources}
     version = json_version(index)
     response = jsonify(index)
 
@@ -95,21 +99,27 @@ def index(prefix: Optional[str] = None) -> Response:
     return response.make_conditional(request)
 
 
+class SourceDelta(TypedDict, total=False):
+    full_sources: List[SourceUUID]
+    partial_sources: Mapping[SourceUUID, List[ItemUUID]]
+
+
+class SourceEntry(TypedDict, total=False):
+    collection: Dict[ItemUUID, Any]
+    info: Optional[Mapping[str, Any]]  # omitted for partial sources
+
+
+class SourceMetadata(TypedDict):
+    sources: Dict[SourceUUID, SourceEntry]
+
+
 @blp.post("/sources")
 def sources() -> Response:
     """
-    Return the source metadata requested in the source delta.  For "full"
+    Return the ``SourceMetadata`` requested in the ``SourceDelta``.  For "full"
     sources, return all metadata.  For "partial" sources, return metadata only
     for the specified items in their collections, excluding the source-level
-    "info" object.
-
-        {
-            "full_sources": [<source_uuid>, ...],
-            "partial_sources": {
-                "<source_uuid>": [<item_uuid>, ...],
-                ...
-                }
-        }
+    ``info`` object.
 
     The client MAY choose an arbitrary source delta with each request, e.g.
     from a shard retrieved from ``/index/<prefix>``.
@@ -133,16 +143,16 @@ def sources() -> Response:
     # Look up all requested sources, and return both "full" and "partial"
     # metadata in a single pass.
     source_lookup = set(requested["full_sources"]) | set(requested["partial_sources"].keys())
-    response: Dict[str, Dict[str, Any]] = {"sources": {}}
+    response: SourceMetadata = {"sources": {}}
     for source in all_sources().filter(Source.uuid.in_(str(uuid) for uuid in source_lookup)):
         all_source_metadata = source.to_api_v2()
-        source_info: Dict[str, Any] = {"collection": {}}
+        source_entry: SourceEntry = {"collection": {}}
         want_full = source.uuid in requested["full_sources"]
         if want_full:
-            source_info["info"] = all_source_metadata["source"]
+            source_entry["info"] = all_source_metadata["source"]
         partial = requested["partial_sources"].get(source.uuid, [])
         for uuid, item in all_source_metadata["collection"].items():
             if want_full or uuid in partial:
-                source_info["collection"][uuid] = item
-        response["sources"][source.uuid] = source_info
+                source_entry["collection"][uuid] = item
+        response["sources"][source.uuid] = source_entry
     return jsonify(response)
