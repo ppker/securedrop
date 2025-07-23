@@ -35,7 +35,7 @@ def assert_query_count(expected_count):
 def test_json_version():
     d = {"foo": "bar", "baz": "biz"}
     version1 = json_version(d)
-    assert version1 == "593ffee39176ea092546a7df8247c9b3936102abf539ed212492d817ccdeb19a"
+    assert version1 == "2231968214a50f92d216048c7fc624c061372a4225e9e94aca88bdfaca162087"
 
     d2 = {"baz": "biz", "foo": "bar"}
     version2 = json_version(d2)

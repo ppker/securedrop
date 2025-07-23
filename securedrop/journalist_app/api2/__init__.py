@@ -33,7 +33,7 @@ def json_version(d: dict) -> str:
     cryptographic security) and CRC-32 is too collision-prone (we're not merely
     checksumming for transmission integrity).
     """
-    s = json.dumps(d, sort_keys=True)
+    s = json.dumps(d, separators=[",", ":"], sort_keys=True)
     b = s.encode("utf-8")
     return hashlib.blake2s(b).hexdigest()
 
