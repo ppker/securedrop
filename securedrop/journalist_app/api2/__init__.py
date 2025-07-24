@@ -1,5 +1,6 @@
 import hashlib
-from typing import Any, Dict, List, Mapping, NewType, Optional, TypedDict
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, List, Mapping, NewType, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
 from models import Source
@@ -41,17 +42,20 @@ def json_version(d: Mapping) -> Version:
     return Version(hashlib.blake2s(b).hexdigest())
 
 
+# TODO: generic UUID[T] in Python 3.12
 SourceUUID = NewType("SourceUUID", str)
 ItemUUID = NewType("ItemUUID", str)
 
 
-class IndexSourceEntry(TypedDict):
+@dataclass
+class IndexSourceEntry:
     version: Version
-    collection: Dict[ItemUUID, Version]
+    collection: Dict[ItemUUID, Version] = field(default_factory=dict)
 
 
-class Index(TypedDict):
-    sources: Dict[SourceUUID, IndexSourceEntry]
+@dataclass
+class Index:
+    sources: Dict[SourceUUID, IndexSourceEntry] = field(default_factory=dict)
 
 
 @blp.get("/index")
@@ -68,7 +72,7 @@ def index(prefix: Optional[str] = None) -> Response:
     each request: e.g., a series of requests with the prefixes ``{0...f}`` will
     effectively shard the index into 16 shards.
     """
-    sources = {}
+    index = Index()
 
     query = all_sources()
     if prefix is not None:
@@ -81,17 +85,15 @@ def index(prefix: Optional[str] = None) -> Response:
 
     for source in query.all():
         all_source_metadata = source.to_api_v2()
-        source_entry: IndexSourceEntry = {
-            "version": json_version(all_source_metadata["source"]),
-            "collection": {},
-        }
+        source_entry = IndexSourceEntry(
+            version=json_version(all_source_metadata["source"]),
+        )
         for uuid, item in all_source_metadata["collection"].items():
-            source_entry["collection"][uuid] = json_version(item)
-        sources[source.uuid] = source_entry
+            source_entry.collection[uuid] = json_version(item)
+        index.sources[source.uuid] = source_entry
 
-    index: Index = {"sources": sources}
-    version = json_version(index)
-    response = jsonify(index)
+    version = json_version(asdict(index))
+    response = jsonify(asdict(index))
 
     # If the request's `If-None-Match` header matches the version,
     # return HTTP 304 with an empty response.
@@ -99,18 +101,39 @@ def index(prefix: Optional[str] = None) -> Response:
     return response.make_conditional(request)
 
 
-class SourcesRequest(TypedDict, total=False):
-    full_sources: List[SourceUUID]
-    partial_sources: Mapping[SourceUUID, List[ItemUUID]]
+@dataclass
+class SourcesRequest:
+    full_sources: List[SourceUUID] = field(default_factory=list)
+    partial_sources: Mapping[SourceUUID, List[ItemUUID]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.full_sources, list):
+            raise ValueError("full_sources must be a list of strings")
+        if not all(isinstance(item, str) for item in self.full_sources):
+            raise ValueError("full_sources must be a list of strings")
+
+        if not isinstance(self.partial_sources, Mapping):
+            raise ValueError("partial_sources must be a dict")
+        for key, value in self.partial_sources.items():
+            if not isinstance(key, str):
+                raise ValueError("partial_sources must be keyed by UUID")
+            if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+                raise ValueError("each value in partial_sources must be a list of strings")
 
 
-class SourceEntry(TypedDict, total=False):
-    collection: Dict[ItemUUID, Any]
-    info: Optional[Mapping[str, Any]]  # omitted for partial sources
+@dataclass
+class SourceEntry:
+    collection: Dict[ItemUUID, Any] = field(default_factory=dict)
 
 
-class SourcesResponse(TypedDict):
-    sources: Dict[SourceUUID, SourceEntry]
+@dataclass
+class FullSourceEntry(SourceEntry):
+    info: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SourcesResponse:
+    sources: Dict[SourceUUID, SourceEntry] = field(default_factory=dict)
 
 
 @blp.post("/sources")
@@ -118,41 +141,32 @@ def sources() -> Response:
     """
     Return the ``SourcesResponse`` requested in the ``SourcesRequest``.  For "full"
     sources, return all metadata.  For "partial" sources, return metadata only
-    for the specified items in their collections, excluding the source-level
-    ``info`` object.
+    for the specified items in their collections.
 
     The client MAY choose an arbitrary source delta with each request, e.g.
     from a shard retrieved from ``/index/<prefix>``.
     """
-    # Parse and validate the request body
-    requested = request.json
-    if not isinstance(requested, dict):
-        abort(422, "malformed request")
-    if (
-        "full_sources" not in requested
-        or not isinstance(requested["full_sources"], list)
-        or not all(isinstance(item, str) for item in requested["full_sources"])
-    ):
-        abort(422, "malformed request; full_sources must be a list of strings")
-    if "partial_sources" not in requested or not isinstance(requested["partial_sources"], dict):
-        abort(422, "malformed request; partial_sources must be a dict")
-    for value in requested["partial_sources"].values():
-        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-            abort(422, "malformed request; each value in partial_sources must be a list of strings")
+    try:
+        requested = SourcesRequest(**request.json)  # type: ignore
+    except (TypeError, ValueError) as exc:
+        abort(422, f"malformed request; {exc}")
 
     # Look up all requested sources, and return both "full" and "partial"
     # metadata in a single pass.
-    source_lookup = set(requested["full_sources"]) | set(requested["partial_sources"].keys())
-    response: SourcesResponse = {"sources": {}}
+    source_lookup = set(requested.full_sources) | set(requested.partial_sources.keys())
+    response = SourcesResponse()
+
     for source in all_sources().filter(Source.uuid.in_(str(uuid) for uuid in source_lookup)):
         all_source_metadata = source.to_api_v2()
-        source_entry: SourceEntry = {"collection": {}}
-        want_full = source.uuid in requested["full_sources"]
-        if want_full:
-            source_entry["info"] = all_source_metadata["source"]
-        partial = requested["partial_sources"].get(source.uuid, [])
+        want_full = source.uuid in requested.full_sources
+        partial = requested.partial_sources.get(source.uuid, [])
+        cls = FullSourceEntry if want_full else SourceEntry
+        source_entry = cls()
         for uuid, item in all_source_metadata["collection"].items():
             if want_full or uuid in partial:
-                source_entry["collection"][uuid] = item
-        response["sources"][source.uuid] = source_entry
-    return jsonify(response)
+                source_entry.collection[uuid] = item
+        if want_full:
+            source_entry.info = all_source_metadata["source"]
+        response.sources[source.uuid] = source_entry
+
+    return jsonify(asdict(response))

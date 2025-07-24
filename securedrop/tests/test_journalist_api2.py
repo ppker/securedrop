@@ -251,8 +251,6 @@ def test_api2_sources_validation_non_dict_request(
 @pytest.mark.parametrize(
     ("request_body", "expected_error"),
     [
-        # Missing full_sources
-        ({"partial_sources": {}}, "full_sources must be a list of strings"),
         # full_sources not a list
         (
             {"full_sources": "not a list", "partial_sources": {}},
@@ -282,8 +280,6 @@ def test_api2_sources_validation_full_sources_errors(
 @pytest.mark.parametrize(
     ("request_body", "expected_error"),
     [
-        # Missing partial_sources
-        ({"full_sources": []}, "partial_sources must be a dict"),
         # partial_sources not a dict
         ({"full_sources": [], "partial_sources": "not a dict"}, "partial_sources must be a dict"),
         # partial_sources values not lists
