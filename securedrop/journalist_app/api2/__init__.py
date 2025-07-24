@@ -99,7 +99,7 @@ def index(prefix: Optional[str] = None) -> Response:
     return response.make_conditional(request)
 
 
-class SourceDelta(TypedDict, total=False):
+class SourcesRequest(TypedDict, total=False):
     full_sources: List[SourceUUID]
     partial_sources: Mapping[SourceUUID, List[ItemUUID]]
 
@@ -109,14 +109,14 @@ class SourceEntry(TypedDict, total=False):
     info: Optional[Mapping[str, Any]]  # omitted for partial sources
 
 
-class SourceMetadata(TypedDict):
+class SourcesResponse(TypedDict):
     sources: Dict[SourceUUID, SourceEntry]
 
 
 @blp.post("/sources")
 def sources() -> Response:
     """
-    Return the ``SourceMetadata`` requested in the ``SourceDelta``.  For "full"
+    Return the ``SourcesResponse`` requested in the ``SourcesRequest``.  For "full"
     sources, return all metadata.  For "partial" sources, return metadata only
     for the specified items in their collections, excluding the source-level
     ``info`` object.
@@ -143,7 +143,7 @@ def sources() -> Response:
     # Look up all requested sources, and return both "full" and "partial"
     # metadata in a single pass.
     source_lookup = set(requested["full_sources"]) | set(requested["partial_sources"].keys())
-    response: SourceMetadata = {"sources": {}}
+    response: SourcesResponse = {"sources": {}}
     for source in all_sources().filter(Source.uuid.in_(str(uuid) for uuid in source_lookup)):
         all_source_metadata = source.to_api_v2()
         source_entry: SourceEntry = {"collection": {}}
