@@ -122,13 +122,13 @@ def make_blueprint() -> Blueprint:
     @api.route("/sources", methods=["GET"])
     def get_all_sources() -> Tuple[flask.Response, int]:
         sources = Source.query.filter_by(pending=False, deleted_at=None).all()
-        return jsonify({"sources": [source.to_json() for source in sources]}), 200
+        return jsonify({"sources": [source.to_api_v1() for source in sources]}), 200
 
     @api.route("/sources/<source_uuid>", methods=["GET", "DELETE"])
     def single_source(source_uuid: str) -> Tuple[flask.Response, int]:
         if request.method == "GET":
             source = get_or_404(Source, source_uuid, column=Source.uuid)
-            return jsonify(source.to_json()), 200
+            return jsonify(source.to_api_v1()), 200
         elif request.method == "DELETE":
             source = get_or_404(Source, source_uuid, column=Source.uuid)
             utils.delete_collection(source.filesystem_id)
@@ -170,7 +170,7 @@ def make_blueprint() -> Blueprint:
     def all_source_submissions(source_uuid: str) -> Tuple[flask.Response, int]:
         source = get_or_404(Source, source_uuid, column=Source.uuid)
         return (
-            jsonify({"submissions": [submission.to_json() for submission in source.submissions]}),
+            jsonify({"submissions": [submission.to_api_v1() for submission in source.submissions]}),
             200,
         )
 
@@ -195,7 +195,7 @@ def make_blueprint() -> Blueprint:
         if request.method == "GET":
             get_or_404(Source, source_uuid, column=Source.uuid)
             submission = get_or_404(Submission, submission_uuid, column=Submission.uuid)
-            return jsonify(submission.to_json()), 200
+            return jsonify(submission.to_api_v1()), 200
         elif request.method == "DELETE":
             get_or_404(Source, source_uuid, column=Source.uuid)
             submission = get_or_404(Submission, submission_uuid, column=Submission.uuid)
@@ -209,7 +209,7 @@ def make_blueprint() -> Blueprint:
         if request.method == "GET":
             source = get_or_404(Source, source_uuid, column=Source.uuid)
             return (
-                jsonify({"replies": [reply.to_json() for reply in source.replies]}),
+                jsonify({"replies": [reply.to_api_v1() for reply in source.replies]}),
                 200,
             )
         elif request.method == "POST":
@@ -280,7 +280,7 @@ def make_blueprint() -> Blueprint:
         get_or_404(Source, source_uuid, column=Source.uuid)
         reply = get_or_404(Reply, reply_uuid, column=Reply.uuid)
         if request.method == "GET":
-            return jsonify(reply.to_json()), 200
+            return jsonify(reply.to_api_v1()), 200
         elif request.method == "DELETE":
             utils.delete_file_object(reply)
             return jsonify({"message": "Reply deleted"}), 200
@@ -294,7 +294,7 @@ def make_blueprint() -> Blueprint:
             jsonify(
                 {
                     "submissions": [
-                        submission.to_json() for submission in submissions if submission.source
+                        submission.to_api_v1() for submission in submissions if submission.source
                     ]
                 }
             ),
@@ -305,7 +305,7 @@ def make_blueprint() -> Blueprint:
     def get_all_replies() -> Tuple[flask.Response, int]:
         replies = Reply.query.all()
         return (
-            jsonify({"replies": [reply.to_json() for reply in replies if reply.source]}),
+            jsonify({"replies": [reply.to_api_v1() for reply in replies if reply.source]}),
             200,
         )
 
@@ -352,12 +352,12 @@ def make_blueprint() -> Blueprint:
 
     @api.route("/user", methods=["GET"])
     def get_current_user() -> Tuple[flask.Response, int]:
-        return jsonify(session.get_user().to_json()), 200
+        return jsonify(session.get_user().to_api_v1()), 200
 
     @api.route("/users", methods=["GET"])
     def get_all_users() -> Tuple[flask.Response, int]:
         users = Journalist.query.all()
-        return jsonify({"users": [user.to_json(all_info=False) for user in users]}), 200
+        return jsonify({"users": [user.to_api_v1(all_info=False) for user in users]}), 200
 
     @api.route("/logout", methods=["POST"])
     def logout() -> Tuple[flask.Response, int]:

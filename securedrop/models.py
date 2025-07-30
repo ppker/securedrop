@@ -128,7 +128,30 @@ class Source(db.Model):
         except GpgKeyNotFoundError:
             return None
 
-    def to_json(self) -> "Dict[str, object]":
+    def to_api_v2(self) -> Dict[str, Any]:
+        if self.last_updated:
+            last_updated = self.last_updated
+        else:
+            last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
+
+        starred = bool(self.star and self.star.starred)
+        collection = {}
+        for item in self.collection:
+            collection[item.uuid] = item.to_api_v2()
+
+        return {
+            "source": {
+                "uuid": self.uuid,
+                "journalist_designation": self.journalist_designation,
+                "is_starred": starred,
+                "last_updated": last_updated,
+                "public_key": self.public_key,
+                "fingerprint": self.fingerprint,
+            },
+            "collection": collection,
+        }
+
+    def to_api_v1(self) -> "Dict[str, object]":
         docs_msg_count = self.documents_messages_count()
 
         if self.last_updated:
@@ -199,7 +222,22 @@ class Submission(db.Model):
     def is_message(self) -> bool:
         return self.filename.endswith("msg.gpg")
 
-    def to_json(self) -> "Dict[str, Any]":
+    def to_api_v2(self) -> Dict[str, Any]:
+        if self.is_file:
+            seen_by = [f.journalist.uuid for f in self.seen_files if f.journalist]
+        else:  # is_message
+            seen_by = [m.journalist.uuid for m in self.seen_messages if m.journalist]
+        return {
+            "kind": "file" if self.is_file else "message",
+            "uuid": self.uuid,
+            "source": self.source.uuid,
+            "size": self.size,
+            # TODO: how is this different from seen_by?
+            "is_read": self.seen,
+            "seen_by": seen_by,
+        }
+
+    def to_api_v1(self) -> "Dict[str, Any]":
         seen_by = {
             f.journalist.uuid
             for f in SeenFile.query.filter(SeenFile.file_id == self.id)
@@ -249,7 +287,7 @@ class Submission(db.Model):
         If the submission has been downloaded or seen by any journalist, then the submission is
         considered seen.
         """
-        return bool(self.downloaded or self.seen_files.count() or self.seen_messages.count())
+        return bool(self.downloaded or len(self.seen_files) or len(self.seen_messages))
 
 
 class Reply(db.Model):
@@ -286,7 +324,18 @@ class Reply(db.Model):
     def __repr__(self) -> str:
         return f"<Reply {self.filename!r}>"
 
-    def to_json(self) -> "Dict[str, Any]":
+    def to_api_v2(self) -> Dict[str, Any]:
+        return {
+            "kind": "reply",
+            "uuid": self.uuid,
+            "source": self.source.uuid,
+            "size": self.size,
+            "journalist_uuid": self.journalist.uuid,
+            "is_deleted_by_source": self.deleted_by_source,
+            "seen_by": [r.journalist.uuid for r in self.seen_replies],
+        }
+
+    def to_api_v1(self) -> "Dict[str, Any]":
         seen_by = [r.journalist.uuid for r in SeenReply.query.filter(SeenReply.reply_id == self.id)]
         return {
             "source_url": (
@@ -681,7 +730,7 @@ class Journalist(db.Model):
 
         return user
 
-    def to_json(self, all_info: bool = True) -> Dict[str, Any]:
+    def to_api_v1(self, all_info: bool = True) -> Dict[str, Any]:
         """Returns a JSON representation of the journalist user. If all_info is
         False, potentially sensitive or extraneous fields are excluded. Note
         that both representations do NOT include credentials."""
@@ -782,9 +831,9 @@ class SeenFile(db.Model):
     journalist_id = Column(Integer, ForeignKey("journalists.id"), nullable=False)
     file = relationship(
         "Submission",
-        backref=backref("seen_files", lazy="dynamic", cascade="all,delete"),
+        backref=backref("seen_files", lazy="joined", cascade="all,delete"),
     )
-    journalist = relationship("Journalist", backref=backref("seen_files"))
+    journalist = relationship("Journalist", lazy="joined", backref=backref("seen_files"))
 
 
 class SeenMessage(db.Model):
@@ -795,9 +844,9 @@ class SeenMessage(db.Model):
     journalist_id = Column(Integer, ForeignKey("journalists.id"), nullable=False)
     message = relationship(
         "Submission",
-        backref=backref("seen_messages", lazy="dynamic", cascade="all,delete"),
+        backref=backref("seen_messages", lazy="joined", cascade="all,delete"),
     )
-    journalist = relationship("Journalist", backref=backref("seen_messages"))
+    journalist = relationship("Journalist", lazy="joined", backref=backref("seen_messages"))
 
 
 class SeenReply(db.Model):
@@ -806,8 +855,10 @@ class SeenReply(db.Model):
     id = Column(Integer, primary_key=True)
     reply_id = Column(Integer, ForeignKey("replies.id"), nullable=False)
     journalist_id = Column(Integer, ForeignKey("journalists.id"), nullable=False)
-    reply = relationship("Reply", backref=backref("seen_replies", cascade="all,delete"))
-    journalist = relationship("Journalist", backref=backref("seen_replies"))
+    reply = relationship(
+        "Reply", backref=backref("seen_replies", lazy="joined", cascade="all,delete")
+    )
+    journalist = relationship("Journalist", lazy="joined", backref=backref("seen_replies"))
 
 
 class JournalistLoginAttempt(db.Model):
