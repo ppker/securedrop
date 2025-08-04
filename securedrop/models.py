@@ -111,6 +111,18 @@ class Source(db.Model):
         return collection
 
     @property
+    def is_seen(self) -> bool:
+        """Return True if all submissions in this source's collection are marked as seen."""
+        if not self.submissions:
+            return True
+        return all(submission.seen for submission in self.submissions)
+
+    @property
+    def has_attachment(self) -> bool:
+        """Return True if any submission in this source's collection is a file attachment."""
+        return any(submission.is_file for submission in self.submissions)
+
+    @property
     def fingerprint(self) -> Optional[str]:
         if self.pgp_fingerprint is not None:
             return self.pgp_fingerprint
@@ -144,6 +156,8 @@ class Source(db.Model):
                 "uuid": self.uuid,
                 "journalist_designation": self.journalist_designation,
                 "is_starred": starred,
+                "is_seen": self.is_seen,
+                "has_attachment": self.has_attachment,
                 "last_updated": last_updated,
                 "public_key": self.public_key,
                 "fingerprint": self.fingerprint,
@@ -170,6 +184,8 @@ class Source(db.Model):
             "journalist_designation": self.journalist_designation,
             "is_flagged": False,
             "is_starred": starred,
+            "is_seen": self.is_seen,
+            "has_attachment": self.has_attachment,
             "last_updated": last_updated,
             "interaction_count": self.interaction_count,
             "key": {
