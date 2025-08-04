@@ -158,8 +158,8 @@ def spawn_sd_servers(
         journalist_app_base_url = f"http://127.0.0.1:{journalist_port}"
 
         # Sleep until the source and journalist web apps are up and running
-        attempts_count = 30
-        seconds_between_attempts = 0.25
+        attempts_count = 60
+        seconds_between_attempts = 0.5
         response_source_status_code = None
         for _ in range(attempts_count):
             try:
@@ -168,7 +168,9 @@ def spawn_sd_servers(
                 break
             except (requests.ConnectionError, requests.Timeout):
                 time.sleep(seconds_between_attempts)
-        assert response_source_status_code == 200
+        assert (
+            response_source_status_code == 200
+        ), f"Source app failed to start at {source_app_base_url}"
 
         response_journalist_status_code = None
         for _ in range(attempts_count):
@@ -178,7 +180,9 @@ def spawn_sd_servers(
                 break
             except (requests.ConnectionError, requests.Timeout):
                 time.sleep(seconds_between_attempts)
-        assert response_journalist_status_code == 200
+        assert (
+            response_journalist_status_code == 200
+        ), f"Journalist app failed to start at {journalist_app_base_url}"
 
         # Ready for the tests
         yield SdServersFixtureResult(
