@@ -268,6 +268,24 @@ def test_files(journalist_app, test_journo, app_storage):
 
 
 @pytest.fixture
+def test_files_with_uuid_collision(journalist_app, test_journo, app_storage):
+    with journalist_app.app_context():
+        source, codename = utils.db_helper.init_source(app_storage)
+        utils.db_helper.submit(app_storage, source, 1, submission_type="file")
+        utils.db_helper.reply(app_storage, test_journo["journalist"], source, 1)
+        source.replies[0].uuid = source.submissions[0].uuid
+        db.session.commit()
+        return {
+            "source": source,
+            "codename": codename,
+            "filesystem_id": source.filesystem_id,
+            "uuid": source.uuid,
+            "submissions": source.submissions,
+            "replies": source.replies,
+        }
+
+
+@pytest.fixture
 def test_files_deleted_journalist(journalist_app, test_journo, app_storage):
     with journalist_app.app_context():
         source, codename = utils.db_helper.init_source(app_storage)

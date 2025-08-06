@@ -4,6 +4,7 @@ import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app.api2 import json_version
+from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils.api_helper import get_api_headers
 
 
@@ -193,6 +194,22 @@ def test_metadata(journalist_app, test_files, journalist_api_token):
         assert len(response.json["sources"]) == 0
         # Verify the versions are the same
         assert json_version(response.json["items"][item_uuid]) == index.json["items"][item_uuid]
+
+
+def test_item_collision(journalist_app, test_files_with_uuid_collision, journalist_api_token):
+    """
+    Test the edge case where a ``Submission`` and a ``Reply`` have the same UUID
+    in separate tables.
+    """
+    with journalist_app.test_client() as app:
+        # Get an item:
+        item_uuid = test_files_with_uuid_collision["submissions"][0].uuid
+        with pytest.raises(MultipleResultsFound):  # HTTP 500 in production
+            app.post(
+                url_for("api2.metadata"),
+                json={"items": [item_uuid]},
+                headers=get_api_headers(journalist_api_token),
+            )
 
 
 # Verify POST /sources input validation

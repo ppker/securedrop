@@ -6,6 +6,7 @@ from flask import Blueprint, abort, json, jsonify, request
 from models import Reply, Source, Submission
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Query, joinedload
+from sqlalchemy.orm.exc import MultipleResultsFound
 from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
@@ -129,6 +130,11 @@ def metadata() -> Response:
         response.items[item.uuid] = item.to_api_v2()
 
     for item in Reply.query.filter(Reply.uuid.in_(str(uuid) for uuid in requested.items)):
+        if item.uuid in response.items:
+            # Fail if we get unlucky and hit a UUID collision between the
+            # `Submission` and `Reply` tables.  This is vanishingly unlikely,
+            # but SQLite can't enforce uniqueness between them.
+            raise MultipleResultsFound(f"found {item.uuid} in both submissions and replies")
         response.items[item.uuid] = item.to_api_v2()
 
     return jsonify(asdict(response))
