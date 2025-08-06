@@ -47,7 +47,7 @@ def test_json_version():
     ("endpoint", "kwargs"),
     [
         ("api2.index", {}),
-        ("api2.index", {"prefix": "foo"}),
+        ("api2.index", {"source_prefix": "foo"}),
         # while this should be a POST request, the 403 will kick in first
         ("api2.metadata", {}),
     ],
@@ -94,15 +94,15 @@ def test_index(journalist_app, test_files, journalist_api_token):
         assert response2.calculate_content_length() == 0
 
 
-def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
+def test_index_with_source_prefix(journalist_app, test_files, journalist_api_token):
     """
-    Verify GET /index/<prefix> response and HTTP 304 behavior
+    Verify GET /index/<source_prefix> response and HTTP 304 behavior
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
         with assert_query_count(1):
             response = app.get(
-                url_for("api2.index", prefix=uuid[0]),
+                url_for("api2.index", source_prefix=uuid[0]),
                 headers=get_api_headers(journalist_api_token),
             )
 
@@ -114,7 +114,7 @@ def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
 
         with assert_query_count(1):
             response2 = app.get(
-                url_for("api2.index", prefix=uuid[0]),
+                url_for("api2.index", source_prefix=uuid[0]),
                 headers={
                     **get_api_headers(journalist_api_token),
                     "If-None-Match": response.headers["ETag"],
@@ -125,9 +125,9 @@ def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
         assert response2.status_code == 304
         assert response2.calculate_content_length() == 0
 
-        # Make a response with an invalid prefix ("x")
+        # Make a response with an invalid source_prefix ("x")
         response3 = app.get(
-            url_for("api2.index", prefix="x"),
+            url_for("api2.index", source_prefix="x"),
             headers=get_api_headers(journalist_api_token),
         )
         # HTTP 200, but zero sources
@@ -136,21 +136,23 @@ def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
         assert response3.json["items"] == {}
 
 
-def test_index_with_invalid_prefix(journalist_app, test_files, journalist_api_token):
+def test_index_with_invalid_source_prefix(journalist_app, test_files, journalist_api_token):
     """
-    Verify that a too-long prefix is rejected.
+    Verify that a too-long source_prefix is rejected.
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
         too_long = uuid[0] * 100
         with assert_query_count(0):
             response = app.get(
-                url_for("api2.index", prefix=too_long),
+                url_for("api2.index", source_prefix=too_long),
                 headers=get_api_headers(journalist_api_token),
             )
 
         assert response.status_code == 422
-        assert "malformed request; prefix must be shorter than" in response.get_data(as_text=True)
+        assert "malformed request; source prefix must be shorter than" in response.get_data(
+            as_text=True
+        )
 
 
 def test_metadata(journalist_app, test_files, journalist_api_token):

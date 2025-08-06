@@ -50,35 +50,42 @@ ItemUUID = NewType("ItemUUID", str)
 
 @dataclass
 class Index:
+    # Source metadata, optionally filtered by `source_prefix`:
     sources: Dict[SourceUUID, Version] = field(default_factory=dict)
     items: Dict[ItemUUID, Version] = field(default_factory=dict)
 
+    # Non-source metadata (always returned):
+
 
 @blp.get("/index")
-@blp.get("/index/<string:prefix>")
-def index(prefix: Optional[str] = None) -> Response:
+@blp.get("/index/<string:source_prefix>")
+def index(source_prefix: Optional[str] = None) -> Response:
     """
-    By default, return the ETag-versioned ``Index`` of all sources and their
-    items, unless the client provides the ETag of the current index.
+    By default, return the ETag-versioned ``Index`` of all metadata unless the
+    client provides the ETag of the current index.
 
-    Given a ``prefix``, return the sub-index of all sources whose UUIDs begin
-    with that prefix (and their items), unless the client provides the ETag of
-    the current sub-index for that prefix.  The client MAY choose an arbitrary
-    prefix with each request: e.g., a series of requests with the prefixes
-    ``{0...f}`` will effectively shard the index into 16 shards.
+    Given a ``source_prefix``, return the sub-index of source metadata for all
+    sources whose UUIDs begin with that prefix, plus all non-source metadata,
+    unless the client provides the ETag of the current sub-index for that
+    prefix.  The client MAY choose an arbitrary prefix with each request: e.g.,
+    a series of requests with the prefixes ``{0...f}`` will effectively shard
+    the source index into 16 shards.  (Non-source metadata is not filtered by
+    the prefix and is always returned.)
     """
     index = Index()
 
-    query = all_sources()
-    if prefix is not None:
-        if len(prefix) >= PREFIX_MAX_LEN:
+    source_query = all_sources()
+    if source_prefix is not None:
+        if len(source_prefix) >= PREFIX_MAX_LEN:
             abort(
-                422, f"malformed request; prefix must be shorter than {PREFIX_MAX_LEN} characters"
+                422,
+                f"malformed request; source prefix must be shorter than {PREFIX_MAX_LEN} "
+                f"characters",
             )
 
-        query = query.filter(Source.uuid.startswith(prefix))
+        source_query = source_query.filter(Source.uuid.startswith(source_prefix))
 
-    for source in query.all():
+    for source in source_query.all():
         index.sources[source.uuid] = json_version(source.to_api_v2())
         for item in source.collection:
             index.items[item.uuid] = json_version(item.to_api_v2())
@@ -94,22 +101,28 @@ def index(prefix: Optional[str] = None) -> Response:
 
 @dataclass
 class MetadataRequest:
+    # Source metadata:
     sources: Set[SourceUUID] = field(default_factory=set)
     items: Set[ItemUUID] = field(default_factory=set)
+
+    # Non-source metadata:
 
 
 @dataclass
 class MetadataResponse:
+    # Source metadata:
     sources: Dict[SourceUUID, Any] = field(default_factory=dict)
     items: Dict[ItemUUID, Any] = field(default_factory=dict)
+
+    # Non-source metadata:
 
 
 @blp.post("/metadata")
 def metadata() -> Response:
     """
     Return the ``MetadataResponse`` requested in the ``MetadataRequest``.  The
-    client MAY choose an arbitrary list of sources and items with each request,
-    e.g. from a shard retrieved from ``/index/<prefix>``.
+    client MAY choose an arbitrary list of objects with each request, e.g. from
+    a shard retrieved from ``/index/<source_prefix>``.
 
     NB.  Returning sources is O(1) from the eagerly-loaded ``all_sources()``.
     Returning items is O(2), since we have to search both the ``Submission`` and
