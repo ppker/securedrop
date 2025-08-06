@@ -19,13 +19,17 @@ def filtered_queries():
 
 
 @contextmanager
-def assert_query_count(expected_count):
+def assert_query_count(expected_count, expect_login=True):
     """verify an API request makes the expected number of queries"""
     initial_count = len(filtered_queries())
     yield
     new_queries = filtered_queries()[initial_count:]
     # If the first API request is to look up journalists, it's part of the login flow, so skip it
-    if len(new_queries) >= 1 and new_queries[0].statement.startswith("SELECT journalists."):
+    if (
+        expect_login
+        and len(new_queries) >= 1
+        and new_queries[0].statement.startswith("SELECT journalists.")
+    ):
         new_queries = new_queries[1:]
 
     assert (
@@ -68,7 +72,7 @@ def test_index(journalist_app, test_files, journalist_api_token):
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
-        with assert_query_count(1):
+        with assert_query_count(2):
             response = app.get(
                 url_for("api2.index"),
                 headers=get_api_headers(journalist_api_token),
@@ -80,7 +84,7 @@ def test_index(journalist_app, test_files, journalist_api_token):
         # test_files generates 2 submissions and 1 reply, so 3 items total
         assert len(response.json["items"]) == 3
 
-        with assert_query_count(1):
+        with assert_query_count(2):
             response2 = app.get(
                 url_for("api2.index"),
                 headers={
@@ -100,7 +104,7 @@ def test_index_with_source_prefix(journalist_app, test_files, journalist_api_tok
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
-        with assert_query_count(1):
+        with assert_query_count(2):
             response = app.get(
                 url_for("api2.index", source_prefix=uuid[0]),
                 headers=get_api_headers(journalist_api_token),
@@ -112,7 +116,7 @@ def test_index_with_source_prefix(journalist_app, test_files, journalist_api_tok
         # test_files generates 2 submissions and 1 reply, so 3 items total
         assert len(response.json["items"]) == 3
 
-        with assert_query_count(1):
+        with assert_query_count(2):
             response2 = app.get(
                 url_for("api2.index", source_prefix=uuid[0]),
                 headers={
@@ -155,7 +159,7 @@ def test_index_with_invalid_source_prefix(journalist_app, test_files, journalist
         )
 
 
-def test_metadata(journalist_app, test_files, journalist_api_token):
+def test_metadata(journalist_app, test_files, test_journo, journalist_api_token):
     """
     Verify POST /metadata response
     """
@@ -184,7 +188,7 @@ def test_metadata(journalist_app, test_files, journalist_api_token):
 
         # Get an item
         item_uuid = test_files["submissions"][0].uuid
-        with assert_query_count(2):
+        with assert_query_count(3):
             response = app.post(
                 url_for("api2.metadata"),
                 json={"items": [item_uuid]},
@@ -196,6 +200,25 @@ def test_metadata(journalist_app, test_files, journalist_api_token):
         assert len(response.json["sources"]) == 0
         # Verify the versions are the same
         assert json_version(response.json["items"][item_uuid]) == index.json["items"][item_uuid]
+
+        # Get a journalist
+        journalist_uuid = test_journo["uuid"]
+        with assert_query_count(1, expect_login=False):
+            response = app.post(
+                url_for("api2.metadata"),
+                json={"journalists": [journalist_uuid]},
+                headers=get_api_headers(journalist_api_token),
+            )
+        assert response.status_code == 200
+        assert journalist_uuid in response.json["journalists"]
+        # Verify no source or item metadata is returned
+        assert len(response.json["sources"]) == 0
+        assert len(response.json["items"]) == 0
+        # Verify the versions are the same
+        assert (
+            json_version(response.json["journalists"][journalist_uuid])
+            == index.json["journalists"][journalist_uuid]
+        )
 
 
 def test_item_collision(journalist_app, test_files_with_uuid_collision, journalist_api_token):

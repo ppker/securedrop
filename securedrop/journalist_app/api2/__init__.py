@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Mapping, NewType, Optional, Set
 
 from flask import Blueprint, abort, json, jsonify, request
-from models import Reply, Source, Submission
+from models import Journalist, Reply, Source, Submission
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Query, joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -46,6 +46,7 @@ def json_version(d: Mapping) -> Version:
 # TODO: generic UUID[T] in Python 3.12
 SourceUUID = NewType("SourceUUID", str)
 ItemUUID = NewType("ItemUUID", str)
+JournalistUUID = NewType("JournalistUUID", str)
 
 
 @dataclass
@@ -55,6 +56,7 @@ class Index:
     items: Dict[ItemUUID, Version] = field(default_factory=dict)
 
     # Non-source metadata (always returned):
+    journalists: Dict[JournalistUUID, Version] = field(default_factory=dict)
 
 
 @blp.get("/index")
@@ -90,6 +92,9 @@ def index(source_prefix: Optional[str] = None) -> Response:
         for item in source.collection:
             index.items[item.uuid] = json_version(item.to_api_v2())
 
+    for journalist in Journalist.query.all():
+        index.journalists[journalist.uuid] = json_version(journalist.to_api_v2())
+
     version = json_version(asdict(index))
     response = jsonify(asdict(index))
 
@@ -106,6 +111,7 @@ class MetadataRequest:
     items: Set[ItemUUID] = field(default_factory=set)
 
     # Non-source metadata:
+    journalists: Set[JournalistUUID] = field(default_factory=set)
 
 
 @dataclass
@@ -115,6 +121,7 @@ class MetadataResponse:
     items: Dict[ItemUUID, Any] = field(default_factory=dict)
 
     # Non-source metadata:
+    journalists: Dict[JournalistUUID, Any] = field(default_factory=dict)
 
 
 @blp.post("/metadata")
@@ -154,5 +161,11 @@ def metadata() -> Response:
                 # but SQLite can't enforce uniqueness between them.
                 raise MultipleResultsFound(f"found {item.uuid} in both submissions and replies")
             response.items[item.uuid] = item.to_api_v2()
+
+    if requested.journalists:
+        for journalist in Journalist.query.filter(
+            Journalist.uuid.in_(str(uuid) for uuid in requested.journalists)
+        ):
+            response.journalists[journalist.uuid] = journalist.to_api_v2()
 
     return jsonify(asdict(response))

@@ -763,6 +763,9 @@ class Journalist(db.Model):
 
         return json_user
 
+    def to_api_v2(self, *args, **kwargs) -> Dict[str, Any]:  # type: ignore
+        return self.to_api_v1(*args, **kwargs)
+
     def is_deleted_user(self) -> bool:
         """Is this the special "deleted" user managed by the system?"""
         return self.username == "deleted"
