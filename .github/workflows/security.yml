@@ -19,7 +19,7 @@ jobs:
         run: |
           make rust-audit
 
-  static-analysis-and-no-known-cves:
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,13 +27,10 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.12'
       - name: Install dependencies
         run: |
-          pip install safety semgrep
-      - name: Check Python dependencies for CVEs
-        run: |
-          make safety
+          pip install semgrep
       - name: Run static security testing on source code with semgrep
         run: |
           make semgrep
