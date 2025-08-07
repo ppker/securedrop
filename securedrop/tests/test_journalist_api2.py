@@ -4,6 +4,7 @@ import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app.api2 import json_version
+from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils.api_helper import get_api_headers
 
 
@@ -48,7 +49,7 @@ def test_json_version():
         ("api2.index", {}),
         ("api2.index", {"prefix": "foo"}),
         # while this should be a POST request, the 403 will kick in first
-        ("api2.sources", {}),
+        ("api2.metadata", {}),
     ],
 )
 def test_auth_required(journalist_app, endpoint, kwargs):
@@ -77,7 +78,7 @@ def test_index(journalist_app, test_files, journalist_api_token):
         assert response.status_code == 200
         assert uuid in response.json["sources"]
         # test_files generates 2 submissions and 1 reply, so 3 items total
-        assert len(response.json["sources"][uuid]["collection"]) == 3
+        assert len(response.json["items"]) == 3
 
         with assert_query_count(1):
             response2 = app.get(
@@ -109,7 +110,7 @@ def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
         assert response.status_code == 200
         assert uuid in response.json["sources"]
         # test_files generates 2 submissions and 1 reply, so 3 items total
-        assert len(response.json["sources"][uuid]["collection"]) == 3
+        assert len(response.json["items"]) == 3
 
         with assert_query_count(1):
             response2 = app.get(
@@ -132,6 +133,7 @@ def test_index_with_prefix(journalist_app, test_files, journalist_api_token):
         # HTTP 200, but zero sources
         assert response3.status_code == 200
         assert response3.json["sources"] == {}
+        assert response3.json["items"] == {}
 
 
 def test_index_with_invalid_prefix(journalist_app, test_files, journalist_api_token):
@@ -151,9 +153,9 @@ def test_index_with_invalid_prefix(journalist_app, test_files, journalist_api_to
         assert "malformed request; prefix must be shorter than" in response.get_data(as_text=True)
 
 
-def test_sources(journalist_app, test_files, journalist_api_token):
+def test_metadata(journalist_app, test_files, journalist_api_token):
     """
-    Verify POST /sources response
+    Verify POST /metadata response
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
@@ -168,39 +170,46 @@ def test_sources(journalist_app, test_files, journalist_api_token):
         # Get the full source
         with assert_query_count(1):
             response = app.post(
-                url_for("api2.sources"),
-                json={"full_sources": [uuid], "partial_sources": {}},
+                url_for("api2.metadata"),
+                json={"sources": [uuid]},
                 headers=get_api_headers(journalist_api_token),
             )
         assert response.status_code == 200
         assert uuid in response.json["sources"]
         source = response.json["sources"][uuid]
         # Verify the source has the same version
-        assert json_version(source["info"]) == source_versions["version"]
-        # Verify the collection has an identical set of UUIDs and the versions are the same
-        assert set(source["collection"].keys()) == set(source_versions["collection"].keys())
-        for item_uuid, item in source["collection"].items():
-            assert json_version(item) == source_versions["collection"][item_uuid]
+        assert json_version(source) == source_versions
 
-        # Get a partial source
-        item_uuid = list(source["collection"].keys())[0]
-        with assert_query_count(1):
+        # Get an item
+        item_uuid = test_files["submissions"][0].uuid
+        with assert_query_count(2):
             response = app.post(
-                url_for("api2.sources"),
-                json={"full_sources": [], "partial_sources": {uuid: [item_uuid]}},
+                url_for("api2.metadata"),
+                json={"items": [item_uuid]},
                 headers=get_api_headers(journalist_api_token),
             )
         assert response.status_code == 200
-        assert uuid in response.json["sources"]
-        source = response.json["sources"][uuid]
+        assert item_uuid in response.json["items"]
         # Verify no source metadata is returned
-        assert "info" not in source
-        # Verify the collection has an identical set of UUIDs and the versions are the same
-        assert set(source["collection"].keys()) == {item_uuid}
-        assert (
-            json_version(source["collection"][item_uuid])
-            == source_versions["collection"][item_uuid]
-        )
+        assert len(response.json["sources"]) == 0
+        # Verify the versions are the same
+        assert json_version(response.json["items"][item_uuid]) == index.json["items"][item_uuid]
+
+
+def test_item_collision(journalist_app, test_files_with_uuid_collision, journalist_api_token):
+    """
+    Test the edge case where a ``Submission`` and a ``Reply`` have the same UUID
+    in separate tables.
+    """
+    with journalist_app.test_client() as app:
+        # Get an item:
+        item_uuid = test_files_with_uuid_collision["submissions"][0].uuid
+        with pytest.raises(MultipleResultsFound):  # HTTP 500 in production
+            app.post(
+                url_for("api2.metadata"),
+                json={"items": [item_uuid]},
+                headers=get_api_headers(journalist_api_token),
+            )
 
 
 # Verify POST /sources input validation
@@ -214,11 +223,11 @@ def test_sources(journalist_app, test_files, journalist_api_token):
         None,
     ],
 )
-def test_api2_sources_validation_invalid_json(journalist_app, journalist_api_token, invalid_data):
+def test_api2_metadata_validation_invalid_json(journalist_app, journalist_api_token, invalid_data):
     """Test that Flask rejects invalid JSON."""
     with journalist_app.test_client() as app:
         response = app.post(
-            url_for("api2.sources"),
+            url_for("api2.metadata"),
             data=invalid_data,
             headers=get_api_headers(journalist_api_token),
         )
@@ -234,13 +243,13 @@ def test_api2_sources_validation_invalid_json(journalist_app, journalist_api_tok
         True,
     ],
 )
-def test_api2_sources_validation_non_dict_request(
+def test_api2_metadata_validation_non_dict_request(
     journalist_app, journalist_api_token, invalid_request
 ):
     """Test that non-dict request body returns 400."""
     with journalist_app.test_client() as app:
         response = app.post(
-            url_for("api2.sources"),
+            url_for("api2.metadata"),
             json=invalid_request,
             headers=get_api_headers(journalist_api_token),
         )
@@ -249,93 +258,28 @@ def test_api2_sources_validation_non_dict_request(
 
 
 @pytest.mark.parametrize(
-    ("request_body", "expected_error"),
-    [
-        # full_sources not a list
-        (
-            {"full_sources": "not a list", "partial_sources": {}},
-            "full_sources must be a list of strings",
-        ),
-        # full_sources with non-string items
-        (
-            {"full_sources": ["valid", 123, "another"], "partial_sources": {}},
-            "full_sources must be a list of strings",
-        ),
-    ],
-)
-def test_api2_sources_validation_full_sources_errors(
-    journalist_app, journalist_api_token, request_body, expected_error
-):
-    """Test various full_sources validation errors."""
-    with journalist_app.test_client() as app:
-        response = app.post(
-            url_for("api2.sources"),
-            json=request_body,
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.status_code == 422
-        assert expected_error in response.get_data(as_text=True)
-
-
-@pytest.mark.parametrize(
-    ("request_body", "expected_error"),
-    [
-        # partial_sources not a dict
-        ({"full_sources": [], "partial_sources": "not a dict"}, "partial_sources must be a dict"),
-        # partial_sources values not lists
-        (
-            {"full_sources": [], "partial_sources": {"key1": "not a list"}},
-            "each value in partial_sources must be a list of strings",
-        ),
-        # partial_sources values with non-string items
-        (
-            {"full_sources": [], "partial_sources": {"key1": ["valid", 123]}},
-            "each value in partial_sources must be a list of strings",
-        ),
-        # Multiple keys, one invalid
-        (
-            {"full_sources": [], "partial_sources": {"key1": ["valid"], "key2": "not a list"}},
-            "each value in partial_sources must be a list of strings",
-        ),
-    ],
-)
-def test_api2_sources_validation_partial_sources_errors(
-    journalist_app, journalist_api_token, request_body, expected_error
-):
-    """Test various partial_sources validation errors."""
-    with journalist_app.test_client() as app:
-        response = app.post(
-            url_for("api2.sources"),
-            json=request_body,
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.status_code == 422
-        assert expected_error in response.get_data(as_text=True)
-
-
-@pytest.mark.parametrize(
     "valid_request",
     [
         # Empty but valid
-        {"full_sources": [], "partial_sources": {}},
-        # Only full_sources
-        {"full_sources": ["uuid1", "uuid2"], "partial_sources": {}},
-        # Only partial_sources
-        {"full_sources": [], "partial_sources": {"key1": ["item1", "item2"]}},
+        {"sources": [], "items": []},
+        # Only sources
+        {"sources": ["uuid1", "uuid2"], "items": ["uuid1", "uuid2"]},
+        # Only items
+        {"sources": [], "items": ["item1", "item2"]},
         # Both with data
         {
-            "full_sources": ["uuid1", "uuid2"],
-            "partial_sources": {"key1": ["item1", "item2"], "key2": ["item3"]},
+            "sources": ["uuid1", "uuid2"],
+            "items": ["item1", "item2"],
         },
     ],
 )
-def test_api2_sources_validation_valid_requests(
+def test_api2_metadata_validation_valid_requests(
     journalist_app, journalist_api_token, valid_request
 ):
     """Test that valid requests pass validation."""
     with journalist_app.test_client() as app:
         response = app.post(
-            url_for("api2.sources"),
+            url_for("api2.metadata"),
             json=valid_request,
             headers=get_api_headers(journalist_api_token),
         )

@@ -31,9 +31,9 @@ else Sharded by UUID prefix
 end
 
 Server ->> Client: ETag: abcdef<br>Index
-Note over Client: New sources → "full sources" for which we want all metadata.
-Client -->> Server: POST /api/v2/sources<br>SourceDelta
-Server ->> Client: SourceMetadata
+Note over Client: We want metadata for all new sources and items.
+Client -->> Server: POST /api/v2/metadata<br>MetadataRequest
+Server ->> Client: MetadataResponse
 ```
 
 ### Incremental synchronization
@@ -56,8 +56,8 @@ alt Up to date
     Server ->> Client: HTTP 304
 else Out of date
     Server ->> Client: ETag: abcdef<br>Index
-    Note over Client: New/changed sources → "full sources" for which we want all metadata.<br>New/changed items → "partial sources",  we want metadata only for the specified items.
-    Client -->> Server: POST /api/v2/sources<br>SourceDelta
-    Server ->> Client: SourceMetadata
+    Note over Client: We want metadata for all new/changed sources and items.
+    Client -->> Server: POST /api/v2/metadata<br>MetadataRequest
+    Server ->> Client: MetadataResponse
 end
 ```
