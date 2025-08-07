@@ -168,7 +168,7 @@ def test_metadata(journalist_app, test_files, journalist_api_token):
         source_versions = index.json["sources"][uuid]
 
         # Get the full source
-        with assert_query_count(3):
+        with assert_query_count(1):
             response = app.post(
                 url_for("api2.metadata"),
                 json={"sources": [uuid]},
@@ -182,7 +182,7 @@ def test_metadata(journalist_app, test_files, journalist_api_token):
 
         # Get an item
         item_uuid = test_files["submissions"][0].uuid
-        with assert_query_count(3):
+        with assert_query_count(2):
             response = app.post(
                 url_for("api2.metadata"),
                 json={"items": [item_uuid]},

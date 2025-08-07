@@ -122,18 +122,24 @@ def metadata() -> Response:
 
     response = MetadataResponse()
 
-    for source in all_sources().filter(Source.uuid.in_(str(uuid) for uuid in requested.sources)):
-        response.sources[source.uuid] = source.to_api_v2()
+    if requested.sources:
+        for source in all_sources().filter(
+            Source.uuid.in_(str(uuid) for uuid in requested.sources)
+        ):
+            response.sources[source.uuid] = source.to_api_v2()
 
-    for item in Submission.query.filter(Submission.uuid.in_(str(uuid) for uuid in requested.items)):
-        response.items[item.uuid] = item.to_api_v2()
+    if requested.items:
+        for item in Submission.query.filter(
+            Submission.uuid.in_(str(uuid) for uuid in requested.items)
+        ):
+            response.items[item.uuid] = item.to_api_v2()
 
-    for item in Reply.query.filter(Reply.uuid.in_(str(uuid) for uuid in requested.items)):
-        if item.uuid in response.items:
-            # Fail if we get unlucky and hit a UUID collision between the
-            # `Submission` and `Reply` tables.  This is vanishingly unlikely,
-            # but SQLite can't enforce uniqueness between them.
-            raise MultipleResultsFound(f"found {item.uuid} in both submissions and replies")
-        response.items[item.uuid] = item.to_api_v2()
+        for item in Reply.query.filter(Reply.uuid.in_(str(uuid) for uuid in requested.items)):
+            if item.uuid in response.items:
+                # Fail if we get unlucky and hit a UUID collision between the
+                # `Submission` and `Reply` tables.  This is vanishingly unlikely,
+                # but SQLite can't enforce uniqueness between them.
+                raise MultipleResultsFound(f"found {item.uuid} in both submissions and replies")
+            response.items[item.uuid] = item.to_api_v2()
 
     return jsonify(asdict(response))
