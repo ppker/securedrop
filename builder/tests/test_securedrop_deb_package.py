@@ -5,17 +5,13 @@ from pathlib import Path
 
 import pytest
 
-UBUNTU_VERSION = os.environ.get("UBUNTU_VERSION", "focal")
 SECUREDROP_ROOT = Path(
     subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
 )
 DEB_PATHS = [
-    pkg
-    for pkg in (SECUREDROP_ROOT / f"build/{UBUNTU_VERSION}").glob("*.deb")
-    if "dbgsym" not in pkg.name
+    pkg for pkg in (SECUREDROP_ROOT / "build/noble").glob("*.deb") if "dbgsym" not in pkg.name
 ]
-PYTHON_VERSION = {"focal": "8", "noble": "12"}[UBUNTU_VERSION]
-SITE_PACKAGES = f"/opt/venvs/securedrop-app-code/lib/python3.{PYTHON_VERSION}/site-packages"
+SITE_PACKAGES = "/opt/venvs/securedrop-app-code/lib/python3.12/site-packages"
 
 
 @pytest.fixture(scope="module")
@@ -79,7 +75,7 @@ def test_deb_package_contains_expected_conffiles(deb: Path):
         "/var/www/securedrop/.well-known/pki-validation/",
         "/var/www/securedrop/translations/messages.pot",
         "/var/www/securedrop/translations/de_DE/LC_MESSAGES/messages.mo",
-        f"{SITE_PACKAGES}/redwood/redwood.cpython-3{PYTHON_VERSION}-x86_64-linux-gnu.so",
+        f"{SITE_PACKAGES}/redwood/redwood.cpython-312-x86_64-linux-gnu.so",
     ],
 )
 def test_app_code_paths(securedrop_app_code_contents: str, path: str):
@@ -123,11 +119,7 @@ def test_apparmor_conditional():
     for line in info.splitlines():
         if line.startswith(" Depends:"):
             found = True
-            if UBUNTU_VERSION == "focal":
-                assert "apparmor (>=" not in line, "focal has no versioned apparmor dependency"
-            else:
-                assert "apparmor (>=" in line, "noble has versioned apparmor dependency"
-
+            assert "apparmor (>=" in line, "noble has versioned apparmor dependency"
     print(info)
     assert found, "Depends: line wasn't found"
 
@@ -142,10 +134,7 @@ def test_systemd_conditional():
     for line in info.splitlines():
         if line.startswith(" Depends:"):
             found = True
-            if UBUNTU_VERSION == "focal":
-                assert "systemd-hwe-hwdb" not in line, "focal has no systemd-hwe-hwdb dependency"
-            else:
-                assert "systemd-hwe-hwdb" in line, "noble has systemd-hwe-hwdb dependency"
+            assert "systemd-hwe-hwdb" in line, "noble has systemd-hwe-hwdb dependency"
 
     print(info)
     assert found, "Depends: line wasn't found"
