@@ -1078,3 +1078,41 @@ def test_robots_txt(source_app):
         assert resp.status_code == 200
         text = resp.data.decode("utf-8")
         assert "Disallow: /" in text
+
+
+def test_source_is_seen_property(source_app, app_storage):
+    """Test Source.is_seen property with various submission states."""
+    with source_app.app_context():
+        from tests.utils.db_helper import init_source, submit
+
+        source, _ = init_source(app_storage)
+
+        # Empty source is considered read
+        assert source.is_seen is True
+
+        # Add unseen message submission
+        submissions = submit(app_storage, source, 1, "message")
+        assert source.is_seen is False
+
+        # Mark as seen
+        submissions[0].downloaded = True
+        assert source.is_seen is True
+
+
+def test_source_has_attachment_property(source_app, app_storage):
+    """Test Source.has_attachment property with various submission types."""
+    with source_app.app_context():
+        from tests.utils.db_helper import init_source, submit
+
+        source, _ = init_source(app_storage)
+
+        # Empty source has no attachments
+        assert source.has_attachment is False
+
+        # Add message submission
+        submit(app_storage, source, 1, "message")
+        assert source.has_attachment is False
+
+        # Add file submission
+        submit(app_storage, source, 1, "file")
+        assert source.has_attachment is True
