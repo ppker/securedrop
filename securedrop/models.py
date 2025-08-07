@@ -152,17 +152,14 @@ class Source(db.Model):
             collection[item.uuid] = item.to_api_v2()
 
         return {
-            "source": {
-                "uuid": self.uuid,
-                "journalist_designation": self.journalist_designation,
-                "is_starred": starred,
-                "is_seen": self.is_seen,
-                "has_attachment": self.has_attachment,
-                "last_updated": last_updated,
-                "public_key": self.public_key,
-                "fingerprint": self.fingerprint,
-            },
-            "collection": collection,
+            "uuid": self.uuid,
+            "journalist_designation": self.journalist_designation,
+            "is_starred": starred,
+            "is_seen": self.is_seen,
+            "has_attachment": self.has_attachment,
+            "last_updated": last_updated,
+            "public_key": self.public_key,
+            "fingerprint": self.fingerprint,
         }
 
     def to_api_v1(self) -> "Dict[str, object]":

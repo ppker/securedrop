@@ -79,10 +79,9 @@ def index(prefix: Optional[str] = None) -> Response:
         query = query.filter(Source.uuid.startswith(prefix))
 
     for source in query.all():
-        all_source_metadata = source.to_api_v2()
-        index.sources[source.uuid] = json_version(all_source_metadata)
-        for uuid, item in all_source_metadata["collection"].items():
-            index.items[uuid] = json_version(item)
+        index.sources[source.uuid] = json_version(source.to_api_v2())
+        for item in source.collection:
+            index.items[item.uuid] = json_version(item.to_api_v2())
 
     version = json_version(asdict(index))
     response = jsonify(asdict(index))
