@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Mapping, NewType, Optional, Set
 
 from flask import Blueprint, abort, json, jsonify, request
-from models import Reply, Source, Submission
+from models import Journalist, Reply, Source, Submission
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Query, joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -46,42 +46,54 @@ def json_version(d: Mapping) -> Version:
 # TODO: generic UUID[T] in Python 3.12
 SourceUUID = NewType("SourceUUID", str)
 ItemUUID = NewType("ItemUUID", str)
+JournalistUUID = NewType("JournalistUUID", str)
 
 
 @dataclass
 class Index:
+    # Source metadata, optionally filtered by `source_prefix`:
     sources: Dict[SourceUUID, Version] = field(default_factory=dict)
     items: Dict[ItemUUID, Version] = field(default_factory=dict)
 
+    # Non-source metadata (always returned):
+    journalists: Dict[JournalistUUID, Version] = field(default_factory=dict)
+
 
 @blp.get("/index")
-@blp.get("/index/<string:prefix>")
-def index(prefix: Optional[str] = None) -> Response:
+@blp.get("/index/<string:source_prefix>")
+def index(source_prefix: Optional[str] = None) -> Response:
     """
-    By default, return the ETag-versioned ``Index`` of all sources and their
-    items, unless the client provides the ETag of the current index.
+    By default, return the ETag-versioned ``Index`` of all metadata unless the
+    client provides the ETag of the current index.
 
-    Given a ``prefix``, return the sub-index of all sources whose UUIDs begin
-    with that prefix (and their items), unless the client provides the ETag of
-    the current sub-index for that prefix.  The client MAY choose an arbitrary
-    prefix with each request: e.g., a series of requests with the prefixes
-    ``{0...f}`` will effectively shard the index into 16 shards.
+    Given a ``source_prefix``, return the sub-index of source metadata for all
+    sources whose UUIDs begin with that prefix, plus all non-source metadata,
+    unless the client provides the ETag of the current sub-index for that
+    prefix.  The client MAY choose an arbitrary prefix with each request: e.g.,
+    a series of requests with the prefixes ``{0...f}`` will effectively shard
+    the source index into 16 shards.  (Non-source metadata is not filtered by
+    the prefix and is always returned.)
     """
     index = Index()
 
-    query = all_sources()
-    if prefix is not None:
-        if len(prefix) >= PREFIX_MAX_LEN:
+    source_query = all_sources()
+    if source_prefix is not None:
+        if len(source_prefix) >= PREFIX_MAX_LEN:
             abort(
-                422, f"malformed request; prefix must be shorter than {PREFIX_MAX_LEN} characters"
+                422,
+                f"malformed request; source prefix must be shorter than {PREFIX_MAX_LEN} "
+                f"characters",
             )
 
-        query = query.filter(Source.uuid.startswith(prefix))
+        source_query = source_query.filter(Source.uuid.startswith(source_prefix))
 
-    for source in query.all():
+    for source in source_query.all():
         index.sources[source.uuid] = json_version(source.to_api_v2())
         for item in source.collection:
             index.items[item.uuid] = json_version(item.to_api_v2())
+
+    for journalist in Journalist.query.all():
+        index.journalists[journalist.uuid] = json_version(journalist.to_api_v2())
 
     version = json_version(asdict(index))
     response = jsonify(asdict(index))
@@ -94,22 +106,30 @@ def index(prefix: Optional[str] = None) -> Response:
 
 @dataclass
 class MetadataRequest:
+    # Source metadata:
     sources: Set[SourceUUID] = field(default_factory=set)
     items: Set[ItemUUID] = field(default_factory=set)
+
+    # Non-source metadata:
+    journalists: Set[JournalistUUID] = field(default_factory=set)
 
 
 @dataclass
 class MetadataResponse:
+    # Source metadata:
     sources: Dict[SourceUUID, Any] = field(default_factory=dict)
     items: Dict[ItemUUID, Any] = field(default_factory=dict)
+
+    # Non-source metadata:
+    journalists: Dict[JournalistUUID, Any] = field(default_factory=dict)
 
 
 @blp.post("/metadata")
 def metadata() -> Response:
     """
     Return the ``MetadataResponse`` requested in the ``MetadataRequest``.  The
-    client MAY choose an arbitrary list of sources and items with each request,
-    e.g. from a shard retrieved from ``/index/<prefix>``.
+    client MAY choose an arbitrary list of objects with each request, e.g. from
+    a shard retrieved from ``/index/<source_prefix>``.
 
     NB.  Returning sources is O(1) from the eagerly-loaded ``all_sources()``.
     Returning items is O(2), since we have to search both the ``Submission`` and
@@ -141,5 +161,11 @@ def metadata() -> Response:
                 # but SQLite can't enforce uniqueness between them.
                 raise MultipleResultsFound(f"found {item.uuid} in both submissions and replies")
             response.items[item.uuid] = item.to_api_v2()
+
+    if requested.journalists:
+        for journalist in Journalist.query.filter(
+            Journalist.uuid.in_(str(uuid) for uuid in requested.journalists)
+        ):
+            response.journalists[journalist.uuid] = journalist.to_api_v2()
 
     return jsonify(asdict(response))
