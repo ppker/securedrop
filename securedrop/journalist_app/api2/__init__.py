@@ -1,11 +1,12 @@
 import hashlib
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Mapping, NewType, Optional, Set
+from typing import Any, Dict, Mapping, NewType, Optional, Set, Tuple
 
+from db import db
 from flask import Blueprint, abort, json, jsonify, request
-from models import Journalist, Reply, Source, Submission
+from models import Journalist, Reply, SeenFile, SeenMessage, SeenReply, Source, Submission
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import Query, joinedload
+from sqlalchemy.orm import Load, Query, configure_mappers, joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from werkzeug.wrappers.response import Response
 
@@ -14,16 +15,55 @@ blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 
 
-def all_sources() -> Query:
-    """
-    Return a base query for all ``Sources`` with eager loading of their metadata
-    and collections.
-    """
+# Used by `{Submission,Reply}_query_options()` when called directly rather than
+# via `Source_query_options()`.
+LOADER_BASE = {
+    Submission: Load(Submission),
+    Reply: Load(Reply),
+}
+
+
+def Submission_query_options(base: Load = LOADER_BASE[Submission]) -> Tuple:
+    configure_mappers()
     return (
-        Source.query.options(joinedload(Source.star))
-        .options(joinedload(Source.submissions))
-        .options(joinedload(Source.replies))
+        base.joinedload(Submission.source),
+        base.joinedload(Submission.seen_files).joinedload(SeenFile.journalist),
+        base.joinedload(Submission.seen_messages).joinedload(SeenMessage.journalist),
     )
+
+
+def Reply_query_options(base: Load = LOADER_BASE[Reply]) -> Tuple:
+    configure_mappers()
+    return (
+        base.joinedload(Reply.source),
+        base.joinedload(Reply.journalist),
+        base.joinedload(Reply.seen_replies).joinedload(SeenReply.journalist),
+    )
+
+
+def Source_query_options() -> Tuple:
+    configure_mappers()
+    return (
+        joinedload(Source.star),
+        *Submission_query_options(joinedload(Source.submissions)),
+        *Reply_query_options(joinedload(Source.replies)),
+    )
+
+
+EAGER_BUNDLES = {
+    Source: lambda: Source_query_options(),
+    Submission: lambda: Submission_query_options(),
+    Reply: lambda: Reply_query_options(),
+}
+
+
+def eager_query(model: db.Model) -> Query:
+    """
+    Return ``model.query`` with the appropriate eager-loading options applied.
+    Falls back to plain ``model.query`` if no bundle is registered.
+    """
+    options = EAGER_BUNDLES.get(model)
+    return model.query.options(*options()) if options else model.query
 
 
 Version = NewType("Version", str)
@@ -76,7 +116,7 @@ def index(source_prefix: Optional[str] = None) -> Response:
     """
     index = Index()
 
-    source_query = all_sources()
+    source_query = eager_query(Source)
     if source_prefix is not None:
         if len(source_prefix) >= PREFIX_MAX_LEN:
             abort(
@@ -92,7 +132,7 @@ def index(source_prefix: Optional[str] = None) -> Response:
         for item in source.collection:
             index.items[item.uuid] = json_version(item.to_api_v2())
 
-    for journalist in Journalist.query.all():
+    for journalist in eager_query(Journalist).all():
         index.journalists[journalist.uuid] = json_version(journalist.to_api_v2())
 
     version = json_version(asdict(index))
@@ -143,18 +183,20 @@ def metadata() -> Response:
     response = MetadataResponse()
 
     if requested.sources:
-        for source in all_sources().filter(
+        for source in eager_query(Source).filter(
             Source.uuid.in_(str(uuid) for uuid in requested.sources)
         ):
             response.sources[source.uuid] = source.to_api_v2()
 
     if requested.items:
-        for item in Submission.query.filter(
+        for item in eager_query(Submission).filter(
             Submission.uuid.in_(str(uuid) for uuid in requested.items)
         ):
             response.items[item.uuid] = item.to_api_v2()
 
-        for item in Reply.query.filter(Reply.uuid.in_(str(uuid) for uuid in requested.items)):
+        for item in eager_query(Reply).filter(
+            Reply.uuid.in_(str(uuid) for uuid in requested.items)
+        ):
             if item.uuid in response.items:
                 # Fail if we get unlucky and hit a UUID collision between the
                 # `Submission` and `Reply` tables.  This is vanishingly unlikely,
@@ -163,7 +205,7 @@ def metadata() -> Response:
             response.items[item.uuid] = item.to_api_v2()
 
     if requested.journalists:
-        for journalist in Journalist.query.filter(
+        for journalist in eager_query(Journalist).filter(
             Journalist.uuid.in_(str(uuid) for uuid in requested.journalists)
         ):
             response.journalists[journalist.uuid] = journalist.to_api_v2()
