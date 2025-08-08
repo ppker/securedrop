@@ -26,18 +26,18 @@ LOADER_BASE = {
 def Submission_query_options(base: Load = LOADER_BASE[Submission]) -> Tuple:
     configure_mappers()
     return (
-        base.joinedload(Submission.source),
-        base.joinedload(Submission.seen_files).joinedload(SeenFile.journalist),
-        base.joinedload(Submission.seen_messages).joinedload(SeenMessage.journalist),
+        base.joinedload(Submission.source),  # type: ignore[attr-defined]
+        base.joinedload(Submission.seen_files).joinedload(SeenFile.journalist),  # type: ignore[attr-defined]
+        base.joinedload(Submission.seen_messages).joinedload(SeenMessage.journalist),  # type: ignore[attr-defined]
     )
 
 
 def Reply_query_options(base: Load = LOADER_BASE[Reply]) -> Tuple:
     configure_mappers()
     return (
-        base.joinedload(Reply.source),
-        base.joinedload(Reply.journalist),
-        base.joinedload(Reply.seen_replies).joinedload(SeenReply.journalist),
+        base.joinedload(Reply.source),  # type: ignore[attr-defined]
+        base.joinedload(Reply.journalist),  # type: ignore[attr-defined]
+        base.joinedload(Reply.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
     )
 
 
