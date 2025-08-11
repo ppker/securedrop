@@ -193,7 +193,6 @@ click==8.1.2 \
     #   click-option-group
     #   cookiecutter
     #   molecule
-    #   safety
     #   semgrep
 click-help-colors==0.9.1 \
     --hash=sha256:25a6bd22d8abbc72c18a416a1cf21ab65b6120bee48e9637829666cbad22d51d \
@@ -267,10 +266,6 @@ docopt==0.6.2 \
     # via
     #   html-linter
     #   template-remover
-dparse==0.6.2 \
-    --hash=sha256:8097076f1dd26c377f30d4745e6ec18fef42f3bf493933b842ac5bafad8c345f \
-    --hash=sha256:d45255bda21f998bc7ddf2afd5e62505ba6134756ba2d42a84c56b0826614dfe
-    # via safety
 enrich==1.2.7 \
     --hash=sha256:0a2ab0d2931dff8947012602d1234d2a3ee002d9a355b5d70be6bf5466008893 \
     --hash=sha256:f29b2c8c124b4dbd7c975ab5c3568f6c7a47938ea3b7d2106c8a3bd346545e4f
@@ -513,10 +508,8 @@ packaging==24.0 \
     # via
     #   ansible-compat
     #   ansible-core
-    #   dparse
     #   molecule
     #   pytest
-    #   safety
     #   semgrep
 paramiko==2.12.0 \
     --hash=sha256:376885c05c5d6aa6e1f4608aac2a6b5b0548b1add40274477324605903d9cd49 \
@@ -707,7 +700,6 @@ requests==2.31.0 \
     #   -r requirements/develop-requirements.in
     #   cookiecutter
     #   docker
-    #   safety
     #   semgrep
 resolvelib==0.8.1 \
     --hash=sha256:c6ea56732e9fb6fca1b2acc2ccc68a0b6b8c566d8f3e78e0443310ede61dbd37 \
@@ -830,7 +822,6 @@ ruamel-yaml==0.17.32 \
     # via
     #   -r requirements/develop-requirements.in
     #   ansible-lint
-    #   safety
     #   semgrep
 ruamel-yaml-clib==0.2.12 \
     --hash=sha256:040ae85536960525ea62868b642bdb0c2cc6021c9f9d507810c0c604e66f5a7b \
@@ -900,10 +891,6 @@ ruff==0.8.6 \
     --hash=sha256:e88b8f6d901477c41559ba540beeb5a671e14cd29ebd5683903572f4b40a9807 \
     --hash=sha256:f1d70bef3d16fdc897ee290d7d20da3cbe4e26349f62e8a0274e7a3f4ce7a905
     # via -r requirements/develop-requirements.in
-safety==2.3.1 \
-    --hash=sha256:6e6fcb7d4e8321098cf289f59b65051cafd3467f089c6e57c9f894ae32c23b71 \
-    --hash=sha256:8f098d12b607db2756886280e85c28ece8db1bba4f45fc5f981f4663217bd619
-    # via -r requirements/develop-requirements.in
 selinux==0.2.1 \
     --hash=sha256:820adcf1b4451c9cc7759848797703263ba0eb6a4cad76d73548a9e0d57b7926 \
     --hash=sha256:d435f514e834e3fdc0941f6a29d086b80b2ea51b28112aee6254bd104ee42a74
@@ -920,7 +907,6 @@ setuptools==79.0.1 \
     --hash=sha256:e147c0549f27767ba362f9da434eab9c5dc0045d5304feb602a0af001089fc51
     # via
     #   -r requirements/base-requirements.in
-    #   safety
     #   selinux
     #   yamllint
 shellcheck-py==0.9.0.2 \
@@ -957,10 +943,6 @@ text-unidecode==1.3 \
     --hash=sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8 \
     --hash=sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93
     # via python-slugify
-toml==0.10.0 \
-    --hash=sha256:229f81c57791a41d65e399fc06bf0848bab550a9dfd5ed66df18ce5f05e73d5c \
-    --hash=sha256:235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e
-    # via dparse
 tomli==2.0.1 \
     --hash=sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc \
     --hash=sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f

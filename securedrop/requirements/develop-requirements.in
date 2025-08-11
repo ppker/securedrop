@@ -32,7 +32,6 @@ requests>=2.31.0
 ruamel.yaml>=0.16.10
 ruamel.yaml.clib>=0.2.7  # #7545
 ruff>=0.8
-safety>2.2.0
 semgrep>=1.57.0
 shellcheck-py
 six>=1.16.0

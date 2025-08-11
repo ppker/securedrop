@@ -127,21 +127,6 @@ zizmor:  ## Lint GitHub Actions workflows.
 .PHONY: lint
 lint: check-ruff ansible-config-lint app-lint html-lint shellcheck typelint yamllint zizmor check-strings check-supported-locales check-desktop-files ## Runs all lint checks
 
-# This Makefile target is provided for convenience. The project relies on
-# GitHub Dependabot alerts and centralized safety checks as the primary method
-# to generate vulnerability alerts.
-.PHONY: safety
-safety:  ## Run `safety check` to check python dependencies for vulnerabilities.
-	@command -v safety || (echo "Please run 'pip install -U safety'."; exit 1)
-	@echo "███ Running safety..."
-	@for req_file in `find . -type f -name '*requirements.txt' | grep -v .venv`; do \
-		echo "Checking file $$req_file" \
-		&& safety check --full-report -r $$req_file \
-		&& echo -e '\n' \
-		|| exit 1; \
-	done
-	@echo
-
 # Semgrep is a static code analysis tool to detect security vulnerabilities in Python applications
 # This configuration uses the public "p/r2c-security-audit" ruleset
 .PHONY: semgrep
