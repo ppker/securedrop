@@ -19,7 +19,7 @@ molecule-vagrant>=1,<2
 netaddr
 polib
 prompt_toolkit==2.0.9
-psutil>=5.6.6
+psutil>=7.0.0
 pylint>=3
 # pyenchant is via pylint[spelling]
 pyenchant>=3.2.1

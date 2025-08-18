@@ -554,7 +554,7 @@ prompt-toolkit==2.0.9 \
     --hash=sha256:2519ad1d8038fd5fc8e770362237ad0364d16a7650fb5724af6997ed5515e3c1 \
     --hash=sha256:977c6583ae813a37dc1c2e1b715892461fcbdaa57f6fc62f33a528c4886c8f55
     # via -r requirements/develop-requirements.in
-psutil==5.7.0 \
+psutil==7.0.0 \
     --hash=sha256:1413f4158eb50e110777c4f15d7c759521703bd6beb58926f1d562da40180058 \
     --hash=sha256:298af2f14b635c3c7118fd9183843f4e73e681bb6f01e12284d4d70d48a60953 \
     --hash=sha256:60b86f327c198561f101a92be1995f9ae0399736b6eced8f24af41ec64fb88d4 \
