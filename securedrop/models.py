@@ -5,7 +5,7 @@ import os
 import uuid
 from hmac import compare_digest
 from logging import Logger
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, NewType, Optional, Tuple, Union, overload
 
 import argon2
 
@@ -20,13 +20,37 @@ from flask_babel import gettext, ngettext
 from passphrases import PassphraseGenerator
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Query, backref, relationship
+from sqlalchemy.orm import Load, Query, backref, configure_mappers, joinedload, relationship
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from store import Storage
 
 _default_instance_config: Optional["InstanceConfig"] = None
 
 ARGON2_PARAMS = {"memory_cost": 2**16, "time_cost": 4, "parallelism": 2, "type": argon2.Type.ID}
+
+
+EagerQuery = NewType("EagerQuery", Query)
+EagerModelName = Literal["Source", "Submission", "Reply", "Journalist"]
+
+
+@overload
+def eager_query(model: EagerModelName) -> EagerQuery: ...
+@overload
+def eager_query(model: str) -> Query: ...
+
+
+def eager_query(model: str) -> Union[EagerQuery, Query]:
+    """
+    Return an ``EagerQuery`` with the registered eager-loading options applied.
+    Falls back to a plain ``Query`` if no options are registered.  A caller that
+    requires eager loading can annotate the return value with ``EagerQuery`` to
+    enforce it during type-checking.
+    """
+    cls = globals()[model]
+    try:
+        return cls.query.options(*cls.query_options())
+    except AttributeError:
+        return cls.query
 
 
 def get_one_or_else(
@@ -83,6 +107,16 @@ class Source(db.Model):
 
     def __repr__(self) -> str:
         return f"<Source {self.journalist_designation!r}>"
+
+    @classmethod
+    def query_options(cls, base: Optional[Load] = None) -> Tuple[Load, ...]:
+        configure_mappers()
+        base = base or Load(cls)
+        return (
+            joinedload(cls.star),
+            *Submission.query_options(joinedload(Source.submissions)),
+            *Reply.query_options(joinedload(Source.replies)),
+        )
 
     @property
     def journalist_filename(self) -> str:
@@ -227,6 +261,16 @@ class Submission(db.Model):
     def __repr__(self) -> str:
         return f"<Submission {self.filename!r}>"
 
+    @classmethod
+    def query_options(cls, base: Optional[Load] = None) -> Tuple[Load, ...]:
+        configure_mappers()
+        base = base or Load(cls)
+        return (
+            base.joinedload(cls.source),  # type: ignore[attr-defined]
+            base.joinedload(cls.seen_files).joinedload(SeenFile.journalist),  # type: ignore[attr-defined]
+            base.joinedload(cls.seen_messages).joinedload(SeenMessage.journalist),  # type: ignore[attr-defined]
+        )
+
     @property
     def is_file(self) -> bool:
         return self.filename.endswith("doc.gz.gpg") or self.filename.endswith("doc.zip.gpg")
@@ -336,6 +380,16 @@ class Reply(db.Model):
 
     def __repr__(self) -> str:
         return f"<Reply {self.filename!r}>"
+
+    @classmethod
+    def query_options(cls, base: Optional[Load] = None) -> Tuple[Load, ...]:
+        configure_mappers()
+        base = base or Load(cls)
+        return (
+            base.joinedload(cls.source),  # type: ignore[attr-defined]
+            base.joinedload(cls.journalist),  # type: ignore[attr-defined]
+            base.joinedload(cls.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
+        )
 
     def to_api_v2(self) -> Dict[str, Any]:
         return {
@@ -498,6 +552,12 @@ class Journalist(db.Model):
 
     def __repr__(self) -> str:
         return "<Journalist {}{}>".format(self.username, " [admin]" if self.is_admin else "")
+
+    @classmethod
+    def query_options(cls, base: Optional[Load] = None) -> Tuple:
+        base = base or Load(cls)
+        configure_mappers()
+        return ()
 
     def _scrypt_hash(self, password: str, salt: bytes) -> bytes:
         backend = default_backend()

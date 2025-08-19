@@ -2,92 +2,22 @@ import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import (
     Any,
-    Callable,
     Dict,
-    Literal,
     Mapping,
     NewType,
     Optional,
     Set,
-    Tuple,
-    Union,
-    overload,
 )
 
 from flask import Blueprint, abort, json, jsonify, request
-from models import Journalist, Reply, SeenFile, SeenMessage, SeenReply, Source, Submission
+from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import Load, Query, configure_mappers, joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
-
-
-# Used by `{submission,reply}_query_options()` when called directly rather than
-# via `source_query_options()`.
-LOADER_BASE = {
-    Submission: Load(Submission),
-    Reply: Load(Reply),
-}
-
-
-def submission_query_options(base: Load = LOADER_BASE[Submission]) -> Tuple:
-    configure_mappers()
-    return (
-        base.joinedload(Submission.source),  # type: ignore[attr-defined]
-        base.joinedload(Submission.seen_files).joinedload(SeenFile.journalist),  # type: ignore[attr-defined]
-        base.joinedload(Submission.seen_messages).joinedload(SeenMessage.journalist),  # type: ignore[attr-defined]
-    )
-
-
-def reply_query_options(base: Load = LOADER_BASE[Reply]) -> Tuple:
-    configure_mappers()
-    return (
-        base.joinedload(Reply.source),  # type: ignore[attr-defined]
-        base.joinedload(Reply.journalist),  # type: ignore[attr-defined]
-        base.joinedload(Reply.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
-    )
-
-
-def source_query_options() -> Tuple:
-    configure_mappers()
-    return (
-        joinedload(Source.star),
-        *submission_query_options(joinedload(Source.submissions)),
-        *reply_query_options(joinedload(Source.replies)),
-    )
-
-
-EAGER_OPTIONS: Dict[str, Callable[[], Tuple[Load, ...]]] = {
-    "Source": source_query_options,
-    "Submission": submission_query_options,
-    "Reply": reply_query_options,
-    "Journalist": lambda: (),
-}
-
-EagerQuery = NewType("EagerQuery", Query)
-EagerModelName = Literal["Source", "Submission", "Reply", "Journalist"]
-
-
-@overload
-def eager_query(model: EagerModelName) -> EagerQuery: ...
-@overload
-def eager_query(model: str) -> Query: ...
-
-
-def eager_query(model: str) -> Union[EagerQuery, Query]:
-    """
-    Return an ``EagerQuery`` with the registered eager-loading options applied.
-    Falls back to a plain ``Query`` if no options are registered.  A caller that
-    requires eager loading can annotate the return value with ``EagerQuery`` to
-    enforce it during type-checking.
-    """
-    cls = globals()[model]
-    options = EAGER_OPTIONS.get(model)
-    return cls.query.options(*options()) if options else cls.query
 
 
 Version = NewType("Version", str)
