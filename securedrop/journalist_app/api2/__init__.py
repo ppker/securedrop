@@ -65,10 +65,11 @@ EAGER_OPTIONS: Dict[str, Callable[[], Tuple[Load, ...]]] = {
     "Source": source_query_options,
     "Submission": submission_query_options,
     "Reply": reply_query_options,
+    "Journalist": lambda: (),
 }
 
 EagerQuery = NewType("EagerQuery", Query)
-EagerModelName = Literal["Source", "Submission", "Reply"]
+EagerModelName = Literal["Source", "Submission", "Reply", "Journalist"]
 
 
 @overload
