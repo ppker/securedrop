@@ -15,15 +15,15 @@ blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 
 
-# Used by `{Submission,Reply}_query_options()` when called directly rather than
-# via `Source_query_options()`.
+# Used by `{submission,reply}_query_options()` when called directly rather than
+# via `source_query_options()`.
 LOADER_BASE = {
     Submission: Load(Submission),
     Reply: Load(Reply),
 }
 
 
-def Submission_query_options(base: Load = LOADER_BASE[Submission]) -> Tuple:
+def submission_query_options(base: Load = LOADER_BASE[Submission]) -> Tuple:
     configure_mappers()
     return (
         base.joinedload(Submission.source),  # type: ignore[attr-defined]
@@ -32,7 +32,7 @@ def Submission_query_options(base: Load = LOADER_BASE[Submission]) -> Tuple:
     )
 
 
-def Reply_query_options(base: Load = LOADER_BASE[Reply]) -> Tuple:
+def reply_query_options(base: Load = LOADER_BASE[Reply]) -> Tuple:
     configure_mappers()
     return (
         base.joinedload(Reply.source),  # type: ignore[attr-defined]
@@ -41,19 +41,19 @@ def Reply_query_options(base: Load = LOADER_BASE[Reply]) -> Tuple:
     )
 
 
-def Source_query_options() -> Tuple:
+def source_query_options() -> Tuple:
     configure_mappers()
     return (
         joinedload(Source.star),
-        *Submission_query_options(joinedload(Source.submissions)),
-        *Reply_query_options(joinedload(Source.replies)),
+        *submission_query_options(joinedload(Source.submissions)),
+        *reply_query_options(joinedload(Source.replies)),
     )
 
 
 EAGER_BUNDLES = {
-    Source: lambda: Source_query_options(),
-    Submission: lambda: Submission_query_options(),
-    Reply: lambda: Reply_query_options(),
+    Source: source_query_options,
+    Submission: submission_query_options,
+    Reply: reply_query_options,
 }
 
 
