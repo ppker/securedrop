@@ -181,3 +181,4 @@ securedrop/geckodriver.log
 
 # Rust build artifacts
 target/
+redwood/build/
