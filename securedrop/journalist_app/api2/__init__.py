@@ -1,8 +1,19 @@
 import hashlib
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Mapping, NewType, Optional, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Literal,
+    Mapping,
+    NewType,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    overload,
+)
 
-from db import db
 from flask import Blueprint, abort, json, jsonify, request
 from models import Journalist, Reply, SeenFile, SeenMessage, SeenReply, Source, Submission
 from sqlalchemy.inspection import inspect
@@ -50,20 +61,32 @@ def source_query_options() -> Tuple:
     )
 
 
-EAGER_BUNDLES = {
-    Source: source_query_options,
-    Submission: submission_query_options,
-    Reply: reply_query_options,
+EAGER_OPTIONS: Dict[str, Callable[[], Tuple[Load, ...]]] = {
+    "Source": source_query_options,
+    "Submission": submission_query_options,
+    "Reply": reply_query_options,
 }
 
+EagerQuery = NewType("EagerQuery", Query)
+EagerModelName = Literal["Source", "Submission", "Reply"]
 
-def eager_query(model: db.Model) -> Query:
+
+@overload
+def eager_query(model: EagerModelName) -> EagerQuery: ...
+@overload
+def eager_query(model: str) -> Query: ...
+
+
+def eager_query(model: str) -> Union[EagerQuery, Query]:
     """
-    Return ``model.query`` with the appropriate eager-loading options applied.
-    Falls back to plain ``model.query`` if no bundle is registered.
+    Return an ``EagerQuery`` with the registered eager-loading options applied.
+    Falls back to a plain ``Query`` if no options are registered.  A caller that
+    requires eager loading can annotate the return value with ``EagerQuery`` to
+    enforce it during type-checking.
     """
-    options = EAGER_BUNDLES.get(model)
-    return model.query.options(*options()) if options else model.query
+    cls = globals()[model]
+    options = EAGER_OPTIONS.get(model)
+    return cls.query.options(*options()) if options else cls.query
 
 
 Version = NewType("Version", str)
@@ -116,7 +139,7 @@ def index(source_prefix: Optional[str] = None) -> Response:
     """
     index = Index()
 
-    source_query = eager_query(Source)
+    source_query: EagerQuery = eager_query("Source")
     if source_prefix is not None:
         if len(source_prefix) >= PREFIX_MAX_LEN:
             abort(
@@ -132,7 +155,8 @@ def index(source_prefix: Optional[str] = None) -> Response:
         for item in source.collection:
             index.items[item.uuid] = json_version(item.to_api_v2())
 
-    for journalist in eager_query(Journalist).all():
+    journalist_query: EagerQuery = eager_query("Journalist")
+    for journalist in journalist_query.all():
         index.journalists[journalist.uuid] = json_version(journalist.to_api_v2())
 
     version = json_version(asdict(index))
@@ -183,20 +207,19 @@ def metadata() -> Response:
     response = MetadataResponse()
 
     if requested.sources:
-        for source in eager_query(Source).filter(
-            Source.uuid.in_(str(uuid) for uuid in requested.sources)
-        ):
+        source_query: EagerQuery = eager_query("Source")
+        for source in source_query.filter(Source.uuid.in_(str(uuid) for uuid in requested.sources)):
             response.sources[source.uuid] = source.to_api_v2()
 
     if requested.items:
-        for item in eager_query(Submission).filter(
+        submission_query: EagerQuery = eager_query("Submission")
+        for item in submission_query.filter(
             Submission.uuid.in_(str(uuid) for uuid in requested.items)
         ):
             response.items[item.uuid] = item.to_api_v2()
 
-        for item in eager_query(Reply).filter(
-            Reply.uuid.in_(str(uuid) for uuid in requested.items)
-        ):
+        reply_query: EagerQuery = eager_query("Reply")
+        for item in reply_query.filter(Reply.uuid.in_(str(uuid) for uuid in requested.items)):
             if item.uuid in response.items:
                 # Fail if we get unlucky and hit a UUID collision between the
                 # `Submission` and `Reply` tables.  This is vanishingly unlikely,
@@ -205,7 +228,8 @@ def metadata() -> Response:
             response.items[item.uuid] = item.to_api_v2()
 
     if requested.journalists:
-        for journalist in eager_query(Journalist).filter(
+        journalist_query: EagerQuery = eager_query("Journalist")
+        for journalist in journalist_query.filter(
             Journalist.uuid.in_(str(uuid) for uuid in requested.journalists)
         ):
             response.journalists[journalist.uuid] = journalist.to_api_v2()
