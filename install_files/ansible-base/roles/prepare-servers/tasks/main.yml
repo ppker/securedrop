@@ -2,6 +2,11 @@
 # Ensures that prerequisite packages for ansible and securedrop-admin install
 # are present
 
+- name: Verify server OS version
+  assert:
+    that: "ansible_distribution_release == 'noble'"
+    fail_msg: "SecureDrop must run on Ubuntu 24.04 (Noble). Please check the server OS version"
+
 - name: Install python and packages required by installer
   raw: apt-get update && apt-get install -y python3 dnsutils ubuntu-release-upgrader-core mokutil
   register: _apt_install_prereqs_results
