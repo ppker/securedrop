@@ -27,7 +27,7 @@
   hosts: staging
   environment:
     LC_ALL: C
-  gather_facts: no
+  gather_facts: yes
   max_fail_percentage: 0
   any_errors_fatal: yes
   become: yes
