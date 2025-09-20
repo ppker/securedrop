@@ -407,7 +407,7 @@ def make_blueprint(config: SecureDropConfig) -> Blueprint:
 
     @view.route("/logout", methods=("POST",))
     @login_required
-    def logout(logged_in_source: SourceUser) -> Union[str, werkzeug.Response]:
+    def logout(logged_in_source: SourceUser) -> werkzeug.Response:
         """
         If a user is logged in, show them a logout page that prompts them to
         click the New Identity button in Tor Browser to complete their session.
@@ -421,9 +421,13 @@ def make_blueprint(config: SecureDropConfig) -> Blueprint:
             session.clear()
             session["locale"] = g.localeinfo.id
 
-            return render_template("logout.html")
+            resp = make_response(render_template("logout.html"))
         else:
-            return redirect(url_for(".index"))
+            resp = make_response(redirect(url_for(".index")))
+
+        resp.headers["Clear-Site-Data"] = '"*"'
+
+        return resp
 
     @view.route("/robots.txt")
     def robots_txt() -> werkzeug.Response:
