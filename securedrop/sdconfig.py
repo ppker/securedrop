@@ -191,12 +191,12 @@ def _parse_config_from_file(config_module_name: str) -> SecureDropConfig:
     source_flask_config = config_from_local_file.SourceInterfaceFlaskConfig
     parsed_source_flask_config = SourceInterfaceConfig(
         SECRET_KEY=source_flask_config.SECRET_KEY,
-        SESSION_COOKIE_NAME=getattr(journ_flask_config, "SESSION_COOKIE_NAME", "ss"),
-        DEBUG=getattr(journ_flask_config, "DEBUG", False),
-        TESTING=getattr(journ_flask_config, "TESTING", False),
-        WTF_CSRF_ENABLED=getattr(journ_flask_config, "WTF_CSRF_ENABLED", True),
-        MAX_CONTENT_LENGTH=getattr(journ_flask_config, "MAX_CONTENT_LENGTH", 524288000),
-        USE_X_SENDFILE=getattr(journ_flask_config, "USE_X_SENDFILE", False),
+        SESSION_COOKIE_NAME=getattr(source_flask_config, "SESSION_COOKIE_NAME", "ss"),
+        DEBUG=getattr(source_flask_config, "DEBUG", False),
+        TESTING=getattr(source_flask_config, "TESTING", False),
+        WTF_CSRF_ENABLED=getattr(source_flask_config, "WTF_CSRF_ENABLED", True),
+        MAX_CONTENT_LENGTH=getattr(source_flask_config, "MAX_CONTENT_LENGTH", 524288000),
+        USE_X_SENDFILE=getattr(source_flask_config, "USE_X_SENDFILE", False),
     )
 
     return SecureDropConfig(
