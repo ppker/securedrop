@@ -1,8 +1,15 @@
 # Changelog
 
-## 2.13.0~rc1
+## 2.12.10~rc1
 
+### Web Applications and API
 
+Dependency updates:
+  * `flate2` from 1.1.0 to 1.1.2 (#7653)
+
+### Operations
+
+* Migrate admin tooling to Tails 7 (#7648)
 
 ## 2.12.9
 
