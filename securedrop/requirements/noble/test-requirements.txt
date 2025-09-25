@@ -217,9 +217,9 @@ pillow==10.3.0 \
     --hash=sha256:fdcbb4068117dfd9ce0138d068ac512843c52295ed996ae6dd1faf537b6dbc27 \
     --hash=sha256:ff61bfd9253c3915e6d41c651d5f962da23eda633cf02262990094a18a55371a
     # via -r requirements/test-requirements.in
-pip==25.1.1 \
-    --hash=sha256:2913a38a2abf4ea6b64ab507bd9e967f3b53dc1ede74b01b0931e1ce548751af \
-    --hash=sha256:3de45d411d308d5054c2168185d8da7f9a2cd753dbac8acbfa88a8909ecd9077
+pip==25.2 \
+    --hash=sha256:578283f006390f85bb6282dffb876454593d637f5d1be494b5202ce4877e71f2 \
+    --hash=sha256:6d67a2b4e7f14d8b31b8b52648866fa717f45a1eb70e83002f4331d07e953717
     # via -r requirements/base-requirements.in
 pluggy==0.13.1 \
     --hash=sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0 \
