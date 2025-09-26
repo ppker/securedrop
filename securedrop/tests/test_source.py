@@ -293,6 +293,7 @@ def test_login_and_logout(source_app):
 
         resp = app.post(url_for("main.logout"), follow_redirects=True)
         assert resp.status_code == 200
+        assert resp.headers.get("Clear-Site-Data") == '"*"'
         assert not SessionManager.is_user_logged_in(db_session=db.session)
         text = resp.data.decode("utf-8")
 
