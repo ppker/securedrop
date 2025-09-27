@@ -61,3 +61,28 @@ else Out of date
     Server ->> Client: MetadataResponse
 end
 ```
+
+### Batched events from client
+
+```mermaid
+sequenceDiagram
+participant Client
+participant Server
+
+Note over Client: Global version abcdef
+Note over Server: Global version abcdef
+
+Client ->> Client: reply_sent {id: X, uuid: Y, source: Z, ...}
+Client -->> Server: POST /api/v2/metadata<br>BatchRequest
+alt Already processed:
+Server ->> Server: look up status of event {id: X}
+Note over Server: Return status of event {id: X},<br>in addition to anything else requested.
+Server ->> Client: BatchResponse
+else
+Server ->> Server: process "reply_sent" event for reply {uuid: Y}
+Note over Server: Return new item {uuid: Y} and updated source {uuid: Z},<br>in addition to anything else requested.
+Note over Server: Global version uvwxyz
+Server ->> Client: BatchResponse
+Note over Client: Global version uvwxyz
+end
+```
