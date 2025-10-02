@@ -86,7 +86,6 @@ override_dh_systemd_enable:
 	dh_systemd_enable --no-enable securedrop-submissions-today.service
 	dh_systemd_enable --no-enable securedrop-clean-tmp.service
 	dh_systemd_enable --no-enable securedrop-remove-pending-sources.service
-	dh_systemd_enable --no-enable securedrop-remove-packages.service
 	dh_systemd_enable --no-enable securedrop-cleanup-ossec.service
 	dh_systemd_enable --no-enable securedrop-reboot-required.service
 	dh_systemd_enable
@@ -97,7 +96,6 @@ override_dh_systemd_start:
 	dh_systemd_start --no-start securedrop-submissions-today.service
 	dh_systemd_start --no-start securedrop-clean-tmp.service
 	dh_systemd_start --no-start securedrop-remove-pending-sources.service
-	dh_systemd_start --no-start securedrop-remove-packages.service
 	dh_systemd_start --no-start securedrop-cleanup-ossec.service
 	dh_systemd_start --no-start securedrop-reboot-required.service
 	dh_systemd_start
