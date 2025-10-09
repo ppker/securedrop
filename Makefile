@@ -34,7 +34,6 @@ update-admin-pip-requirements:  ## Update admin requirements.
 .PHONY: update-python3-requirements
 update-python3-requirements:  ## Update Python 3 requirements with pip-compile.
 	@echo "███ Updating Python 3 requirements files..."
-	@SLIM_BUILD=1 UBUNTU_VERSION=focal $(DEVSHELL) $(SDBIN)/update-requirements
 	@SLIM_BUILD=1 UBUNTU_VERSION=noble $(DEVSHELL) $(SDBIN)/update-requirements
 
 .PHONY: update-pip-requirements
@@ -203,8 +202,8 @@ demo-landing-page: ## Serve the landing page for the SecureDrop demo
 	docker run -p 8000:8000 sd-demo-landing-page
 
 .PHONY: staging
-staging:  ## Create a local staging environment in virtual machines (Focal)
-	@echo "███ Creating staging environment on Ubuntu Focal..."
+staging:  ## Create a local staging environment in virtual machines (Noble)
+	@echo "███ Creating staging environment on Ubuntu Noble..."
 	@$(SDROOT)/devops/scripts/create-staging-env
 	@echo
 
