@@ -1,10 +1,10 @@
 import functools
 from datetime import date
 
-FOCAL_VERSION = "20.04"
 NOBLE_VERSION = "24.04"
 
-FOCAL_ENDOFLIFE = date(2025, 5, 31)
+# Per <https://endoflife.date/ubuntu>
+NOBLE_ENDOFLIFE = date(2029, 4, 25)
 
 
 @functools.lru_cache
@@ -20,6 +20,6 @@ def get_os_release() -> str:
 
 def is_os_past_eol() -> bool:
     """
-    Check if it's focal and if today is past the official EOL date
+    Check if it's noble and if today is past the official EOL date
     """
-    return get_os_release() == FOCAL_VERSION and date.today() >= FOCAL_ENDOFLIFE
+    return get_os_release() == NOBLE_VERSION and date.today() >= NOBLE_ENDOFLIFE
