@@ -1,4 +1,6 @@
 from db import db
+from journalist_app import utils
+from journalist_app.api2.shared import save_reply
 from journalist_app.api2.types import (
     Event,
     EventResult,
@@ -7,9 +9,8 @@ from journalist_app.api2.types import (
     ItemTarget,
     SourceTarget,
 )
-from journalist_app.api2.shared import save_reply
-from models import Source
-from sqlalchemy.orm.exc import NoResultFound
+from models import Reply, Source, Submission
+from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 
 
 class EventHandler:
@@ -40,6 +41,35 @@ class EventHandler:
             )
 
         return handler(event)
+
+    @staticmethod
+    def handle_item_deleted(event: Event) -> EventResult:
+        submission = Submission.query.filter(
+            Submission.uuid == event.target.item_uuid
+        ).one_or_none()
+        reply = Reply.query.filter(Reply.uuid == event.target.item_uuid).one_or_none()
+
+        if submission and reply:
+            # Fail if we get unlucky and hit a UUID collision between the
+            # `Submission` and `Reply` tables.  This is vanishingly unlikely,
+            # but SQLite can't enforce uniqueness between them.
+            raise MultipleResultsFound(
+                f"found {event.target.item_uuid} in both submissions and replies"
+            )
+
+        item = submission or reply
+        if item is None:
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.NotFound, f"could not find item: {event.target.item_uuid}"),
+            )
+
+        utils.delete_file_object(item)
+        return EventResult(
+            event_id=event.id,
+            status=(EventStatusCode.OK, None),
+            items={event.target.item_uuid: None},
+        )
 
     @staticmethod
     def handle_reply_sent(event: Event) -> EventResult:
