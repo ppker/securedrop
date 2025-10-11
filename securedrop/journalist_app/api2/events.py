@@ -10,28 +10,40 @@ from journalist_app.api2.types import (
     SourceTarget,
 )
 from models import Reply, Source, Submission
+from redis import Redis
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
+
+# `IDEMPOTENCE_PERIOD` MUST be greater than or equal to
+# `sdconfig.SecureDropConfig.SESSION_LIFETIME`.  In practice, 24 hours is the
+# easiest period to reason about.
+IDEMPOTENCE_PERIOD = 60 * 60 * 24  # seconds * minutes * hours = 1 day
+
+REDIS_EVENT_PREFIX = "sd/events/"
 
 
 class EventHandler:
     """
-    This class is the per-event entry point for handling events.  To add a
-    handler for a new event `thing_done`, you must:
+    This class is the per-request context for handling events.  To add a handler
+    for a new event `thing_done`, you must:
 
     1. define the enum value `EventType.THING_DONE` in journalist_api2.types;
 
     2. define the handler as a static method `handle_thing_done(event: Event)`
        in this class
 
-    3. explicitly register `{"thing_done": cls.handle_thing_done}` inside
-       `EventHandler.process()`.
+    3. explicitly register `{"thing_done": self.handle_thing_done}` inside
+      `EventHandler.process()`.
 
     This is belt-and-suspenders for ensuring that only the intended methods are
     exposed as callable event handlers.
     """
 
-    @classmethod
-    def process(cls, event_dict: dict) -> EventResult:
+    def __init__(self, redis: Redis) -> None:
+        self._redis = redis
+
+    def process(self, event_dict: dict) -> EventResult:
+        """The per-event entry-point for handling a single event."""
+
         try:
             event = Event(**event_dict)
             event.type = EventType(event.type)  # strict enum
@@ -48,10 +60,16 @@ class EventHandler:
                 status=(EventStatusCode.BadRequest, str(e)),
             )
 
+        if self.has_processed(event):
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.AlreadyReported, None),
+            )
+
         try:
             handler = {
-                "item_deleted": cls.handle_item_deleted,
-                "reply_sent": cls.handle_reply_sent,
+                "item_deleted": self.handle_item_deleted,
+                "reply_sent": self.handle_reply_sent,
             }[event.type]
         except KeyError:
             return EventResult(
@@ -59,7 +77,19 @@ class EventHandler:
                 status=(EventStatusCode.NotImplemented, f"no handler for event type: {event.type}"),
             )
 
-        return handler(event)
+        result = handler(event)
+        self.mark_as_processed(event, result)
+        return result
+
+    def has_processed(self, event: Event) -> bool:
+        return self._redis.get(f"{REDIS_EVENT_PREFIX}{event.id}") is not None
+
+    def mark_as_processed(self, event: Event, result: EventResult) -> None:
+        self._redis.set(
+            f"{REDIS_EVENT_PREFIX}{event.id}",
+            result.status[0],
+            ex=IDEMPOTENCE_PERIOD,
+        )
 
     @staticmethod
     def handle_item_deleted(event: Event) -> EventResult:

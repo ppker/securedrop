@@ -5,6 +5,7 @@ from dataclasses import asdict
 import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
+from journalist_app import api2
 from journalist_app.api2 import json_version
 from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -423,6 +424,15 @@ def test_api2_reply_sent(
         assert response.json["events"][event.id] == [200, None]
         assert reply["uuid"] in response.json["items"]
 
+        # Duplicate reply is acknowledged but not processed again:
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [208, None]
+        assert reply["uuid"] not in response.json["items"]
+
 
 def test_api2_item_deleted(
     journalist_app,
@@ -480,3 +490,13 @@ def test_api2_item_deleted(
         )
         assert response.json["events"][event.id] == [404, "could not find item: does not exist"]
         assert event.target.item_uuid not in response.json["items"]
+
+
+def test_api2_idempotence_period(journalist_app):
+    """
+    `IDEMPOTENCE_PERIOD` MUST be greater than or equal to
+    `sdconfig.SecureDropConfig.SESSION_LIFETIME`.  NB. Black/Ruff insists on
+    reversing the >= comparison to <=.
+    """
+
+    assert journalist_app.config["SESSION_LIFETIME"] <= api2.events.IDEMPOTENCE_PERIOD
