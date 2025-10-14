@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for securedrop-config-focal
+# postinst script for securedrop-config
 
 set -e
 set -x
