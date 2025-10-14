@@ -90,6 +90,12 @@ def data() -> Response:
     client MAY choose an arbitrary list of objects with each request, e.g. from
     a shard retrieved from ``/index/<source_prefix>``.
 
+    The client MAY include a list of ``Event``s for the server to process over
+    arbitrary sources and items.  Ordering is guaranteed within a given
+    ``BatchRequest``.  Sources and items changed by one or more events will be
+    returned in their most-recent state in the ``BatchResponse`` whether or not
+    they were explicitly requested in the ``BatchRequest``.
+
     NB.  Reading sources (without any side effects from processing events) is
     O(1) from the eagerly-loaded ``all_sources()``.  Reading items is O(2),
     since we have to search both the ``Submission`` and the ``Reply`` tables for
@@ -108,7 +114,8 @@ def data() -> Response:
         config = SecureDropConfig.get_current()
         handler = EventHandler(redis=Redis(decode_responses=True, **config.REDIS_KWARGS))
 
-        for event in requested.events:
+        # Process events in snowflake order.
+        for event in sorted(requested.events, key=lambda e: e.id):
             result = handler.process(event)
             for uuid, source in result.sources.items():
                 response.sources[uuid] = source.to_api_v2() if source is not None else None
