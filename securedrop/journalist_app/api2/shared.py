@@ -3,7 +3,7 @@ This module contains helper functions factored out of the v1 Journalist API
 (journalist_app.api) and shared with the v2 Journalist API (journalist_app.api2)
 """
 
-from os import path
+import os
 from uuid import UUID
 
 from db import db
@@ -27,7 +27,7 @@ def save_reply(source: Source, data: dict) -> Reply:
     )
 
     # We only save the stored reply's basename and not the whole storage path
-    filename = path.basename(filename)
+    filename = os.path.basename(filename)
 
     reply = Reply(session.get_user(), source, filename, Storage.get_default())
 
