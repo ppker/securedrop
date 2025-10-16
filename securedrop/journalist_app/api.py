@@ -12,6 +12,7 @@ from journalist_app.api2.shared import save_reply
 from journalist_app.sessions import session
 from models import (
     InvalidUsernameException,
+    InvalidUUID,
     Journalist,
     LoginThrottledException,
     Reply,
@@ -229,7 +230,7 @@ def make_blueprint() -> Blueprint:
                     abort(409, "That UUID is already in use.")
             except NotEncrypted:
                 return jsonify({"message": "You must encrypt replies client side"}), 400
-            except ValueError:
+            except InvalidUUID:
                 abort(400, "reply does not have a valid UUID")
 
             return (

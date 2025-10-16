@@ -9,6 +9,7 @@ from uuid import UUID
 from db import db
 from journalist_app.sessions import session
 from models import (
+    InvalidUUID,
     Reply,
     SeenReply,
     Source,
@@ -33,9 +34,11 @@ def save_reply(source: Source, data: dict) -> Reply:
 
     reply_uuid = data.get("uuid")
     if reply_uuid is not None:
-        # check that is is parseable
-        UUID(reply_uuid)
-        reply.uuid = reply_uuid
+        try:
+            UUID(reply_uuid)
+            reply.uuid = reply_uuid
+        except ValueError:
+            raise InvalidUUID
 
     try:
         db.session.add(reply)
