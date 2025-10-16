@@ -10,7 +10,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-if [[ $OS_VERSION == "bookworm" ]]; then
+if [[ $OS_VERSION == "trixie" ]]; then
     BASE_IMAGE="debian:${OS_VERSION}"
 else
     BASE_IMAGE="ubuntu:${OS_VERSION}"

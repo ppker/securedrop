@@ -19,7 +19,7 @@ git status --short
 WHAT="${WHAT:-securedrop}"
 
 if [[ $WHAT == "admin" ]]; then
-    export OS_VERSION="${OS_VERSION:-bookworm}"
+    export OS_VERSION="${OS_VERSION:-trixie}"
 else
     export OS_VERSION="${OS_VERSION:-noble}"
 fi

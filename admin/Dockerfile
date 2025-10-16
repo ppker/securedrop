@@ -43,7 +43,7 @@ COPY . /src
 # Build and install the securedrop-admin package
 RUN ln -s /src/builder/fixup-changelog.sh /fixup-changelog
 RUN /src/builder/build-debs-admin.sh
-RUN apt-get install -y /src/build/bookworm/securedrop-admin_*+bookworm_amd64.deb
+RUN apt-get install -y /src/build/trixie/securedrop-admin_*+trixie_amd64.deb
 
 # Install extra dev dependencies
 RUN /usr/share/securedrop-admin/venv/bin/pip install --no-deps --require-hashes -r /src/admin/requirements-dev.txt
