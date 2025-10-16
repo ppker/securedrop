@@ -26,7 +26,7 @@ def save_reply(source: Source, data: dict) -> Reply:
         data["reply"],
     )
 
-    # issue #3918
+    # We only save the stored reply's basename and not the whole storage path
     filename = path.basename(filename)
 
     reply = Reply(session.get_user(), source, filename, Storage.get_default())
