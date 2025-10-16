@@ -39,7 +39,6 @@ import prompt_toolkit
 import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
-from packaging.version import Version
 from prompt_toolkit.document import Document
 from prompt_toolkit.validation import ValidationError, Validator
 
@@ -1031,8 +1030,6 @@ def get_logs(args: argparse.Namespace) -> int:
         "upload them to the SecureDrop support portal: " + SUPPORT_URL
     )
     return 0
-
-
 
 
 @update_check_required("reset_admin_access")
