@@ -10,6 +10,7 @@ from journalist_app.api2.types import (
     Index,
     Version,
 )
+from journalist_app.sessions import session
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
 from redis import Redis
 from sdconfig import SecureDropConfig
@@ -112,7 +113,9 @@ def data() -> Response:
         # Don't set up the EventHandler, connect to Redis, etc., unless we have
         # events to process.
         config = SecureDropConfig.get_current()
-        handler = EventHandler(redis=Redis(decode_responses=True, **config.REDIS_KWARGS))
+        handler = EventHandler(
+            session=session, redis=Redis(decode_responses=True, **config.REDIS_KWARGS)
+        )
 
         # Process events in snowflake order.
         for event in sorted(requested.events, key=lambda e: e.id):

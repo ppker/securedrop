@@ -9,6 +9,7 @@ from journalist_app.api2.types import (
     ItemTarget,
     SourceTarget,
 )
+from journalist_app.sessions import Session
 from models import Reply, Source, Submission
 from redis import Redis
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
@@ -18,7 +19,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 # easiest period to reason about.
 IDEMPOTENCE_PERIOD = 60 * 60 * 24  # seconds * minutes * hours = 1 day
 
-REDIS_EVENT_PREFIX = "sd/events/"
+REDIS_EVENT_PREFIX = "sd/events"
 
 
 class EventHandler:
@@ -38,7 +39,8 @@ class EventHandler:
     exposed as callable event handlers.
     """
 
-    def __init__(self, redis: Redis) -> None:
+    def __init__(self, session: Session, redis: Redis) -> None:
+        self._session = session
         self._redis = redis
 
     def process(self, event_dict: dict) -> EventResult:
@@ -81,12 +83,15 @@ class EventHandler:
         self.mark_as_processed(event, result)
         return result
 
+    def idempotence_key(self, event: Event) -> str:
+        return f"{REDIS_EVENT_PREFIX}/{self._session.user.uuid}/{event.id}"
+
     def has_processed(self, event: Event) -> bool:
-        return self._redis.get(f"{REDIS_EVENT_PREFIX}{event.id}") is not None
+        return self._redis.get(self.idempotence_key(event)) is not None
 
     def mark_as_processed(self, event: Event, result: EventResult) -> None:
         self._redis.set(
-            f"{REDIS_EVENT_PREFIX}{event.id}",
+            self.idempotence_key(event),
             result.status[0],
             ex=IDEMPOTENCE_PERIOD,
         )
