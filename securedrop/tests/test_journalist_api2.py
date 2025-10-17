@@ -1,5 +1,6 @@
 import uuid
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import asdict
 
 import pytest
@@ -348,6 +349,16 @@ def test_api2_invalid_events(
         for event in request_with_events["events"]:
             event_id = event["id"]
             assert response.json["events"][event_id] == results[event_id]
+
+        no_id = deepcopy(request_with_events)
+        del no_id["events"][0]["id"]
+
+        response = app.post(
+            url_for("api2.data"),
+            json=no_id,
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.status_code == 400
 
 
 # FIXME: This is

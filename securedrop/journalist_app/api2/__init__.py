@@ -7,6 +7,7 @@ from journalist_app.api2.events import EventHandler
 from journalist_app.api2.types import (
     BatchRequest,
     BatchResponse,
+    Event,
     Index,
     Version,
 )
@@ -110,6 +111,11 @@ def data() -> Response:
     response = BatchResponse()
 
     if requested.events:
+        try:
+            events = [Event(**d) for d in requested.events]
+        except TypeError:
+            abort(400, "invalid event")
+
         # Don't set up the EventHandler, connect to Redis, etc., unless we have
         # events to process.
         config = SecureDropConfig.get_current()
@@ -118,7 +124,7 @@ def data() -> Response:
         )
 
         # Process events in snowflake order.
-        for event in sorted(requested.events, key=lambda e: e.id):
+        for event in sorted(events, key=lambda e: e.id):
             result = handler.process(event)
             for uuid, source in result.sources.items():
                 response.sources[uuid] = source.to_api_v2() if source is not None else None

@@ -43,11 +43,10 @@ class EventHandler:
         self._session = session
         self._redis = redis
 
-    def process(self, event_dict: dict) -> EventResult:
+    def process(self, event: Event) -> EventResult:
         """The per-event entry-point for handling a single event."""
 
         try:
-            event = Event(**event_dict)
             event.type = EventType(event.type)  # strict enum
             if "source_uuid" in event.target:
                 event.target = SourceTarget(**event.target)
@@ -58,7 +57,7 @@ class EventHandler:
 
         except (TypeError, ValueError) as e:
             return EventResult(
-                event_id=event_dict.get("id", 0),
+                event_id=event.id,
                 status=(EventStatusCode.BadRequest, str(e)),
             )
 
