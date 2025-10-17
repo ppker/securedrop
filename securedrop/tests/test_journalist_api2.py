@@ -9,6 +9,7 @@ from flask_sqlalchemy import get_debug_queries
 from journalist_app import api2
 from journalist_app.api2 import json_version
 from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
+from models import Reply, Submission
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils.api_helper import get_api_headers
 
@@ -489,6 +490,9 @@ def test_api2_item_deleted(
         )
         assert response.json["events"][event.id] == [200, None]
         assert response.json["items"][event.target.item_uuid] is None
+        assert (
+            Submission.query.filter(Submission.uuid == event.target.item_uuid).one_or_none() is None
+        )
 
         # Delete a reply:
         reply_uuid = test_files["replies"][0].uuid
@@ -505,6 +509,7 @@ def test_api2_item_deleted(
         )
         assert response.json["events"][event.id] == [200, None]
         assert response.json["items"][event.target.item_uuid] is None
+        assert Reply.query.filter(Reply.uuid == event.target.item_uuid).one_or_none() is None
 
         # Try to delete something that doesn't exist:
         event.id = "345678"
