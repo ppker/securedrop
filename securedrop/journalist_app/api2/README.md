@@ -86,3 +86,15 @@ Server ->> Client: BatchResponse
 Note over Client: Global version uvwxyz
 end
 ```
+
+This diagram implies single-round-trip consistency. To make that expectation
+explicit:
+
+1. If the server $S$ currently has exactly one active client $C$; and
+
+2. $C$ submits a valid `BatchRequest` $BR$ with $n$ events $\{E_0, \dots,
+E_n\}$; and
+
+3. $S$ accepts $BR$ as valid and successfully processes all $E_i$; then
+
+4. $C$'s index SHOULD match $S$'s index without a subsequent synchronization.
