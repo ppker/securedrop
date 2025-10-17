@@ -1,5 +1,7 @@
+import base64
 import datetime
 import re
+import textwrap
 from pathlib import Path
 
 import argon2
@@ -93,6 +95,13 @@ def decrypt_as_journalist(ciphertext: bytes) -> bytes:
         secret_key=JOURNALIST_SECRET_KEY,
         passphrase="correcthorsebatterystaple",
     )
+
+
+def ascii_armor(data: bytes, header: str = "MESSAGE") -> str:
+    """Convert binary OpenPGP `data` to ASCII armored format."""
+    b64 = base64.b64encode(data).decode("ascii")
+    body = "\n".join(textwrap.wrap(b64, 64))
+    return f"-----BEGIN PGP {header}-----\n\n{body}\n-----END PGP {header}-----\n"
 
 
 def create_legacy_gpg_key(

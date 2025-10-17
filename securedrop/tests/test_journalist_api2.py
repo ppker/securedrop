@@ -11,6 +11,7 @@ from journalist_app.api2 import json_version
 from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
 from models import Reply, Submission
 from sqlalchemy.orm.exc import MultipleResultsFound
+from tests.utils import ascii_armor, decrypt_as_journalist
 from tests.utils.api_helper import get_api_headers
 
 
@@ -376,45 +377,6 @@ def test_api2_invalid_events(
         assert "MUST NOT include more than" in response.json["message"]
 
 
-# FIXME: This is
-# "app/server_tests/data/items/40e13a88-5409-4201-9495-d06c335e203f.gpg" via
-# "gpg --enarmor".  Should probably pull from test_files fixture via
-# download_reply().
-REPLY = """-----BEGIN PGP MESSAGE-----
-Comment: Use "gpg --dearmor" for unpacking
-
-wcFMAwEQfVJow2WPAQ/9FAbkuKbTAu4WHk+iKNrEz21R0QeMDdKxffuQlD/36Gek
-gDqa4O8Nvkw4MfvprRuPwiXG6Jvm9++hiy1sjIlN/obIb9zUz/CfzQIrzOAipaBn
-OdwIc32s4hMtnnLdUZJa2vMKWFMyMAUrye3u0l7BgdBoDNUfDpKKLtDRtWGp0Uly
-5JkWfgVgfSEwzHkGKZvHI3EBVCt53eIyrK8B/KZ7NdMDtgzQgWb04pdWONx1SwKU
-72kIAgH7B44Btgn1MVj6Ri9IB470YZSWweIM0yTvQ/2//BPje6dCuK24vVmpz5Xd
-7tcZyqZYtIifwz0p4sfdoXMQmxMiyrCGmY7hosRjbbRFFVvI7yQ/ujEsdLqDbGok
-Ukv4gChYFMLOxqfpwF6v29A3MCHO3vwDBqQcwToQkP5BJE89jfF3+Z+n9+ahC6yX
-Gi1gYX+X0/1S9Q2kB1q+Pyqst4CtSiu9n+WJ4CoJXA27fafkUIWjxcu0GIzA+Y40
-2UzNiA4CRzj0rD9jOhDwCmrVqA/eR/nXdYK6wYnL7swGTHzD2HRf5p6fE6TnFSdt
-8K79sTDiVnH4S3AAS9vnL9HIBqhn6sSa/uojCazb7ZVcWexWLt2Mcd5ZFOpZ32qB
-Qf3Rhw4VSTJDZ4cIEDs531Pf+HZlIZRDEC64jNtTBVBJf9nn51cSxJmi4T8o4pLB
-wUwDw+fEwKIgGyoBEACLYAx2OqvbkscWu6Fp/zMM43omBiiEMQRAs87ldE1sddwk
-UE7N4H0xJE3l4x6poavY1oScEy+DiSvk6CYInEcDzGf6MSoCCBQ2cGjctfR84bE+
-mJV7M7P41AgV8Xj+NsfCcirwTrd1zir06/D3qg5JacKpscJFYJXJg0fBCFkFqiIv
-/6X1jcX9YAitLS3cLw+uV3ZuwKFUqnXLaclhvCvCTpdM+MuGvcNep+QFUeJnm+WS
-jVQPko4RiCOpTgH+g2pw1oBjVZC2UX0Iqake3Bnge89REs+zIzQ2SA+RhjVA6jR1
-rCf0ZIWckYg/WDxe2Dn4PAFhWgsjm4MM5dIE5YHvHPV8x0rIoAZQ8SwAXzTc1B1y
-pLq5Iop2AaJSQ+SFaiuFsUfc391kfsnOShQn00jLqZ7+bhWUWUS/rCH8ePa7Hp8W
-44MFOh8D3EsNN+hzuGXklHdL/dt41xmaO0o97yzusd8MJQ4fV0LBHkJEg5f21g3G
-bDpt5Fed7BWpR20cWrwuGPL46/UfjMqHJoS56ZjuZyBuUwvoC7gQlPmyPlvSWdEb
-8rF1gA4pPWURTNmClaHvPoubBig53mtXTz9esQfYu4FGmfUeFRnhdIWnrcvG3gXs
-/jY8gBIQ6N+MjkRNHS6nwzcUukStsaSvBI2uL0iclGFOCAx7p6TNQPDqwrITi9LA
-GwFbjruOwUUTjAErWxcTkGFWsUDPQV9gxamt7Agacinql4UAjSr21imTfqXkC/Kf
-6bgOb8EfLunqRg+44Zgk0JluiXYh+ss7alf/dcqeF1AMq+vhJ40F6r940IOWJ/0W
-cpZG68fwzC2YXTg4kU+OQdm4xBIeqTcgwiAnfZKKZtUCt8+JmRAzvbrLGXPe80Xc
-Dl9xuZb+mEQlOnxD3mYf6htx5CNRdp//Rl3fgbGv3vZCmE+GQ7CvgHkf+7Evinno
-+eozX+auvPwAyXG4npnwjwEJ0XaTKAJwRVH26Q==
-=Eozu
------END PGP MESSAGE-----
-"""
-
-
 def test_api2_reply_sent(
     journalist_app,
     journalist_api_token,
@@ -423,24 +385,34 @@ def test_api2_reply_sent(
 ):
     """Test processing of the "reply_sent" event."""
     with journalist_app.test_client() as app:
-        source_uuid = test_files["source"].uuid
+        # Fetch and decrypt the ciphertext of a reply fixture.
+        source = test_files["source"]
+        reply = test_files["replies"][0]
+        reply_res = app.get(
+            url_for("api.download_reply", source_uuid=source.uuid, reply_uuid=reply.uuid),
+            headers=get_api_headers(journalist_api_token),
+        )
+        reply_ct = reply_res.data
+        reply_pt = decrypt_as_journalist(reply_ct)
+
+        # Fetch the current index.
         index = app.get(
             url_for("api2.index"),
             headers=get_api_headers(journalist_api_token),
         )
-
         assert index.status_code == 200
-        source_version = index.json["sources"][source_uuid]
+        source_version = index.json["sources"][source.uuid]
 
-        reply = {
+        # Resubmit the reply ciphertext with a new UUID.
+        reply2 = {
             "uuid": str(uuid.uuid4()),
-            "reply": REPLY,
+            "reply": ascii_armor(reply_ct),
         }
         event = Event(
             id="123456",
-            target=SourceTarget(source_uuid=source_uuid, version=source_version),
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
             type=EventType.REPLY_SENT,
-            data=reply,
+            data=reply2,
         )
         response = app.post(
             url_for("api2.data"),
@@ -448,7 +420,16 @@ def test_api2_reply_sent(
             headers=get_api_headers(journalist_api_token),
         )
         assert response.json["events"][event.id] == [200, None]
-        assert reply["uuid"] in response.json["items"]
+        assert reply2["uuid"] in response.json["items"]
+
+        # Check that we get the same plaintext back.
+        reply2_res = app.get(
+            url_for("api.download_reply", source_uuid=source.uuid, reply_uuid=reply2["uuid"]),
+            headers=get_api_headers(journalist_api_token),
+        )
+        reply2_ct = reply2_res.data
+        reply2_pt = decrypt_as_journalist(reply2_ct)
+        assert reply2_pt == reply_pt
 
         # Duplicate reply is acknowledged but not processed again:
         response = app.post(
@@ -457,7 +438,7 @@ def test_api2_reply_sent(
             headers=get_api_headers(journalist_api_token),
         )
         assert response.json["events"][event.id] == [208, None]
-        assert reply["uuid"] not in response.json["items"]
+        assert reply2["uuid"] not in response.json["items"]
 
 
 def test_api2_item_deleted(
