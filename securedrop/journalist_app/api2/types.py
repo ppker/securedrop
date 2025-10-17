@@ -26,14 +26,25 @@ EventID = NewType("EventID", str)  # int, but opaque on the wire
 class EventType(StrEnum):
     REPLY_SENT = auto()
     ITEM_DELETED = auto()
+    ITEM_SEEN = auto()
+    SOURCE_DELETED = auto()
+    SOURCE_CONVERSATION_DELETED = auto()
+    SOURCE_STARRED = auto()
+    SOURCE_UNSTARRED = auto()
 
 
 class EventStatusCode(IntEnum):
     Processing = 102
     OK = 200
+    # We already saw and processed this event
     AlreadyReported = 208
     BadRequest = 400
+    # The target UUID doesn't exist (non-deletion requests)
     NotFound = 404
+    # Provided version is out of date and it was a deletion request
+    Conflict = 409
+    # The target UUID doesn't exist and it was a deletion request
+    Gone = 410
     NotImplemented = 501
 
 
