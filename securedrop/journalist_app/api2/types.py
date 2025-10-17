@@ -3,11 +3,11 @@ from enum import IntEnum, StrEnum, auto
 from typing import (
     Any,
     List,
+    Mapping,
     NewType,
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 Record = NewType("Record", dict[str, Any])
@@ -51,21 +51,31 @@ class Index:
 
 
 @dataclass
-class SourceTarget:
-    source_uuid: SourceUUID
+class Target:
+    """Base class for `<Resource>Target` dataclasses, to make their union usable
+    at runtime.  Subclass at least with:
+
+        <resource>_uuid: <Resource>UUID
+
+    """
+
     version: Version
 
 
 @dataclass
-class ItemTarget:
+class SourceTarget(Target):
+    source_uuid: SourceUUID
+
+
+@dataclass
+class ItemTarget(Target):
     item_uuid: ItemUUID
-    version: Version
 
 
 @dataclass
 class Event:
     id: EventID
-    target: Union[SourceTarget, ItemTarget]
+    target: Target | Mapping
     type: EventType
     data: dict[str, Any] = field(default_factory=dict)
 
@@ -73,7 +83,7 @@ class Event:
         if not isinstance(self.type, EventType):
             self.type = EventType(self.type)  # strict enum
 
-        if isinstance(self.target, dict):
+        if not isinstance(self.target, Target):
             if "source_uuid" in self.target:
                 self.target = SourceTarget(**self.target)
             elif "item_uuid" in self.target:
