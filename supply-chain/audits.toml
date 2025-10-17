@@ -322,14 +322,14 @@ notes = "Rust Project member"
 
 [[trusted.env_filter]]
 criteria = "safe-to-deploy"
-user-id = 6743 # Ed Page (epage)
+user-id = 6743
 start = "2024-01-19"
 end = "2025-06-02"
 notes = "Rust Project member"
 
 [[trusted.env_logger]]
 criteria = "safe-to-deploy"
-user-id = 6743 # Ed Page (epage)
+user-id = 6743
 start = "2022-11-24"
 end = "2025-06-02"
 notes = "Rust Project member"
