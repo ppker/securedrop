@@ -45,6 +45,7 @@ RUN ln -s /src/builder/fixup-changelog.sh /fixup-changelog
 RUN /src/builder/build-debs-admin.sh
 RUN apt-get install -y /src/build/trixie/securedrop-admin_*+trixie_amd64.deb
 
+ENV PATH="/usr/share/securedrop-admin/venv/bin:$PATH"
 # Install extra dev dependencies
 RUN /usr/share/securedrop-admin/venv/bin/pip install --no-deps --require-hashes -r /src/admin/requirements-dev.txt
 
