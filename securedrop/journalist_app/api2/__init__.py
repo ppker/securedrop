@@ -21,6 +21,7 @@ from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 
+EVENTS_MAX = 50
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 
 
@@ -111,6 +112,9 @@ def data() -> Response:
     response = BatchResponse()
 
     if requested.events:
+        if len(requested.events) > EVENTS_MAX:
+            abort(429, f"a BatchRequest MUST NOT include more than {EVENTS_MAX} events")
+
         try:
             events = [Event(**d) for d in requested.events]
         except TypeError:

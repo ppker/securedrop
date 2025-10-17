@@ -360,6 +360,16 @@ def test_api2_invalid_events(
         )
         assert response.status_code == 400
 
+        too_many = deepcopy(request_with_events)
+        too_many["events"].extend([too_many["events"][0].copy() for _ in range(api2.EVENTS_MAX)])
+
+        response = app.post(
+            url_for("api2.data"),
+            json=too_many,
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.status_code == 429
+
 
 # FIXME: This is
 # "app/server_tests/data/items/40e13a88-5409-4201-9495-d06c335e203f.gpg" via
