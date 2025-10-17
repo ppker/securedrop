@@ -74,7 +74,7 @@ class EventResult:
     event_id: EventID
     status: EventStatus
 
-    # Changed (return {<uuid>: None} to indicate deletion):
+    # Changed sources/items, return {<uuid>: None} to indicate deletion:
     sources: dict[SourceUUID, Optional[Record]] = field(default_factory=dict)
     items: dict[ItemUUID, Optional[Record]] = field(default_factory=dict)
 
