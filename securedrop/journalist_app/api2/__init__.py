@@ -1,26 +1,28 @@
 import hashlib
-from dataclasses import asdict, dataclass, field
-from typing import (
-    Any,
-    Dict,
-    Mapping,
-    NewType,
-    Optional,
-    Set,
-)
+from dataclasses import asdict
+from typing import Mapping, Optional
 
 from flask import Blueprint, abort, json, jsonify, request
+from journalist_app.api2.events import EventHandler
+from journalist_app.api2.types import (
+    BatchRequest,
+    BatchResponse,
+    Event,
+    Index,
+    Version,
+)
+from journalist_app.sessions import session
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
+from redis import Redis
+from sdconfig import SecureDropConfig
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.exc import MultipleResultsFound
 from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 
+EVENTS_MAX = 50
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
-
-
-Version = NewType("Version", str)
 
 
 def json_version(d: Mapping) -> Version:
@@ -35,22 +37,6 @@ def json_version(d: Mapping) -> Version:
     s = json.dumps(d, separators=[",", ":"], sort_keys=True)
     b = s.encode("utf-8")
     return Version(hashlib.blake2s(b).hexdigest())
-
-
-# TODO: generic UUID[T] in Python 3.12
-SourceUUID = NewType("SourceUUID", str)
-ItemUUID = NewType("ItemUUID", str)
-JournalistUUID = NewType("JournalistUUID", str)
-
-
-@dataclass
-class Index:
-    # Source metadata, optionally filtered by `source_prefix`:
-    sources: Dict[SourceUUID, Version] = field(default_factory=dict)
-    items: Dict[ItemUUID, Version] = field(default_factory=dict)
-
-    # Non-source metadata (always returned):
-    journalists: Dict[JournalistUUID, Version] = field(default_factory=dict)
 
 
 @blp.get("/index")
@@ -99,43 +85,56 @@ def index(source_prefix: Optional[str] = None) -> Response:
     return response.make_conditional(request)
 
 
-@dataclass
-class MetadataRequest:
-    # Source metadata:
-    sources: Set[SourceUUID] = field(default_factory=set)
-    items: Set[ItemUUID] = field(default_factory=set)
-
-    # Non-source metadata:
-    journalists: Set[JournalistUUID] = field(default_factory=set)
-
-
-@dataclass
-class MetadataResponse:
-    # Source metadata:
-    sources: Dict[SourceUUID, Any] = field(default_factory=dict)
-    items: Dict[ItemUUID, Any] = field(default_factory=dict)
-
-    # Non-source metadata:
-    journalists: Dict[JournalistUUID, Any] = field(default_factory=dict)
-
-
-@blp.post("/metadata")
-def metadata() -> Response:
+@blp.post("/data")  # read-write BatchRequest
+@blp.post("/metadata")  # DEPRECATED: read-only MetadataRequest
+def data() -> Response:
     """
-    Return the ``MetadataResponse`` requested in the ``MetadataRequest``.  The
+    Return the ``BatchResponse`` requested in the ``BatchRequest``.  The
     client MAY choose an arbitrary list of objects with each request, e.g. from
     a shard retrieved from ``/index/<source_prefix>``.
 
-    NB.  Returning sources is O(1) from the eagerly-loaded ``all_sources()``.
-    Returning items is O(2), since we have to search both the ``Submission`` and
-    the ``Reply`` tables for the set of all item UUIDs.
+    The client MAY include a list of ``Event``s for the server to process over
+    arbitrary sources and items.  Ordering is guaranteed within a given
+    ``BatchRequest``.  Sources and items changed by one or more events will be
+    returned in their most-recent state in the ``BatchResponse`` whether or not
+    they were explicitly requested in the ``BatchRequest``.
+
+    NB.  Reading sources (without any side effects from processing events) is
+    O(1) from the eagerly-loaded ``all_sources()``.  Reading items is O(2),
+    since we have to search both the ``Submission`` and the ``Reply`` tables for
+    the set of all item UUIDs.
     """
     try:
-        requested = MetadataRequest(**request.json)  # type: ignore
+        requested = BatchRequest(**request.json)  # type: ignore
     except (TypeError, ValueError) as exc:
         abort(422, f"malformed request; {exc}")
 
-    response = MetadataResponse()
+    response = BatchResponse()
+
+    if requested.events:
+        if len(requested.events) > EVENTS_MAX:
+            abort(429, f"a BatchRequest MUST NOT include more than {EVENTS_MAX} events")
+
+        try:
+            events = [Event(**d) for d in requested.events]
+        except (TypeError, ValueError) as e:
+            abort(400, f"invalid event: {e}")
+
+        # Don't set up the EventHandler, connect to Redis, etc., unless we have
+        # events to process.
+        config = SecureDropConfig.get_current()
+        handler = EventHandler(
+            session=session, redis=Redis(decode_responses=True, **config.REDIS_KWARGS)
+        )
+
+        # Process events in snowflake order.
+        for event in sorted(events, key=lambda e: e.id):
+            result = handler.process(event)
+            for uuid, source in result.sources.items():
+                response.sources[uuid] = source.to_api_v2() if source is not None else None
+            for uuid, item in result.items.items():
+                response.items[uuid] = item.to_api_v2() if item is not None else None
+            response.events[result.event_id] = result.status
 
     if requested.sources:
         source_query: EagerQuery = eager_query("Source")

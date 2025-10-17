@@ -492,6 +492,13 @@ class InvalidPasswordLength(PasswordError):
         return ""  # return empty string that can be appended harmlessly
 
 
+class InvalidUUID(ValueError):
+    """
+    A caller of uuid.UUID() that catches a ValueError and wishes to pass it on
+    SHOULD raise InvalidUUID instead.
+    """
+
+
 class NonDicewarePassword(PasswordError):
     """Raised when attempting to validate a password that is not diceware-like"""
 
