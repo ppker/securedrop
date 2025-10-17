@@ -480,7 +480,7 @@ def test_api2_item_deleted(
         reply_uuid = test_files["replies"][0].uuid
         reply_version = index.json["items"][reply_uuid]
         event = Event(
-            id="123456",
+            id="234567",
             target=ItemTarget(item_uuid=reply_uuid, version=reply_version),
             type=EventType.ITEM_DELETED,
         )
@@ -493,6 +493,7 @@ def test_api2_item_deleted(
         assert response.json["items"][event.target.item_uuid] is None
 
         # Try to delete something that doesn't exist:
+        event.id = "345678"
         event.target.item_uuid = "does not exist"
         response = app.post(
             url_for("api2.data"),

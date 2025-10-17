@@ -61,7 +61,7 @@ class EventHandler:
                 status=(EventStatusCode.BadRequest, str(e)),
             )
 
-        if self.has_processed(event):
+        if self.has_progress(event):
             return EventResult(
                 event_id=event.id,
                 status=(EventStatusCode.AlreadyReported, None),
@@ -78,20 +78,23 @@ class EventHandler:
                 status=(EventStatusCode.NotImplemented, f"no handler for event type: {event.type}"),
             )
 
+        self.mark_progress(event)  # prevent races
         result = handler(event)
-        self.mark_as_processed(event, result)
+        self.mark_progress(event, result.status[0])  # enforce idempotence
         return result
 
     def idempotence_key(self, event: Event) -> str:
         return f"{REDIS_EVENT_PREFIX}/{self._session.user.uuid}/{event.id}"
 
-    def has_processed(self, event: Event) -> bool:
-        return self._redis.get(self.idempotence_key(event)) is not None
+    def has_progress(self, event: Event) -> EventStatusCode:
+        return self._redis.get(self.idempotence_key(event))
 
-    def mark_as_processed(self, event: Event, result: EventResult) -> None:
+    def mark_progress(
+        self, event: Event, status: EventStatusCode = EventStatusCode.Processing
+    ) -> None:
         self._redis.set(
             self.idempotence_key(event),
-            result.status[0],
+            status,
             ex=IDEMPOTENCE_PERIOD,
         )
 

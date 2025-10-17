@@ -29,6 +29,7 @@ class EventType(StrEnum):
 
 
 class EventStatusCode(IntEnum):
+    Processing = 102
     OK = 200
     AlreadyReported = 208
     BadRequest = 400
