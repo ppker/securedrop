@@ -117,8 +117,8 @@ def data() -> Response:
 
         try:
             events = [Event(**d) for d in requested.events]
-        except TypeError:
-            abort(400, "invalid event")
+        except (TypeError, ValueError) as e:
+            abort(400, f"invalid event: {e}")
 
         # Don't set up the EventHandler, connect to Redis, etc., unless we have
         # events to process.

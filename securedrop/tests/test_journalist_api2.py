@@ -316,41 +316,44 @@ def test_api2_metadata_validation_valid_requests(
         assert response.status_code == 200
 
 
-@pytest.mark.parametrize(
-    ("request_with_events", "results"),
-    [
-        (
-            {
-                "events": [
-                    {
-                        "id": "123456",
-                        "type": "foobar",
-                        "target": {"source_uuid": "abcdef", "version": "uvwxyz"},
-                    }
-                ]
-            },
-            {"123456": [400, "'foobar' is not a valid EventType"]},
-        ),
-    ],
-)
 def test_api2_invalid_events(
     journalist_app,
     journalist_api_token,
-    request_with_events,
-    results,
 ):
     """Test that invalid events are rejected."""
     with journalist_app.test_client() as app:
+        valid = {
+            "events": [
+                {
+                    "id": "123456",
+                    "type": "reply_sent",
+                    "target": {"source_uuid": "abcdef", "version": "uvwxyz"},
+                }
+            ]
+        }
+
+        invalid_type = deepcopy(valid)
+        invalid_type["events"][0]["type"] = "foobar"
         response = app.post(
             url_for("api2.data"),
-            json=request_with_events,
+            json=invalid_type,
             headers=get_api_headers(journalist_api_token),
         )
-        for event in request_with_events["events"]:
-            event_id = event["id"]
-            assert response.json["events"][event_id] == results[event_id]
+        assert response.status_code == 400
+        assert response.json["message"] == "invalid event: 'foobar' is not a valid EventType"
 
-        no_id = deepcopy(request_with_events)
+        invalid_target = deepcopy(valid)
+        del invalid_target["events"][0]["target"]["source_uuid"]
+
+        response = app.post(
+            url_for("api2.data"),
+            json=invalid_target,
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.status_code == 400
+        assert "invalid event target" in response.json["message"]
+
+        no_id = deepcopy(valid)
         del no_id["events"][0]["id"]
 
         response = app.post(
@@ -360,7 +363,7 @@ def test_api2_invalid_events(
         )
         assert response.status_code == 400
 
-        too_many = deepcopy(request_with_events)
+        too_many = deepcopy(invalid_type)
         too_many["events"].extend([too_many["events"][0].copy() for _ in range(api2.EVENTS_MAX)])
 
         response = app.post(
@@ -369,6 +372,7 @@ def test_api2_invalid_events(
             headers=get_api_headers(journalist_api_token),
         )
         assert response.status_code == 429
+        assert "MUST NOT include more than" in response.json["message"]
 
 
 # FIXME: This is

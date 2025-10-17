@@ -69,6 +69,18 @@ class Event:
     type: EventType
     data: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.type, EventType):
+            self.type = EventType(self.type)  # strict enum
+
+        if isinstance(self.target, dict):
+            if "source_uuid" in self.target:
+                self.target = SourceTarget(**self.target)
+            elif "item_uuid" in self.target:
+                self.target = ItemTarget(**self.target)
+            else:
+                raise TypeError(f"invalid event target: {self.target}")
+
 
 @dataclass
 class EventResult:

@@ -6,8 +6,6 @@ from journalist_app.api2.types import (
     EventResult,
     EventStatusCode,
     EventType,
-    ItemTarget,
-    SourceTarget,
 )
 from journalist_app.sessions import Session
 from models import Reply, Source, Submission
@@ -47,35 +45,23 @@ class EventHandler:
         """The per-event entry-point for handling a single event."""
 
         try:
-            event.type = EventType(event.type)  # strict enum
-            if "source_uuid" in event.target:
-                event.target = SourceTarget(**event.target)
-            elif "item_uuid" in event.target:
-                event.target = ItemTarget(**event.target)
-            else:
-                raise TypeError("invalid event target")
+            if self.has_progress(event):
+                return EventResult(
+                    event_id=event.id,
+                    status=(EventStatusCode.AlreadyReported, None),
+                )
 
-        except (TypeError, ValueError) as e:
-            return EventResult(
-                event_id=event.id,
-                status=(EventStatusCode.BadRequest, str(e)),
-            )
-
-        if self.has_progress(event):
-            return EventResult(
-                event_id=event.id,
-                status=(EventStatusCode.AlreadyReported, None),
-            )
-
-        try:
             handler = {
-                "item_deleted": self.handle_item_deleted,
-                "reply_sent": self.handle_reply_sent,
+                EventType.ITEM_DELETED: self.handle_item_deleted,
+                EventType.REPLY_SENT: self.handle_reply_sent,
             }[event.type]
         except KeyError:
             return EventResult(
                 event_id=event.id,
-                status=(EventStatusCode.NotImplemented, f"no handler for event type: {event.type}"),
+                status=(
+                    EventStatusCode.NotImplemented,
+                    f"no handler for event type: {event.type}",
+                ),
             )
 
         self.mark_progress(event)  # prevent races
