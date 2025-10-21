@@ -1,13 +1,6 @@
 set -euxo pipefail
 # Build the container if necessary. This runs *outside* the container.
 
-# This script can be run with the argument "admin" to build the admin container.
-ADMIN_CONTAINER=0
-if [[ "${1:-}" == "admin" ]]; then
-    ADMIN_CONTAINER=1
-    shift
-fi
-
 cd "$(git rev-parse --show-toplevel)"
 
 if [[ $OS_VERSION == "trixie" ]]; then
@@ -16,13 +9,10 @@ else
     BASE_IMAGE="ubuntu:${OS_VERSION}"
 fi
 
-if [[ $ADMIN_CONTAINER -eq 1 ]]; then
-    IMAGE_NAME="fpf.local/sd-admin-builder-${OS_VERSION}"
-    DOCKERFILE="builder/AdminDockerfile"
-else
-    IMAGE_NAME="fpf.local/sd-server-builder-${OS_VERSION}"
-    DOCKERFILE="builder/Dockerfile"
-fi
+# This script can be run with the argument "admin" to build the admin container.
+BUILDER_TYPE="${1:-server}"
+IMAGE_NAME="fpf.local/sd-${BUILDER_TYPE}-builder-${OS_VERSION}"
+DOCKERFILE="builder/${BUILDER_TYPE}Dockerfile"
 
 # First see if the image exists or not
 missing=false
