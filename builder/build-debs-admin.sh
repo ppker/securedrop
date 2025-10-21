@@ -5,22 +5,11 @@ set -euxo pipefail
 
 source /etc/os-release
 
-# Install virtualenv in the right place
-mkdir -p /usr/share/securedrop-admin
-cd /usr/share/securedrop-admin
-virtualenv --python=python3 venv
-./venv/bin/pip3 install --no-deps -r /src/admin/requirements.txt --require-hashes
-./venv/bin/pip3 install /src/admin
-
 # Build the package in /srv/securedrop-admin
-mkdir -p /srv/securedrop-admin
-cp -R /src/admin/debian /srv/securedrop-admin/
+cp -R /src/admin/ /srv/securedrop-admin/
 
 # Copy ansible-base
 cp -R /src/install_files/ansible-base /srv/securedrop-admin/
-
-# Copy venv
-cp -R /usr/share/securedrop-admin/venv /srv/securedrop-admin/
 
 # Copy translations
 cp -R /src/securedrop/translations /srv/securedrop-admin/
@@ -35,8 +24,6 @@ cd /srv/securedrop-admin
 
 # Add the distro suffix to the version
 bash /fixup-changelog
-
-find /src/securedrop-admin
 
 # Build the package
 dpkg-buildpackage -us -uc

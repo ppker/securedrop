@@ -8,5 +8,5 @@ Standards-Version: 4.5.1
 
 Package: securedrop-admin
 Architecture: amd64
-Depends: python3, sq, netcat-openbsd, tor, rsync
+Depends: ${shlibs:Depends}, python3, sq, netcat-openbsd, tor, rsync
 Description: SecureDrop server administration utility
