@@ -2,20 +2,21 @@
 include /usr/share/dpkg/pkg-info.mk
 
 DEB_DH_INSTALL_ARGS=-X .git
-PIP_SELF_ARGS=--verbose --no-deps --no-cache-dir --prefer-binary
-PIP_OTHER_ARGS=--verbose --no-deps --no-cache-dir --prefer-binary --require-hashes
+PIP_BOOTSTRAP_ARGS=--verbose --no-deps --no-cache-dir --only-binary=:all:
+PIP_ARGS=--verbose --no-deps --no-cache-dir --only-binary=:all: --require-hashes
 
 %:
 	dh $@ --buildsystem=pybuild
 
 override_dh_auto_install:
 # Set up virtualenv and install dependencies
-	/usr/bin/python3 -m venv ./debian/usr/share/securedrop-admin/venv
-	./debian/usr/share/securedrop-admin/venv/bin/pip install $(PIP_SELF_ARGS) \
-		pip==25.0
-	./debian/usr/share/securedrop-admin/venv/bin/pip install $(PIP_OTHER_ARGS) \
+	/usr/bin/python3 -m venv ./debian/securedrop-admin/usr/share/securedrop-admin/venv
+	./debian/securedrop-admin/usr/share/securedrop-admin/venv/bin/pip install \
+		$(PIP_BOOTSTRAP_ARGS)  pip==25.0
+
+	./debian/securedrop-admin/usr/share/securedrop-admin/venv/bin/pip install $(PIP_ARGS) \
 		-r ./requirements.txt
-	find ./debian/usr/share/securedrop-admin/ -type f -exec sed -i "s#$(shell pwd)/debian/usr/share/securedrop-admin##" {} \;
+	find ./debian/securedrop-admin/ -type f -exec sed -i "s#$(shell pwd)/debian/securedrop-admin##" {} \;
 	dh_auto_install $@
 
 override_dh_auto_test:
