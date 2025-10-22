@@ -2,6 +2,7 @@ import uuid
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict
+from datetime import UTC, datetime
 
 import pytest
 from flask import url_for
@@ -9,10 +10,11 @@ from flask_sqlalchemy import get_debug_queries
 from journalist_app import api2
 from journalist_app.api2 import json_version
 from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
-from models import Reply, Submission
+from models import Reply, Submission, db
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils import ascii_armor, decrypt_as_journalist
 from tests.utils.api_helper import get_api_headers
+from tests.utils.db_helper import init_source, submit
 
 
 def filtered_queries():
@@ -73,10 +75,26 @@ def test_auth_required(journalist_app, endpoint, kwargs):
         assert response.status_code == 403
 
 
-def test_index(journalist_app, test_files, journalist_api_token):
+def test_index(journalist_app, test_files, journalist_api_token, app_storage):
     """
-    Verify GET /index response and HTTP 304 behavior
+    Verify GET /index response and HTTP 304 behavior.
     """
+    # Create a pending source and a deleted source to verify they're excluded
+    with journalist_app.app_context():
+        # Create a pending source (no submissions)
+        pending_source, _ = init_source(app_storage)
+        pending_uuid = pending_source.uuid
+        assert pending_source.pending is True
+
+        # Create source that is queued for deletion but not yet deleted
+        deleted_source, _ = init_source(app_storage)
+        submit(app_storage, deleted_source, 1)
+        deleted_uuid = deleted_source.uuid
+        assert deleted_source.pending is False
+        # Mark it as deleted
+        deleted_source.deleted_at = datetime.now(UTC)
+        db.session.commit()
+
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
         with assert_query_count(2):
@@ -85,11 +103,14 @@ def test_index(journalist_app, test_files, journalist_api_token):
                 headers=get_api_headers(journalist_api_token),
             )
 
-        # Verify the source is in the response
+        # Verify the active source is in the response
         assert response.status_code == 200
         assert uuid in response.json["sources"]
         # test_files generates 2 submissions and 1 reply, so 3 items total
         assert len(response.json["items"]) == 3
+        # Verify pending and deleted sources are NOT in the response
+        assert pending_uuid not in response.json["sources"]
+        assert deleted_uuid not in response.json["sources"]
 
         with assert_query_count(2):
             response2 = app.get(
