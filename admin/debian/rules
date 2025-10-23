@@ -16,6 +16,7 @@ override_dh_auto_install:
 
 	./debian/securedrop-admin/usr/share/securedrop-admin/venv/bin/pip install $(PIP_ARGS) \
 		-r ./requirements.txt
+	./debian/securedrop-admin/usr/share/securedrop-admin/venv/bin/pip install /srv/securedrop-admin
 	find ./debian/securedrop-admin/ -type f -exec sed -i "s#$(shell pwd)/debian/securedrop-admin##" {} \;
 	dh_auto_install $@
 
