@@ -1,20 +1,21 @@
 import os
 import re
 import shutil
+from pathlib import Path
 
 import pexpect
 
 CURRENT_DIR = os.path.dirname(__file__)
-CONFIG_DIR = "/tmp/.config/securedrop-admin"
+CONFIG_DIR = f"{str(Path.home())}/.config/securedrop-admin"
 ANSIBLE_BASE = "/usr/share/securedrop-admin/ansible-base/"
 # Regex to strip ANSI escape chars
 # https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ANSI_ESCAPE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
 SECUREDROP_ADMIN_CMD = "/usr/bin/securedrop-admin"
 
-OUTPUT1 = """app_hostname: app
+OUTPUT1 = f"""app_hostname: app
 app_ip: 10.20.2.2
-config_path: /tmp/.config/securedrop-admin
+config_path: {str(Path.home())}/.config/securedrop-admin
 daily_reboot_time: 5
 dns_server:
 - 8.8.8.8
@@ -46,9 +47,9 @@ smtp_relay_port: 587
 ssh_users: sdadmin
 """
 
-JOURNALIST_ALERT_OUTPUT = """app_hostname: app
+JOURNALIST_ALERT_OUTPUT = f"""app_hostname: app
 app_ip: 10.20.2.2
-config_path: /tmp/.config/securedrop-admin
+config_path: {str(Path.home())}/.config/securedrop-admin
 daily_reboot_time: 5
 dns_server:
 - 8.8.8.8
@@ -80,9 +81,9 @@ smtp_relay_port: 587
 ssh_users: sdadmin
 """
 
-HTTPS_OUTPUT_NO_POW = """app_hostname: app
+HTTPS_OUTPUT_NO_POW = f"""app_hostname: app
 app_ip: 10.20.2.2
-config_path: /tmp/.config/securedrop-admin
+config_path: {str(Path.home())}/.config/securedrop-admin
 daily_reboot_time: 5
 dns_server:
 - 8.8.8.8

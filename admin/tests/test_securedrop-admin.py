@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import textwrap
 from os.path import basename, dirname, exists, join
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -32,7 +33,7 @@ import yaml
 from flaky import flaky
 from prompt_toolkit.validation import ValidationError
 
-CONFIG_DIR = "/tmp/.config/securedrop-admin"
+CONFIG_DIR = f"{str(Path.home())}/.config/securedrop-admin"
 SITE_CONFIG_PATH = join(CONFIG_DIR, "site-specific")
 
 
