@@ -2221,7 +2221,7 @@ enquirer
 enrage
 enrich
 enroll
-enslave
+enshrine
 ensnare
 ensure
 entail
