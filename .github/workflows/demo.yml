@@ -1,3 +1,4 @@
+---
 name: Demo
 
 on: [push, pull_request]
@@ -8,23 +9,41 @@ defaults:
 
 jobs:
   build:
-    name: Build demo
+    name: Build Demo
+    uses: freedomofpress/actionslib/.github/workflows/oci-build.yaml@main
+    with:
+      context: "."
+      tags: demo
+      containerfile: securedrop/dockerfiles/noble/python3/DemoDockerfile
+      
+  test:
+    name: Test demo
     runs-on: ubuntu-24.04
+    needs:
+    - build
     env:
       DOCKERIZE_VERSION: v0.6.1
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Build container
+      - name: Download artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+      - name: Restore container image
+        env:
+          IMAGE_FILE: ${{ needs.build.outputs.artifact-image }}
         run: |
-          podman build -t demo -f securedrop/dockerfiles/noble/python3/DemoDockerfile .
+          podman image load --input="${GITHUB_WORKSPACE}/${IMAGE_FILE}"
       - name: Install dockerize
         run: |
           wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
       - name: Run container and verify it's up
+        env:
+          IMAGE: ${{ needs.build.outputs.image-url }}
         run: |
           function debug() {
             # Dump container logs on failure
@@ -32,7 +51,7 @@ jobs:
             exit 1
           }
           # Start the container in the background
-          podman run --name=demo -d -t -p 8080:8080 -p 8081:8081 demo
+          podman run --name=demo -d -t -p 8080:8080 -p 8081:8081 "${IMAGE}"
           # And wait for both ports to be up!
           dockerize -wait http://127.0.0.1:8080 -timeout 2m || debug
           dockerize -wait http://127.0.0.1:8081 -timeout 2m || debug
