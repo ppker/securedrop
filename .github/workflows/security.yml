@@ -1,7 +1,9 @@
 name: Security
 on:
   push:
+    branches: ["develop", "release/**"]
   pull_request:
+    types: ["opened", "synchronize"]
   merge_group:
   schedule:
     - cron: '0 3 * * *'
