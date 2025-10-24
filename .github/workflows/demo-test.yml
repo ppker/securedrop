@@ -1,5 +1,5 @@
 ---
-name: Demo
+name: Test Demo
 
 on: [push, pull_request]
 
@@ -15,12 +15,12 @@ jobs:
       context: "."
       tags: demo
       containerfile: securedrop/dockerfiles/noble/python3/DemoDockerfile
-      
+
   test:
-    name: Test demo
+    name: Test Demo
     runs-on: ubuntu-24.04
     needs:
-    - build
+      - build
     env:
       DOCKERIZE_VERSION: v0.6.1
     steps:
