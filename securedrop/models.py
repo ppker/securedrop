@@ -292,6 +292,11 @@ class Submission(db.Model):
             seen_by = [f.journalist.uuid for f in self.seen_files if f.journalist]
         else:  # is_message
             seen_by = [m.journalist.uuid for m in self.seen_messages if m.journalist]
+
+        # Extract interaction_count from filename
+        # (format: {interaction_count}-{journalist_filename}-*)
+        interaction_count = int(self.filename.split("-")[0])
+
         return {
             "kind": "file" if self.is_file else "message",
             "uuid": self.uuid,
@@ -300,6 +305,7 @@ class Submission(db.Model):
             # TODO: how is this different from seen_by?
             "is_read": self.seen,
             "seen_by": seen_by,
+            "interaction_count": interaction_count,
         }
 
     def to_api_v1(self) -> "Dict[str, Any]":
@@ -400,6 +406,10 @@ class Reply(db.Model):
         )
 
     def to_api_v2(self) -> Dict[str, Any]:
+        # Extract interaction_count from filename
+        # (format: {interaction_count}-{journalist_filename}-reply.gpg)
+        interaction_count = int(self.filename.split("-")[0])
+
         return {
             "kind": "reply",
             "uuid": self.uuid,
@@ -408,6 +418,7 @@ class Reply(db.Model):
             "journalist_uuid": self.journalist.uuid,
             "is_deleted_by_source": self.deleted_by_source,
             "seen_by": [r.journalist.uuid for r in self.seen_replies],
+            "interaction_count": interaction_count,
         }
 
     def to_api_v1(self) -> "Dict[str, Any]":
