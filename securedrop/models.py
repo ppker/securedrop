@@ -45,12 +45,20 @@ def eager_query(model: str) -> Union[EagerQuery, Query]:
     Falls back to a plain ``Query`` if no options are registered.  A caller that
     requires eager loading can annotate the return value with ``EagerQuery`` to
     enforce it during type-checking.
+
+    This is intended for user-facing data access, e.g. we filter out pending sources.
     """
     cls = globals()[model]
     try:
-        return cls.query.options(*cls.query_options())
+        query = cls.query.options(*cls.query_options())
     except AttributeError:
-        return cls.query
+        query = cls.query
+
+    # Filter out pending and deleted sources
+    if model == "Source":
+        query = query.filter_by(pending=False, deleted_at=None)
+
+    return query
 
 
 def get_one_or_else(
