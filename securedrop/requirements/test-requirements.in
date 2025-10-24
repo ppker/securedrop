@@ -23,4 +23,4 @@ types-PyYAML
 types-redis
 types-requests
 types-setuptools>=70.0.0
-uv>=0.8.6  # Safety 79083 for CVE-2025-54368
+uv>=0.9.5  # Safety 80597
