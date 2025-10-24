@@ -1,0 +1,47 @@
+---
+name: Publish Demo Landing Page
+
+on:
+  push:
+    branches: ["develop"]
+    paths:
+    - devops/demo/landing-page/**
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+    - name: Determine tags
+      id: tags
+      env:
+        REF: ${{ github.ref_name }}
+        SHA: ${{ github.sha }}
+      # So annoying that GHA doesn't have a builtin substring
+      # function (or expose the shortened SHA). If it did then
+      # we could drop this whole job and just set it as a statically
+      # templated value in the build job.
+      run: |
+        echo "tags=$REF;$REF-${SHA:0:7}" >>$GITHUB_OUTPUT
+    outputs:
+      tags: ${{ steps.tags.outputs.tags }}
+
+  build:
+    name: Build Landing Page
+    uses: freedomofpress/actionslib/.github/workflows/oci-build.yaml@main
+    needs:
+    - prepare
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    with:
+      context: "."
+      containerfile: devops/demo/landing-page/Dockerfile
+      tags: ${{ needs.prepare.outputs.tags }}
+      registry: ghcr.io/freedomofpress/securedrop-demo-landing-page
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
