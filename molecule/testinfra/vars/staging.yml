@@ -126,25 +126,32 @@ log_events_without_ossec_alerts:
     rule_id: "100114"
 
   # #6866
-  - name: NameError_hasattr_does_not_produce_alert
+  - name: test_NameError_hasattr_does_not_produce_alert
     alert: >
       NameError: name 'hasattr' is not defined
     level: "0"
     rule_id: "199996"
 
   # #7491
-  - name: Update_notifier_download_failed_text_no_alert
+  - name: test_Update_notifier_download_failed_text_no_alert
     alert: >
         Download data for packages that failed at package install time
     level: "0"
     rule_id: "199994"
 
   # #7491
-  - name: apt_news_warning_text_no_alert
+  - name: test_apt_news_warning_text_no_alert
     alert: >
         Warning: W:Download is performed unsandboxed as root as file
     level: "0"
     rule_id: "199995"
+
+  # #7670
+  - name: test_tor_hop_failure_no_alert
+    alert: >
+       Failed to find node for hop #1 of our path. Discarding this circuit.
+    level: "0"
+    rule_id: "199997"
 
   # OSSEC should not alert when "manage.py check-disconnected-{db,fs}-
   # submissions" has logged that there are no disconnected submissions.
