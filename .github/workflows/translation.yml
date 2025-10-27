@@ -65,7 +65,7 @@ jobs:
         run: |
           make translation-test
       - name: Save screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: screenshots-${{ matrix.locale }}
           path: securedrop/tests/functional/pageslayout/screenshots/

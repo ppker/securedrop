@@ -38,7 +38,7 @@ jobs:
       - name: Build OSSEC packages
         run: |
           UBUNTU_VERSION=${{ matrix.versions.ubuntu }} WHAT=ossec ./builder/build-debs.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         id: upload
         with:
           name: ${{ matrix.versions.ubuntu }}-${{ matrix.build }}
