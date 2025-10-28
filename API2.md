@@ -1,6 +1,6 @@
 # Journalist API v2
 
-This package implements and documents the synchronization strategy for the v2
+This package (in `securedrop/journalist_app/api2`) implements and documents the synchronization strategy for the v2
 Journalist API.
 
 | File                                  | Contents                             |
