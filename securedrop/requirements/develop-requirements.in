@@ -39,6 +39,6 @@ testinfra>=5.3.1
 translate-toolkit
 urllib3>=2.5.0;python_version>="3.9"
 urllib3>=1.26.5
-uv>=0.8.6  # Safety 79083 for CVE-2025-54368
+uv>=0.9.5  # Safety 80587
 yamllint
 zizmor
