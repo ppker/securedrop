@@ -1,10 +1,10 @@
 #!/bin/bash
-# shellcheck disable=SC1090
-# this is for backward compatibility and also because it
-# is more convenient for the admin to have the script at
-# the top level of the SecureDrop repository
+# Minimal migration-only wrapper for securedrop-admin
+# This script is used ONLY for the one-time migration from git-based to deb-based installer
+# After migration, users will use /usr/bin/securedrop-admin from the installed package
 set -eo pipefail
 
+# Check that we're not running as root
 b=$(basename "$0")
 u=$(whoami)
 if test "$u" = "root"; then
@@ -12,29 +12,20 @@ if test "$u" = "root"; then
     exit 1
 fi
 
-# Check for Tails 7+ requirement
-# Note: Only enforces version check on Tails systems to allow testing on other platforms
-if [[ -f /etc/os-release ]] && grep -q 'NAME="Tails"' /etc/os-release; then
-    tails_version=$(grep '^VERSION=' /etc/os-release | cut -d= -f2 | tr -d '"')
-    tails_major_version=$(echo "$tails_version" | cut -d. -f1)
-    if (( tails_major_version < 7 )); then
-        echo "Error: This version of securedrop-admin requires Tails 7 or later."
-        echo "Current Tails version: $tails_version"
-        echo "Please upgrade to Tails 7+ to use this tool."
-        exit 1
-    fi
-fi
-
+# Get the directory this script is in
 d=$(dirname "$0")
-if test "$1" = "setup" || test "$2" = "setup"; then
-   if test "$1" = "setup"; then
-     shift
-     exec python3 "$d/admin/bootstrap.py" "$@"
-   else
-     exec python3 "$d/admin/bootstrap.py" "$1"
-   fi
+
+# Only support setup and tailsconfig commands for migration
+if [ "$1" = "setup" ]; then
+    exec "$d/admin/migrate-to-deb.sh"
+elif [ "$1" = "tailsconfig" ]; then
+    exec "$d/admin/migrate-tailsconfig.sh"
 else
-   python3 "$d/admin/bootstrap.py" "checkenv"
-   source "$d/admin/.venv3/bin/activate"
-   exec "$d/admin/.venv3/bin/securedrop-admin" --root "$d" "$@"
+    echo "Error: This git-based installer has been deprecated."
+    echo ""
+    echo "To migrate to the new package-based installer, run:"
+    echo "  ./securedrop-admin setup"
+    echo ""
+    echo "After migration, use 'securedrop-admin' (installed in /usr/bin) for all operations."
+    exit 1
 fi
