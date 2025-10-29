@@ -88,9 +88,27 @@ NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
 echo "TODO: In production, package will persist via APT repository"
 
 # Copy site-specific config
-if [[ -f "$OLD_CONFIG_DIR/group_vars/all/site-specific" ]]; then
-    cp "$OLD_CONFIG_DIR/group_vars/all/site-specific" "$NEW_CONFIG_DIR/"
+SITE_SPECIFIC_FILE="$OLD_CONFIG_DIR/group_vars/all/site-specific"
+if [[ -f "$SITE_SPECIFIC_FILE" ]]; then
+    cp "$SITE_SPECIFIC_FILE" "$NEW_CONFIG_DIR/"
     echo "- Migrated: site-specific"
+
+    # Parse site-specific for GPG public key filenames and copy them
+    ossec_key=$(grep '^ossec_alert_gpg_public_key:' "$SITE_SPECIFIC_FILE" | awk '{print $2}' | tr -d "'\"")
+    if [[ -n "$ossec_key" && "$ossec_key" != "''" && -f "$OLD_CONFIG_DIR/$ossec_key" ]]; then
+        cp "$OLD_CONFIG_DIR/$ossec_key" "$NEW_CONFIG_DIR/"
+        echo "- Migrated: $ossec_key (OSSEC GPG public key)"
+    elif [[ -n "$ossec_key" && "$ossec_key" != "''" ]]; then
+        echo "! Not found (skipping): $ossec_key (OSSEC GPG public key)"
+    fi
+
+    securedrop_key=$(grep '^securedrop_app_gpg_public_key:' "$SITE_SPECIFIC_FILE" | awk '{print $2}' | tr -d "'\"")
+    if [[ -n "$securedrop_key" && "$securedrop_key" != "''" && -f "$OLD_CONFIG_DIR/$securedrop_key" ]]; then
+        cp "$OLD_CONFIG_DIR/$securedrop_key" "$NEW_CONFIG_DIR/"
+        echo "- Migrated: $securedrop_key (SecureDrop GPG public key)"
+    elif [[ -n "$securedrop_key" && "$securedrop_key" != "''" ]]; then
+        echo "! Not found (skipping): $securedrop_key (SecureDrop GPG public key)"
+    fi
 else
     echo "! Not found (skipping): site-specific"
 fi
