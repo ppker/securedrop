@@ -15,8 +15,8 @@ RUN apt-get update  && apt-get install -y \
 # Current versions of the test browser software. Tor Browser is based
 # on a specific version of Firefox - we download both for generic and TBB testing
 
-# We should use the version of geckodriver corresponding to the above Firefox version.
-ENV GECKODRIVER_VERSION v0.35.0
+# We should use the version of geckodriver corresponding to the correct Firefox version.
+ENV GECKODRIVER_VERSION v0.36.0
 
 # Import Tor release signing key
 ENV TOR_RELEASE_KEY_FINGERPRINT "EF6E286DDA85EA2A4BA7DE684E2C6E8793298290"
