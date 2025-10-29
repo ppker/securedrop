@@ -3,6 +3,7 @@ Basic smoke tests that verify the apps are functioning as expected
 """
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,8 @@ def test_weak_submission_key(host):
             # Install a weak key
             set_public_key(host, WEAK_KEY_CONTENTS)
             assert host.run("systemctl restart apache2").rc == 0
+            # give the interfaces a chance to come up - a TODO could be polling here
+            time.sleep(10)
             # Now try to hit the JI
             response = host.run("curl -Li http://localhost:8080/").stdout
             assert "HTTP/1.1 500 Internal Server Error" in response
