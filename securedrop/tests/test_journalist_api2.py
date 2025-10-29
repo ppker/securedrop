@@ -8,9 +8,9 @@ import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app import api2
-from journalist_app.api2 import json_version
+from journalist_app.api2.shared import json_version
 from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
-from models import Reply, Submission, db
+from models import Reply, Source, SourceStar, Submission, db
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils import ascii_armor, decrypt_as_journalist
 from tests.utils.api_helper import get_api_headers
@@ -521,8 +521,301 @@ def test_api2_item_deleted(
             json={"events": [asdict(event)]},
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.json["events"][event.id] == [404, "could not find item: does not exist"]
+        assert response.json["events"][event.id] == [410, None]
         assert event.target.item_uuid not in response.json["items"]
+
+
+def test_api2_source_deleted(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """Test processing of the "source_deleted" event."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        source_uuid = source.uuid
+
+        # Try deleting the source with the wrong version
+        event = Event(
+            id="394758",
+            target=SourceTarget(source_uuid=source_uuid, version="wrong-version"),
+            type=EventType.SOURCE_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id][0] == 409
+        assert "outdated source" in response.json["events"][event.id][1]
+
+        # Verify source was NOT deleted
+        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is not None
+
+        # Now test deletion with correct version
+
+        # Collect UUIDs of all items in the collection before deletion
+        expected_item_uuids = {item.uuid for item in test_files["submissions"]}
+        expected_item_uuids.update({item.uuid for item in test_files["replies"]})
+
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        source_version = index.json["sources"][source_uuid]
+
+        # Delete the source
+        event = Event(
+            id="365423",
+            target=SourceTarget(source_uuid=source_uuid, version=source_version),
+            type=EventType.SOURCE_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        assert response.json["sources"][source_uuid] is None
+
+        # Verify all items in the collection are returned as deleted
+        for item_uuid in expected_item_uuids:
+            assert item_uuid in response.json["items"]
+            assert response.json["items"][item_uuid] is None
+
+        # Verify source is deleted from database
+        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is None
+
+        # Try to delete a source that doesn't exist
+        event.id = "234567"
+        event.target.source_uuid = "does-not-exist"
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [410, None]
+        assert "does-not-exist" not in response.json["sources"]
+
+
+def test_api2_source_conversation_deleted(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """Test processing of the "source_conversation_deleted" event."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        source_uuid = source.uuid
+
+        # Verify source has submissions and replies
+        assert len(test_files["submissions"]) > 0
+        assert len(test_files["replies"]) > 0
+
+        # Try to delete conversation with wrong version
+        # (intentionally not fetching the correct version)
+        event = Event(
+            id="498567",
+            target=SourceTarget(source_uuid=source_uuid, version="wrong-version"),
+            type=EventType.SOURCE_CONVERSATION_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id][0] == 409
+        assert "outdated source" in response.json["events"][event.id][1]
+
+        # Verify submissions and replies were NOT deleted
+        for submission in test_files["submissions"]:
+            assert (
+                Submission.query.filter(Submission.uuid == submission.uuid).one_or_none()
+                is not None
+            )
+        for reply in test_files["replies"]:
+            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is not None
+
+        # Collect UUIDs of all items in the collection before deletion
+        expected_item_uuids = {item.uuid for item in test_files["submissions"]}
+        expected_item_uuids.update({item.uuid for item in test_files["replies"]})
+
+        # Fetch the current index
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        source_version = index.json["sources"][source_uuid]
+
+        # Delete the conversation
+        event = Event(
+            id="298374",
+            target=SourceTarget(source_uuid=source_uuid, version=source_version),
+            type=EventType.SOURCE_CONVERSATION_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        # Source should still exist, so not None
+        assert response.json["sources"][source_uuid] is not None
+
+        # Verify all items in the collection are returned as deleted
+        for item_uuid in expected_item_uuids:
+            assert item_uuid in response.json["items"]
+            assert response.json["items"][item_uuid] is None
+
+        # Verify source still exists but submissions/replies are deleted from database
+        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is not None
+        for submission in test_files["submissions"]:
+            assert Submission.query.filter(Submission.uuid == submission.uuid).one_or_none() is None
+        for reply in test_files["replies"]:
+            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is None
+
+
+def test_api2_source_starred(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """Test processing of the "source_starred" event."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        source_id = source.id
+        source_uuid = source.uuid
+
+        # Fetch the current index
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        source_version = index.json["sources"][source_uuid]
+
+        # Star the source
+        event = Event(
+            id="123456",
+            target=SourceTarget(source_uuid=source_uuid, version=source_version),
+            type=EventType.SOURCE_STARRED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        assert source_uuid in response.json["sources"]
+
+        # Verify the source is starred in the response
+        source_data = response.json["sources"][source_uuid]
+        assert source_data["is_starred"] is True
+
+        assert SourceStar.query.filter(SourceStar.source_id == source_id).one().starred
+
+
+def test_api2_source_unstarred(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """Test processing of the "source_unstarred" event."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        source_id = source.id
+        source_uuid = source.uuid
+
+        # Star the source first using API v1
+        app.post(
+            url_for("api.add_star", source_uuid=source_uuid),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert SourceStar.query.filter(SourceStar.source_id == source_id).one().starred is True
+
+        # Fetch the current index
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        source_version = index.json["sources"][source_uuid]
+
+        # Unstar the source
+        event = Event(
+            id="123456",
+            target=SourceTarget(source_uuid=source_uuid, version=source_version),
+            type=EventType.SOURCE_UNSTARRED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        assert source_uuid in response.json["sources"]
+
+        # Verify the source is not starred in the response
+        source_data = response.json["sources"][source_uuid]
+        assert source_data["is_starred"] is False
+
+        assert SourceStar.query.filter(SourceStar.source_id == source_id).one().starred is False
+
+
+def test_api2_item_seen(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """Test processing of the "item_seen" event."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        source_uuid = source.uuid
+
+        # Verify we have test data
+        assert len(test_files["submissions"]) >= 1
+        submission = test_files["submissions"][0]
+        submission_uuid = submission.uuid
+
+        # Fetch the current index
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        item_version = index.json["items"][submission_uuid]
+
+        # Mark the submission as seen
+        event = Event(
+            id="123456",
+            target=ItemTarget(item_uuid=submission_uuid, version=item_version),
+            type=EventType.ITEM_SEEN,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id] == [200, None]
+        assert source_uuid in response.json["sources"]
+        assert submission_uuid in response.json["items"]
+
+        # Verify the submission is marked as seen in the database
+        updated_submission = Submission.query.filter(Submission.uuid == submission_uuid).one()
+        assert updated_submission.downloaded is True
+
+        # Try with invalid item UUID
+        event.id = "234567"
+        event.target.item_uuid = "invalid-uuid"
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id][0] == 404
+        assert "could not find item" in response.json["events"][event.id][1]
 
 
 def test_api2_idempotence_period(journalist_app):

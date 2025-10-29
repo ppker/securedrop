@@ -1,15 +1,14 @@
-import hashlib
 from dataclasses import asdict
-from typing import Mapping, Optional
+from typing import Optional
 
-from flask import Blueprint, abort, json, jsonify, request
+from flask import Blueprint, abort, jsonify, request
 from journalist_app.api2.events import EventHandler
+from journalist_app.api2.shared import json_version
 from journalist_app.api2.types import (
     BatchRequest,
     BatchResponse,
     Event,
     Index,
-    Version,
 )
 from journalist_app.sessions import session
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
@@ -23,20 +22,6 @@ blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 
 EVENTS_MAX = 50
 PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
-
-
-def json_version(d: Mapping) -> Version:
-    """
-    Calculate the version (BLAKE2s digest) of the normalized JSON representation
-    of the dictionary ``d``.
-
-    We use BLAKE2s here because SHA-256 is too slow (we don't care about
-    cryptographic security) and CRC-32 is too collision-prone (we're not merely
-    checksumming for transmission integrity).
-    """
-    s = json.dumps(d, separators=[",", ":"], sort_keys=True)
-    b = s.encode("utf-8")
-    return Version(hashlib.blake2s(b).hexdigest())
 
 
 @blp.get("/index")
