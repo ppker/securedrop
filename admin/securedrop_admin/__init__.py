@@ -24,7 +24,6 @@ instances.
 
 import argparse
 import base64
-import functools
 import ipaddress
 import json
 import logging
@@ -33,7 +32,7 @@ import re
 import subprocess
 import sys
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import prompt_toolkit
 import yaml
@@ -118,10 +117,6 @@ class JournalistAlertEmailException(Exception):
 
 # The type of each entry within SiteConfig.desc
 _T = TypeVar("_T", bound=Union[int, str, bool])
-
-# The function type used for the @update_check_required decorator; see
-# https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
-_FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
 
 # Configuration description tuples drive the CLI user experience and the
 # validation logic of the  securedrop-admin tool. A tuple is in the following
@@ -766,50 +761,6 @@ def setup_logger(verbose: bool = False) -> None:
     sdlog.addHandler(stdout)
 
 
-def update_check_required(cmd_name: str) -> Callable[[_FuncT], _FuncT]:
-    """
-    This decorator can be added to any subcommand that is part of securedrop-admin
-    via `@update_check_required("name_of_subcommand")`. It forces a check for
-    updates, and aborts if the locally installed code is out of date. It should
-    be generally added to all subcommands that make modifications on the
-    server or on the Admin Workstation.
-
-    The user can override this check by specifying the --force argument before
-    any subcommand.
-    """
-
-    def decorator_update_check(func: _FuncT) -> _FuncT:
-        @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            cli_args = args[0]
-            if cli_args.force:
-                sdlog.info("Skipping update check because --force argument was provided.")
-                return func(*args, **kwargs)
-
-            update_status = check_for_updates(cli_args)
-            if update_status is True:
-                sdlog.error(
-                    "You are not running the most recent signed SecureDrop release "
-                    "on this workstation."
-                )
-                sdlog.error(
-                    "If you are certain you want to proceed, run:\n\n\t"
-                    f"./securedrop-admin --force {cmd_name}\n"
-                )
-                sdlog.error("To apply the latest updates, install operating system updates.\n")
-                sdlog.error(
-                    "If this fails, see the latest upgrade guide on "
-                    "https://docs.securedrop.org/ for instructions."
-                )
-                sys.exit(1)
-            return func(*args, **kwargs)
-
-        return cast(_FuncT, wrapper)
-
-    return decorator_update_check
-
-
-@update_check_required("sdconfig")
 def sdconfig(args: argparse.Namespace) -> int:
     """Configure SD site settings"""
     SiteConfig().load_and_update_config(validate=False)
@@ -869,7 +820,6 @@ def find_or_generate_new_torv3_keys(args: argparse.Namespace) -> int:
     return 0
 
 
-@update_check_required("install")
 def install_securedrop(args: argparse.Namespace) -> int:
     """Install/Update SecureDrop"""
 
@@ -878,13 +828,18 @@ def install_securedrop(args: argparse.Namespace) -> int:
     sdlog.info("Now installing SecureDrop on remote servers.")
     sdlog.info("You will be prompted for the sudo password on the servers.")
     sdlog.info("The sudo password is only necessary during initial installation.")
+
+    extra_vars = f"@{SITE_CONFIG_PATH}"
+    if args.force:
+        extra_vars += " skip_update_check=true"
+
     return subprocess.check_call(
         ansible_command()
         + [
             os.path.join(ANSIBLE_PATH, "securedrop-prod.yml"),
             "--ask-become-pass",
             "--extra-vars",
-            f"@{SITE_CONFIG_PATH}",
+            extra_vars,
         ],
         cwd=ANSIBLE_PATH,
     )
@@ -898,22 +853,25 @@ def verify_install(args: argparse.Namespace) -> int:
     return subprocess.check_call(testinfra_cmd, cwd=os.getcwd())
 
 
-@update_check_required("backup")
 def backup_securedrop(args: argparse.Namespace) -> int:
     """Perform backup of the SecureDrop Application Server.
     Creates a tarball of submissions and server config, and fetches
     back to the Admin Workstation. Future `restore` actions can be performed
     with the backup tarball."""
     sdlog.info("Backing up the Sec Application Server")
+
+    extra_vars = f"@{SITE_CONFIG_PATH}"
+    if args.force:
+        extra_vars += " skip_update_check=true"
+
     ansible_cmd = ansible_command() + [
         os.path.join(ANSIBLE_PATH, "securedrop-backup.yml"),
         "--extra-vars",
-        f"@{SITE_CONFIG_PATH}",
+        extra_vars,
     ]
     return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
 
-@update_check_required("restore")
 def restore_securedrop(args: argparse.Namespace) -> int:
     """Perform restore of the SecureDrop Application Server.
     Requires a tarball of submissions and server config, created via
@@ -928,10 +886,14 @@ def restore_securedrop(args: argparse.Namespace) -> int:
     # Would like readable output if there's a problem
     os.environ["ANSIBLE_STDOUT_CALLBACK"] = "debug"
 
+    extra_vars = f"@{SITE_CONFIG_PATH}"
+    if args.force:
+        extra_vars += " skip_update_check=true"
+
     ansible_cmd = ansible_command() + [
         os.path.join(ANSIBLE_PATH, "securedrop-restore.yml"),
         "--extra-vars",
-        f"@{SITE_CONFIG_PATH}",
+        extra_vars,
         "-e",
     ]
 
@@ -949,17 +911,20 @@ def restore_securedrop(args: argparse.Namespace) -> int:
     return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
 
-@update_check_required("localconfig")
 def run_local_config(args: argparse.Namespace) -> int:
     """Configure either Tails or Qubes environment post SD install"""
     sdlog.info("Configuring local environment")
+
+    extra_vars = f"@{SITE_CONFIG_PATH}"
+    if args.force:
+        extra_vars += " skip_update_check=true"
 
     if OS_TYPE == OSType.DEBIAN:
         sdlog.info("Detected Debian, running Qubes configuration")
         ansible_cmd = ansible_command() + [
             os.path.join(ANSIBLE_PATH, "securedrop-qubes.yml"),
             "--extra-vars",
-            f"@{SITE_CONFIG_PATH}",
+            extra_vars,
             # Passing an empty inventory file to override the automatic dynamic
             # inventory script, which fails if no site vars are configured.
             "-i",
@@ -976,7 +941,7 @@ def run_local_config(args: argparse.Namespace) -> int:
             os.path.join(ANSIBLE_PATH, "securedrop-tails.yml"),
             "--ask-become-pass",
             "--extra-vars",
-            f"@{SITE_CONFIG_PATH}",
+            extra_vars,
             # Passing an empty inventory file to override the automatic dynamic
             # inventory script, which fails if no site vars are configured.
             "-i",
@@ -988,13 +953,7 @@ def run_local_config(args: argparse.Namespace) -> int:
         return 1
 
 
-def check_for_updates_wrapper(args: argparse.Namespace) -> int:
-    check_for_updates(args)
-    # Because the command worked properly exit with 0.
-    return 0
-
-
-def check_for_updates(args: argparse.Namespace) -> bool:
+def check_for_updates(args: argparse.Namespace) -> int:
     """Check for SecureDrop updates"""
     sdlog.info("Checking for SecureDrop updates...")
 
@@ -1007,21 +966,24 @@ def check_for_updates(args: argparse.Namespace) -> bool:
     try:
         subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
         sdlog.info("All updates applied")
-        return False
+        return 0
     except subprocess.CalledProcessError as e:
-        sdlog.error(f"Ansible playbook failed with error: {e}")
-        sdlog.info("Update needed")
-        return True
+        sdlog.error(f"Update check failed: {e}")
+        return 1
 
 
-@update_check_required("logs")
 def get_logs(args: argparse.Namespace) -> int:
     """Get logs for forensics and debugging purposes"""
     sdlog.info("Gathering logs for forensics and debugging")
+
+    extra_vars = f"@{SITE_CONFIG_PATH}"
+    if args.force:
+        extra_vars += " skip_update_check=true"
+
     ansible_cmd = ansible_command() + [
         os.path.join(ANSIBLE_PATH, "securedrop-logs.yml"),
         "--extra-vars",
-        f"@{SITE_CONFIG_PATH}",
+        extra_vars,
     ]
 
     subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
@@ -1032,15 +994,19 @@ def get_logs(args: argparse.Namespace) -> int:
     return 0
 
 
-@update_check_required("reset_admin_access")
 def reset_admin_access(args: argparse.Namespace) -> int:
     """Resets SSH access to the SecureDrop servers, locking it to
     this Admin Workstation."""
     sdlog.info("Resetting SSH access to the SecureDrop servers")
+
+    extra_vars = f"@{SITE_CONFIG_PATH}"
+    if args.force:
+        extra_vars += " skip_update_check=true"
+
     ansible_cmd = ansible_command() + [
         os.path.join(ANSIBLE_PATH, "securedrop-reset-ssh-key.yml"),
         "--extra-vars",
-        f"@{SITE_CONFIG_PATH}",
+        extra_vars,
     ]
     return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
@@ -1108,7 +1074,7 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
     )
 
     parse_check_updates = subparsers.add_parser("check_for_updates", help=check_for_updates.__doc__)
-    parse_check_updates.set_defaults(func=check_for_updates_wrapper)
+    parse_check_updates.set_defaults(func=check_for_updates)
 
     parse_logs = subparsers.add_parser("logs", help=get_logs.__doc__)
     parse_logs.set_defaults(func=get_logs)

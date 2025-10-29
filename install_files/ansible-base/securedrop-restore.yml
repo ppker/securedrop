@@ -1,4 +1,18 @@
 ---
+# Conditional update check - runs unless skip_update_check is true
+- name: Check for securedrop-admin updates
+  hosts: localhost
+  become: yes
+  max_fail_percentage: 0
+  any_errors_fatal: yes
+  connection: local
+  gather_facts: yes
+  environment:
+    LC_ALL: C
+  roles:
+    - role: update-check
+  when: not (skip_update_check | default(false) | bool)
+
 - name: Restore SecureDrop Application Server from previous config.
   hosts: securedrop_application_server
   max_fail_percentage: 0
