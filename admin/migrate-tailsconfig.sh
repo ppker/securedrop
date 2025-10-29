@@ -28,14 +28,7 @@ error_exit() {
 # Show reboot notification
 if command -v zenity >/dev/null 2>&1; then
     zenity --info \
-        --title="SecureDrop Migration Complete" \
+        --title="Reboot Tails" \
         --width=500 \
-        --text="Migration to the debian-based installer is complete.\n\n\
-Please REBOOT Tails to complete the setup.\n\n\
-After reboot:\n\
-• The GNOME shell extension will be loaded\n\
-• Desktop shortcuts will use the new configuration\n\
-• The GUI updater will no longer run\n\
-• Use 'securedrop-admin' command for all operations\n\n\
-Log file: $LOG_FILE"
+        --text="Please REBOOT Tails to complete this SecureDrop Admin Workstation update."
 fi
