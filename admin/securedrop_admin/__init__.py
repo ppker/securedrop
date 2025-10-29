@@ -761,6 +761,29 @@ def setup_logger(verbose: bool = False) -> None:
     sdlog.addHandler(stdout)
 
 
+def ensure_config_path() -> None:
+    """Ensure config_path is set in the site-specific config file.
+
+    This is needed for Ansible playbooks that reference config_path.
+    Creates a minimal config if it doesn't exist, or adds config_path
+    to an existing config if missing.
+    """
+    config = SiteConfig()
+    if config.exists():
+        # Load existing config
+        existing_config = config.load(validate=False)
+        if "config_path" not in existing_config:
+            # Add config_path to existing config
+            config.config.update(existing_config)
+            config.config["config_path"] = CONFIG_PATH
+            config.save()
+    else:
+        # Create minimal config with just config_path
+        # This allows localconfig to run before full server configuration
+        config.config["config_path"] = CONFIG_PATH
+        config.save()
+
+
 def sdconfig(args: argparse.Namespace) -> int:
     """Configure SD site settings"""
     SiteConfig().load_and_update_config(validate=False)
@@ -860,6 +883,8 @@ def backup_securedrop(args: argparse.Namespace) -> int:
     with the backup tarball."""
     sdlog.info("Backing up the Sec Application Server")
 
+    ensure_config_path()
+
     extra_vars = f"@{SITE_CONFIG_PATH}"
     if args.force:
         extra_vars += " skip_update_check=true"
@@ -877,6 +902,9 @@ def restore_securedrop(args: argparse.Namespace) -> int:
     Requires a tarball of submissions and server config, created via
     the `backup` action."""
     sdlog.info("Restoring the SecureDrop Application Server from backup")
+
+    ensure_config_path()
+
     # Canonicalize filepath to backup tarball, so Ansible sees only the
     # basename. The files must live in args.ansible_path,
     # but the securedrop-admin
@@ -914,6 +942,8 @@ def restore_securedrop(args: argparse.Namespace) -> int:
 def run_local_config(args: argparse.Namespace) -> int:
     """Configure either Tails or Qubes environment post SD install"""
     sdlog.info("Configuring local environment")
+
+    ensure_config_path()
 
     extra_vars = f"@{SITE_CONFIG_PATH}"
     if args.force:
@@ -976,6 +1006,8 @@ def get_logs(args: argparse.Namespace) -> int:
     """Get logs for forensics and debugging purposes"""
     sdlog.info("Gathering logs for forensics and debugging")
 
+    ensure_config_path()
+
     extra_vars = f"@{SITE_CONFIG_PATH}"
     if args.force:
         extra_vars += " skip_update_check=true"
@@ -998,6 +1030,8 @@ def reset_admin_access(args: argparse.Namespace) -> int:
     """Resets SSH access to the SecureDrop servers, locking it to
     this Admin Workstation."""
     sdlog.info("Resetting SSH access to the SecureDrop servers")
+
+    ensure_config_path()
 
     extra_vars = f"@{SITE_CONFIG_PATH}"
     if args.force:
