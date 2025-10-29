@@ -14,7 +14,8 @@ Record = NewType("Record", dict[str, Any])
 Version = NewType("Version", str)
 
 
-# TODO: generic UUID[T] in Python 3.12
+# NB.  Ideally we'd have a generic UUID[T], but the semantics don't change
+# before mypy 1.12, which is incompatible with our use elsewhere of sqlmypy.
 ReplyUUID = NewType("ReplyUUID", str)
 SourceUUID = NewType("SourceUUID", str)
 ItemUUID = NewType("ItemUUID", str)
