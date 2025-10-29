@@ -8,8 +8,6 @@ set -o pipefail
 LOG_FILE="/tmp/securedrop-migration.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-echo "=== SecureDrop git-to-deb Migration Script Started at $(date) ==="
-
 # Error handler - shows GUI dialog and exits
 error_exit() {
     local message="$1"
@@ -24,8 +22,6 @@ error_exit() {
     fi
     exit 1
 }
-
-echo "Step 1: Pre-flight checks"
 
 # Check if running on Tails
 if [[ ! -f /etc/os-release ]] || ! grep -q 'NAME="Tails"' /etc/os-release; then
@@ -90,7 +86,6 @@ echo "- Tails persistence configured"
 # In production, this will be handled by a persistent APT repository
 # For development/testing, the .deb needs to be manually reinstalled after reboot
 # or we need to add a startup script to reinstall it
-echo ""
 echo "TODO: In production, package will persist via APT repository"
 
 NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
@@ -148,7 +143,3 @@ if [[ -f "$UPDATE_FLAG" ]]; then
 else
     echo "! GUI updater flag not found (already deleted?): $UPDATE_FLAG"
 fi
-
-echo ""
-echo "=== Migration completed successfully at $(date) ==="
-echo ""

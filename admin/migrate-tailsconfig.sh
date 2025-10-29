@@ -8,8 +8,6 @@ set -o pipefail
 LOG_FILE="/tmp/securedrop-tailsconfig.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-echo "=== SecureDrop git-to-deb Tailsconfig Script Started at $(date) ==="
-
 # Error handler - shows GUI dialog and exits
 error_exit() {
     local message="$1"
@@ -41,6 +39,3 @@ After reboot:\n\
 • Use 'securedrop-admin' command for all operations\n\n\
 Log file: $LOG_FILE"
 fi
-
-echo ""
-echo "=== Tailsconfig completed successfully at $(date) ==="
