@@ -25,18 +25,6 @@ error_exit() {
     exit 1
 }
 
-# Success handler - shows GUI dialog
-show_success() {
-    local message="$1"
-    echo "SUCCESS: $message"
-    if command -v zenity >/dev/null 2>&1; then
-        zenity --info \
-            --title="SecureDrop Migration" \
-            --width=400 \
-            --text="$message"
-    fi
-}
-
 echo "Step 1: Pre-flight checks"
 
 # Check if running on Tails
@@ -68,27 +56,21 @@ if [[ ! -f "$DEB_PACKAGE" ]]; then
 fi
 echo "- Debian package found: $DEB_PACKAGE"
 
-echo ""
-echo "Step 2: Installing securedrop-admin package"
-
 # TODO: In production, we will add a persistent APT repository
 # For now, install from local deb file
-if ! sudo dpkg -i "$DEB_PACKAGE" 2>&1 | tee -a "$LOG_FILE"; then
+if ! pkexec dpkg -i "$DEB_PACKAGE" 2>&1 | tee -a "$LOG_FILE"; then
     echo "dpkg had issues, attempting to fix dependencies..."
-    if ! sudo apt-get install -f -y 2>&1 | tee -a "$LOG_FILE"; then
+    if ! pkexec apt-get install -f -y 2>&1 | tee -a "$LOG_FILE"; then
         error_exit "Failed to install package and fix dependencies.\n\nSee log for details: $LOG_FILE"
     fi
 fi
 echo "- Package installed successfully"
 
 # Verify installation
-if ! command -v securedrop-admin >/dev/null 2>&1; then
+if ! command -v /usr/bin/securedrop-admin >/dev/null 2>&1; then
     error_exit "Package installed but securedrop-admin command not found.\n\nInstallation may have failed."
 fi
 echo "- securedrop-admin command is available"
-
-echo ""
-echo "Step 3: Setting up Tails persistence"
 
 # Get the script directory to find tails-bootstrap.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -99,7 +81,7 @@ if [[ ! -f "$BOOTSTRAP_SCRIPT" ]]; then
 fi
 
 echo "Running tails-bootstrap.sh..."
-if ! sudo bash "$BOOTSTRAP_SCRIPT" 2>&1 | tee -a "$LOG_FILE"; then
+if ! pkexec bash "$BOOTSTRAP_SCRIPT" 2>&1 | tee -a "$LOG_FILE"; then
     error_exit "Failed to configure Tails persistence.\n\nSee log for details: $LOG_FILE"
 fi
 echo "- Tails persistence configured"
@@ -109,12 +91,7 @@ echo "- Tails persistence configured"
 # For development/testing, the .deb needs to be manually reinstalled after reboot
 # or we need to add a startup script to reinstall it
 echo ""
-echo "Step 4: Package persistence"
 echo "TODO: In production, package will persist via APT repository"
-echo "For now, package will need manual reinstall after reboot during testing"
-
-echo ""
-echo "Step 5: Migrating configuration files"
 
 NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
 mkdir -p "$NEW_CONFIG_DIR"
@@ -163,9 +140,6 @@ else
     echo "! No files in config directory to set permissions on"
 fi
 
-echo ""
-echo "Step 6: Cleaning up old files"
-
 # Delete update flag so GUI updater doesn't try to run again
 UPDATE_FLAG="$HOME/Persistent/.securedrop/securedrop_update.flag"
 if [[ -f "$UPDATE_FLAG" ]]; then
@@ -178,8 +152,3 @@ fi
 echo ""
 echo "=== Migration completed successfully at $(date) ==="
 echo ""
-
-# Show success message
-show_success "Migration to debian-based installer complete!\n\nNext step: Run './securedrop-admin tailsconfig' to complete the setup.\n\nLog file: $LOG_FILE"
-
-echo "Please run './securedrop-admin tailsconfig' to complete the setup."

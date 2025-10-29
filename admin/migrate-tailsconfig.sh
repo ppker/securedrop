@@ -25,30 +25,7 @@ error_exit() {
     exit 1
 }
 
-echo "Step 1: Running securedrop-admin localconfig"
-
-# Check if securedrop-admin command is available
-if ! command -v securedrop-admin >/dev/null 2>&1; then
-    error_exit "securedrop-admin command not found.\n\nPlease ensure the migration (./securedrop-admin setup) completed successfully."
-fi
-echo "✓ securedrop-admin command is available"
-
-# Run localconfig
-# This will configure Tor, desktop shortcuts, and GNOME extension
-echo ""
-echo "Running localconfig (this may take a few minutes)..."
-echo "You will be prompted for the Tails sudo password."
-echo ""
-
-if ! /usr/bin/securedrop-admin localconfig 2>&1 | tee -a "$LOG_FILE"; then
-    error_exit "Failed to run localconfig.\n\nThe Tails configuration did not complete successfully.\n\nSee log for details: $LOG_FILE"
-fi
-
-echo ""
-echo "✓ Localconfig completed successfully"
-
-echo ""
-echo "Step 2: Showing reboot notification"
+/usr/bin/securedrop-admin localconfig || error_exit "securedrop-admin localconfig failed."
 
 # Show reboot notification
 if command -v zenity >/dev/null 2>&1; then
@@ -63,19 +40,6 @@ After reboot:\n\
 • The GUI updater will no longer run\n\
 • Use 'securedrop-admin' command for all operations\n\n\
 Log file: $LOG_FILE"
-else
-    echo ""
-    echo "Migration to the debian-based installer is complete."
-    echo "Please REBOOT Tails to complete the setup."
-    echo ""
-    echo "After reboot:"
-    echo "• The GNOME shell extension will be loaded"
-    echo "• Desktop shortcuts will use the new configuration"
-    echo "• The GUI updater will no longer run"
-    echo "• Use 'securedrop-admin' command for all operations"
-    echo ""
-    echo "Log file: $LOG_FILE"
-    echo ""
 fi
 
 echo ""
