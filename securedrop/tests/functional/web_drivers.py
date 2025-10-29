@@ -67,6 +67,7 @@ def _create_driver(
         pref_dict = {
             "network.proxy.no_proxies_on": "127.0.0.1",
             "browser.privatebrowsing.autostart": False,
+            "remote.system-access-check.enabled": False,
         }
 
         Path(_TBB_PATH).mkdir(parents=True, exist_ok=True)
