@@ -4,10 +4,6 @@
 set -e
 set -o pipefail
 
-# Logging
-LOG_FILE="/tmp/securedrop-migration.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
-
 # Error handler - shows GUI dialog and exits
 error_exit() {
     local message="$1"
@@ -16,7 +12,7 @@ error_exit() {
         zenity --error \
             --title="SecureDrop Migration Error" \
             --width=400 \
-            --text="$message\n\nSee log file: $LOG_FILE"
+            --text="$message"
     else
         echo "CRITICAL: zenity not available for GUI error display"
     fi
@@ -67,8 +63,8 @@ fi
 
 # Part 1: Install the package (requires root)
 echo "Installing securedrop-admin package (requires password)..."
-if ! pkexec bash "$INSTALL_SCRIPT" "$DEB_PACKAGE" "$LOG_FILE"; then
-    error_exit "Failed to install package.\n\nSee log for details: $LOG_FILE"
+if ! pkexec bash "$INSTALL_SCRIPT" "$DEB_PACKAGE"; then
+    error_exit "Failed to install package."
 fi
 
 # Verify installation
@@ -79,8 +75,8 @@ echo "- securedrop-admin command is available"
 
 # Part 2: Configure Tails persistence and bind-mount (requires root)
 echo "Configuring Tails persistence (requires password)..."
-if ! pkexec bash "$PERSISTENCE_SCRIPT" "$LOG_FILE"; then
-    error_exit "Failed to configure Tails persistence.\n\nSee log for details: $LOG_FILE"
+if ! pkexec bash "$PERSISTENCE_SCRIPT"; then
+    error_exit "Failed to configure Tails persistence."
 fi
 
 NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"

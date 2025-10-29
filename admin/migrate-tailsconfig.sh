@@ -4,10 +4,6 @@
 set -e
 set -o pipefail
 
-# Logging
-LOG_FILE="/tmp/securedrop-tailsconfig.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
-
 # Error handler - shows GUI dialog and exits
 error_exit() {
     local message="$1"
@@ -16,7 +12,7 @@ error_exit() {
         zenity --error \
             --title="SecureDrop Tailsconfig Error" \
             --width=400 \
-            --text="$message\n\nSee log file: $LOG_FILE"
+            --text="$message"
     else
         echo "CRITICAL: zenity not available for GUI error display"
     fi
