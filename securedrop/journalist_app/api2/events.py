@@ -1,6 +1,6 @@
 from db import db
 from journalist_app import utils
-from journalist_app.api2.shared import save_reply
+from journalist_app.api2.shared import json_version, save_reply
 from journalist_app.api2.types import (
     Event,
     EventResult,
@@ -131,8 +131,6 @@ class EventHandler:
 
     @staticmethod
     def handle_source_deleted(event: Event) -> EventResult:
-        from journalist_app.api2 import json_version  # cyclic import
-
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
@@ -167,8 +165,6 @@ class EventHandler:
 
     @staticmethod
     def handle_source_conversation_deleted(event: Event) -> EventResult:
-        from journalist_app.api2 import json_version  # cyclic import
-
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
