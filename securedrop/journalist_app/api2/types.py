@@ -3,18 +3,20 @@ from enum import IntEnum, StrEnum, auto
 from typing import (
     Any,
     List,
+    Mapping,
     NewType,
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 Record = NewType("Record", dict[str, Any])
 Version = NewType("Version", str)
 
 
-# TODO: generic UUID[T] in Python 3.12
+# NB.  Ideally we'd have a generic UUID[T], but the semantics don't change
+# before mypy 1.12, which is incompatible with our use elsewhere of sqlmypy.
+ReplyUUID = NewType("ReplyUUID", str)
 SourceUUID = NewType("SourceUUID", str)
 ItemUUID = NewType("ItemUUID", str)
 JournalistUUID = NewType("JournalistUUID", str)
@@ -62,35 +64,70 @@ class Index:
 
 
 @dataclass
-class SourceTarget:
-    source_uuid: SourceUUID
+class Target:
+    """Base class for `<Resource>Target` dataclasses, to make their union usable
+    at runtime.  Subclass at least with:
+
+        <resource>_uuid: <Resource>UUID
+
+    """
+
     version: Version
 
 
 @dataclass
-class ItemTarget:
+class SourceTarget(Target):
+    source_uuid: SourceUUID
+
+
+@dataclass
+class ItemTarget(Target):
     item_uuid: ItemUUID
-    version: Version
+
+
+@dataclass
+class EventData:
+    """
+    Base class for `<EventType>Data dataclasses, to make their union usable at runtime.
+    For non-empty events, subclass and add to `EVENT_DATA_TYPES`.
+    """
+
+
+@dataclass
+class ReplySentData(EventData):
+    uuid: ReplyUUID
+    reply: str
+
+
+EVENT_DATA_TYPES = {EventType.REPLY_SENT: ReplySentData}
 
 
 @dataclass
 class Event:
     id: EventID
-    target: Union[SourceTarget, ItemTarget]
+    target: Target | Mapping
     type: EventType
-    data: dict[str, Any] = field(default_factory=dict)
+    data: Optional[EventData | Mapping] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.type, EventType):
             self.type = EventType(self.type)  # strict enum
 
-        if isinstance(self.target, dict):
+        if not isinstance(self.target, Target):
             if "source_uuid" in self.target:
                 self.target = SourceTarget(**self.target)
             elif "item_uuid" in self.target:
                 self.target = ItemTarget(**self.target)
             else:
                 raise TypeError(f"invalid event target: {self.target}")
+
+        if not isinstance(self.data, EventData) and self.data and self.type in EVENT_DATA_TYPES:
+            try:
+                self.data = EVENT_DATA_TYPES[self.type](**self.data)
+            except TypeError:
+                raise TypeError(f"invalid event data for type {self.type}")
+        else:
+            self.data = None
 
 
 @dataclass

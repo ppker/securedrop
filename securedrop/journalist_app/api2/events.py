@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from db import db
 from journalist_app import utils
 from journalist_app.api2.shared import json_version, save_reply
@@ -119,7 +121,7 @@ class EventHandler:
                 ),
             )
 
-        reply = save_reply(source, event.data)
+        reply = save_reply(source, asdict(event.data))
         db.session.refresh(source)
 
         return EventResult(
