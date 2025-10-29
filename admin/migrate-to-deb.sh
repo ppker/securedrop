@@ -52,15 +52,24 @@ if [[ ! -f "$DEB_PACKAGE" ]]; then
 fi
 echo "- Debian package found: $DEB_PACKAGE"
 
-# TODO: In production, we will add a persistent APT repository
-# For now, install from local deb file
-if ! pkexec dpkg -i "$DEB_PACKAGE" 2>&1 | tee -a "$LOG_FILE"; then
-    echo "dpkg had issues, attempting to fix dependencies..."
-    if ! pkexec apt-get install -f -y 2>&1 | tee -a "$LOG_FILE"; then
-        error_exit "Failed to install package and fix dependencies.\n\nSee log for details: $LOG_FILE"
-    fi
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_SCRIPT="$SCRIPT_DIR/migrate-install-package.sh"
+PERSISTENCE_SCRIPT="$SCRIPT_DIR/migrate-setup-persistence.sh"
+
+# Verify helper scripts exist
+if [[ ! -f "$INSTALL_SCRIPT" ]]; then
+    error_exit "Helper script not found.\n\nExpected: $INSTALL_SCRIPT"
 fi
-echo "- Package installed successfully"
+if [[ ! -f "$PERSISTENCE_SCRIPT" ]]; then
+    error_exit "Helper script not found.\n\nExpected: $PERSISTENCE_SCRIPT"
+fi
+
+# Part 1: Install the package (requires root)
+echo "Installing securedrop-admin package (requires password)..."
+if ! pkexec bash "$INSTALL_SCRIPT" "$DEB_PACKAGE" "$LOG_FILE"; then
+    error_exit "Failed to install package.\n\nSee log for details: $LOG_FILE"
+fi
 
 # Verify installation
 if ! command -v /usr/bin/securedrop-admin >/dev/null 2>&1; then
@@ -68,57 +77,13 @@ if ! command -v /usr/bin/securedrop-admin >/dev/null 2>&1; then
 fi
 echo "- securedrop-admin command is available"
 
-# Configure Tails persistence for securedrop-admin config directory
-echo "Configuring Tails persistence..."
-ADMIN_CONFIG_DIR='/live/persistence/TailsData_unlocked/securedrop-admin'
-ADMIN_CONFIG_LINE='/home/amnesia/.config/securedrop-admin source=securedrop-admin'
-PERSISTENCE_FILE='/live/persistence/TailsData_unlocked/persistence.conf'
-
-# Create the persistent config directory
-if [[ ! -d "$ADMIN_CONFIG_DIR" ]]; then
-    if ! pkexec mkdir -p "$ADMIN_CONFIG_DIR" 2>&1 | tee -a "$LOG_FILE"; then
-        error_exit "Failed to create persistent config directory.\n\nSee log for details: $LOG_FILE"
-    fi
-    if ! pkexec chown amnesia:amnesia "$ADMIN_CONFIG_DIR" 2>&1 | tee -a "$LOG_FILE"; then
-        error_exit "Failed to set ownership on persistent config directory.\n\nSee log for details: $LOG_FILE"
-    fi
-    if ! pkexec chmod 700 "$ADMIN_CONFIG_DIR" 2>&1 | tee -a "$LOG_FILE"; then
-        error_exit "Failed to set permissions on persistent config directory.\n\nSee log for details: $LOG_FILE"
-    fi
-    echo "- Created persistent config directory: $ADMIN_CONFIG_DIR"
-else
-    echo "- Persistent config directory already exists: $ADMIN_CONFIG_DIR"
+# Part 2: Configure Tails persistence and bind-mount (requires root)
+echo "Configuring Tails persistence (requires password)..."
+if ! pkexec bash "$PERSISTENCE_SCRIPT" "$LOG_FILE"; then
+    error_exit "Failed to configure Tails persistence.\n\nSee log for details: $LOG_FILE"
 fi
 
-# Add persistence configuration line if not already present
-if ! grep -qP '^/home/amnesia/.config/securedrop-admin\h+source=securedrop-admin' "$PERSISTENCE_FILE"; then
-    if ! pkexec bash -c "echo '$ADMIN_CONFIG_LINE' >> $PERSISTENCE_FILE" 2>&1 | tee -a "$LOG_FILE"; then
-        error_exit "Failed to update persistence configuration.\n\nSee log for details: $LOG_FILE"
-    fi
-    echo "- Added persistence configuration to $PERSISTENCE_FILE"
-else
-    echo "- Persistence configuration already present in $PERSISTENCE_FILE"
-fi
-
-# Manually activate the persistence bind-mount without requiring reboot
-# This makes /home/amnesia/.config/securedrop-admin immediately point to the persistent location
 NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
-PERSISTENT_CONFIG_DIR="/live/persistence/TailsData_unlocked/securedrop-admin"
-
-if ! mountpoint -q "$NEW_CONFIG_DIR" 2>/dev/null; then
-    echo "Activating persistence bind-mount for $NEW_CONFIG_DIR..."
-    # Create the target directory if it doesn't exist
-    if [[ ! -d "$NEW_CONFIG_DIR" ]]; then
-        mkdir -p "$NEW_CONFIG_DIR"
-    fi
-    # Bind-mount the persistent directory
-    if ! pkexec mount --bind "$PERSISTENT_CONFIG_DIR" "$NEW_CONFIG_DIR" 2>&1 | tee -a "$LOG_FILE"; then
-        error_exit "Failed to bind-mount persistent config directory.\n\nSee log for details: $LOG_FILE"
-    fi
-    echo "- Activated persistence bind-mount (will persist after reboot)"
-else
-    echo "- Persistence bind-mount already active"
-fi
 
 # TODO: Make package install on every boot
 # In production, this will be handled by a persistent APT repository
