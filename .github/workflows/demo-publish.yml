@@ -1,0 +1,50 @@
+---
+name: Publish Demo
+
+on:
+  push:
+    branches: ["develop"]
+    tags: ["**"]  # run for all tags
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+    - name: Determine tags
+      id: tags
+      env:
+        REF: ${{ github.ref_name }}
+        SHA: ${{ github.sha }}
+      # So annoying that GHA doesn't have a builtin substring
+      # function (or expose the shortened SHA). If it did then
+      # we could drop this whole job and just set it as a statically
+      # templated value in the build job.
+      run: |
+        echo "tags=$REF;$REF-${SHA:0:7}" >>$GITHUB_OUTPUT
+    outputs:
+      tags: ${{ steps.tags.outputs.tags }}
+
+  build:
+    name: Build
+    uses: freedomofpress/actionslib/.github/workflows/oci-build.yaml@main
+    needs:
+    - prepare
+    strategy:
+      matrix:
+        debian:
+        - noble
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    with:
+      context: "."
+      containerfile: securedrop/dockerfiles/${{ matrix.debian }}/python3/DemoDockerfile
+      tags: ${{ needs.prepare.outputs.tags }}
+      registry: ghcr.io/freedomofpress/securedrop-demo-${{ matrix.debian }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}

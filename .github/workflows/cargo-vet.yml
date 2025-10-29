@@ -2,7 +2,12 @@
 
 name: cargo vet
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ["develop", "release/**"]
+  pull_request:
+    types: ["opened", "synchronize"]
+  merge_group:
 
 jobs:
   cargo-vet:

@@ -1,8 +1,10 @@
 name: Package builds
 on:
-  - merge_group
-  - push
-  - pull_request
+  merge_group:
+  push:
+    branches: ["develop", "release/**"]
+  pull_request:
+    types: ["opened", "synchronize"]
 
 # Only build for latest push/PR unless it's main or release/
 concurrency:
