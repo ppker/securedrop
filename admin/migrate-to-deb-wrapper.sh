@@ -13,14 +13,13 @@ echo ""
 echo "Migrating from git-based to package-based installer..."
 echo ""
 
-# Run the actual migration script
+# Run the migration script
 if "$SCRIPT_DIR/migrate-to-deb.sh"; then
     echo ""
     echo "========================================"
     echo "Migration completed successfully!"
     echo "========================================"
     echo ""
-    exit 0
 else
     echo ""
     echo "========================================"
@@ -31,5 +30,35 @@ else
         --title="Migration Failed" \
         --width=500 \
         --text="The migration failed. Please see the terminal output for details.\n\nYou may need to contact support."
+    exit 1
+fi
+
+# Now run the configuration
+echo ""
+echo "========================================"
+echo "SecureDrop Workstation Configuration"
+echo "========================================"
+echo ""
+echo "Configuring your SecureDrop Workstation..."
+echo ""
+
+# Run the tailsconfig script
+if "$SCRIPT_DIR/migrate-tailsconfig.sh"; then
+    echo ""
+    echo "========================================"
+    echo "Configuration completed successfully!"
+    echo "========================================"
+    echo ""
+    exit 0
+else
+    echo ""
+    echo "========================================"
+    echo "ERROR: Configuration failed!"
+    echo "========================================"
+    echo ""
+    zenity --error \
+        --title="Configuration Failed" \
+        --width=500 \
+        --text="The configuration failed. Please see the terminal output for details.\n\nYou may need to contact support."
     exit 1
 fi

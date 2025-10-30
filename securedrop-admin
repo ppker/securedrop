@@ -33,11 +33,6 @@ if [ "$1" = "setup" ]; then
     exit 0
 
 elif [ "$1" = "tailsconfig" ]; then
-    # Launch detached wrapper in terminal
-    kgx -T 'SecureDrop Configuration' -e "bash $d/admin/migrate-tailsconfig-wrapper.sh" &
-    disown
-
-    # Exit immediately so GUI updater doesn't timeout
     exit 0
 
 else
