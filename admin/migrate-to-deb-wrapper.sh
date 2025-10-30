@@ -55,13 +55,22 @@ echo ""
 echo "Configuring your SecureDrop Workstation..."
 echo ""
 
-# Run the tailsconfig script
-if "$SCRIPT_DIR/migrate-tailsconfig.sh"; then
+# Run localconfig directly
+if /usr/bin/securedrop-admin localconfig; then
     echo ""
     echo "========================================"
     echo "Configuration completed successfully!"
     echo "========================================"
     echo ""
+
+    # Show reboot notification
+    if command -v zenity >/dev/null 2>&1; then
+        zenity --info \
+            --title="Reboot Tails" \
+            --width=500 \
+            --text="Please REBOOT Tails to complete this SecureDrop Admin Workstation update."
+    fi
+
     exit 0
 else
     echo ""
