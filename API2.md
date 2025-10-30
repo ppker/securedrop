@@ -87,6 +87,8 @@ Note over Client: Global version uvwxyz
 end
 ```
 
+#### Consistency
+
 This diagram implies single-round-trip consistency. To make that expectation
 explicit:
 
@@ -98,3 +100,18 @@ E_n\}$; and
 3. $S$ accepts $BR$ as valid and successfully processes all $E_i$; then
 
 4. $C$'s index SHOULD match $S$'s index without a subsequent synchronization.
+
+#### Snowflake IDs
+
+The `Event.id` field is a "snowflake ID", which a client can generate using a
+library like [`@sapphire/snowflake`]. To avoid precision-loss problems:
+
+- A client SHOULD store its IDs as opaque strings and sort them
+  lexicographically.
+
+- A client MUST encode its IDs on the wire as JSON strings.
+
+- The server MAY convert IDs it receives to integers, but only for sorting and
+  testing equality.
+
+[`@sapphire/snowflake`]: https://www.npmjs.com/package/@sapphire/snowflake

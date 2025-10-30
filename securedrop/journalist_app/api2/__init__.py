@@ -113,7 +113,7 @@ def data() -> Response:
         )
 
         # Process events in snowflake order.
-        for event in sorted(events, key=lambda e: e.id):
+        for event in sorted(events, key=lambda e: int(e.id)):
             result = handler.process(event)
             for uuid, source in result.sources.items():
                 response.sources[uuid] = source.to_api_v2() if source is not None else None

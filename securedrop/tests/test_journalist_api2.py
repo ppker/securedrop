@@ -826,3 +826,46 @@ def test_api2_idempotence_period(journalist_app):
     """
 
     assert journalist_app.config["SESSION_LIFETIME"] <= api2.events.IDEMPOTENCE_PERIOD
+
+
+def test_api2_event_ordering(journalist_app, journalist_api_token, test_files):
+    """
+    If two `item_deleted` events for the same item arrive out of order, the
+    numerically later event must observe that the item is already gone by the
+    time it's processed.
+    """
+    with journalist_app.test_client() as app:
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+
+        submission_uuid = test_files["submissions"][0].uuid
+        item_version = index.json["items"][submission_uuid]
+
+        # Two `item_deleted` events targeting the same item:
+        e2 = Event(
+            id="3419026047977394171",
+            target=ItemTarget(item_uuid=submission_uuid, version=item_version),
+            type=EventType.ITEM_DELETED,
+        )
+        e1 = Event(
+            id="3419026047977394170",  # client sends as string; server orders as integer
+            target=ItemTarget(item_uuid=submission_uuid, version=item_version),
+            type=EventType.ITEM_DELETED,
+        )
+
+        # Send them out of order:
+        resp = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(e2), asdict(e1)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert resp.status_code == 200
+
+        # Event `1` (sent second, processed first) deletes the item.
+        assert resp.json["events"]["3419026047977394170"] == [200, None]
+
+        # Event "2" (sent first, processed second) finds it missing.
+        assert resp.json["events"]["3419026047977394171"][0] == 410
