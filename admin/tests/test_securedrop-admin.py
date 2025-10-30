@@ -69,86 +69,39 @@ class TestSecureDropAdmin:
                 "/usr/share/securedrop-admin/venv/bin/ansible-playbook"
             ]
 
-    def test_update_check_decorator_when_no_update_needed(self, caplog):
+    def test_check_for_updates_success(self, caplog):
         """
-        When a function decorated with `@update_check_required` is run
-          And the `--force` argument was not given
-          And no update is required
-        Then the update check should run to completion
-          And no errors should be displayed
-          And the program should not exit
-          And the decorated function should be run
+        When check_for_updates is called
+          And the Ansible playbook succeeds
+        Then it should log "All updates applied"
+          And return 0
         """
-        with mock.patch(
-            "securedrop_admin.check_for_updates", side_effect=[False]
-        ) as mocked_check, mock.patch("sys.exit") as mocked_exit:
-            # The decorator itself interprets --force
-            args = argparse.Namespace(force=False)
-            rv = securedrop_admin.update_check_required("update_check_test")(lambda _: 100)(args)
-            assert mocked_check.called
-            assert not mocked_exit.called
-            assert rv == 100
-            assert caplog.text == ""
-
-    def test_update_check_decorator_when_update_needed(self, caplog):
-        """
-        When a function decorated with `@update_check_required` is run
-          And the `--force` argument was not given
-          And an update is required
-        Then the update check should run to completion
-          And an error referencing the command should be displayed
-          And the current branch state should be included in the output
-          And the program should exit
-        """
-        with mock.patch(
-            "securedrop_admin.check_for_updates", side_effect=[True]
-        ) as mocked_check, mock.patch("sys.exit") as mocked_exit:
-            # The decorator itself interprets --force
-            args = argparse.Namespace(force=False)
-            securedrop_admin.update_check_required("update_check_test")(lambda _: _)(args)
-            assert mocked_check.called
-            assert mocked_exit.called
-            assert "update_check_test" in caplog.text
-
-    def test_update_check_decorator_when_skipped(self, caplog):
-        """
-        When a function decorated with `@update_check_required` is run
-          And the `--force` argument was given
-        Then the update check should not run
-          And a message should be displayed acknowledging this
-          And the program should not exit
-          And the decorated function should be run
-        """
-        with mock.patch(
-            "securedrop_admin.check_for_updates", side_effect=[True]
-        ) as mocked_check, mock.patch("sys.exit") as mocked_exit:
-            # The decorator itself interprets --force
-            args = argparse.Namespace(force=True)
-            rv = securedrop_admin.update_check_required("update_check_test")(lambda _: 100)(args)
-            assert not mocked_check.called
-            assert not mocked_exit.called
-            assert "--force" in caplog.text
-            assert rv == 100
-
-    def test_check_for_updates_update_needed(self, caplog):
         args = argparse.Namespace()
 
-        with mock.patch("subprocess.check_call"):
+        with mock.patch("securedrop_admin.ansible_command", return_value=["ansible-playbook"]):
+            with mock.patch("subprocess.check_call") as mocked_check_call:
+                update_status = securedrop_admin.check_for_updates(args)
+                assert mocked_check_call.called
+                assert "All updates applied" in caplog.text
+                assert update_status == 0
+
+    def test_check_for_updates_failure(self, caplog):
+        """
+        When check_for_updates is called
+          And the Ansible playbook fails
+        Then it should log "Update check failed"
+          And return 1
+        """
+        args = argparse.Namespace()
+
+        with mock.patch("securedrop_admin.ansible_command", return_value=["ansible-playbook"]):
             with mock.patch(
-                "subprocess.check_call", side_effect=subprocess.CalledProcessError(1, "git")
+                "subprocess.check_call",
+                side_effect=subprocess.CalledProcessError(1, "ansible-playbook"),
             ):
                 update_status = securedrop_admin.check_for_updates(args)
-                assert "Update needed" in caplog.text
-                assert update_status is True
-
-    def test_check_for_updates_update_not_needed(self, caplog):
-        args = argparse.Namespace()
-
-        with mock.patch("subprocess.check_call"):
-            with mock.patch("subprocess.check_output", return_value=0):
-                update_status = securedrop_admin.check_for_updates(args)
-                assert "All updates applied" in caplog.text
-                assert update_status is False
+                assert "Update check failed" in caplog.text
+                assert update_status == 1
 
     def test_exit_codes(self):
         """Ensure that securedrop-admin returns the correct
