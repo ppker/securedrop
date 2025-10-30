@@ -40,31 +40,17 @@ if [[ ! -d "$OLD_CONFIG_DIR" ]]; then
 fi
 echo "- Old config directory found: $OLD_CONFIG_DIR"
 
-# Check if deb package exists
-# TODO: In production, this will be replaced with apt repository installation
-DEB_PACKAGE="$HOME/Persistent/securedrop-admin.deb"
-if [[ ! -f "$DEB_PACKAGE" ]]; then
-    error_exit "Debian package not found.\n\nExpected: $DEB_PACKAGE\n\nPlease ensure the package file is in place before migrating.\n\nNote: This is temporary for development. Production will use apt repository."
-fi
-echo "- Debian package found: $DEB_PACKAGE"
-
-# Get the script directory
+# Verify root script exist
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_SCRIPT="$SCRIPT_DIR/migrate-install-package.sh"
-PERSISTENCE_SCRIPT="$SCRIPT_DIR/migrate-setup-persistence.sh"
-
-# Verify helper scripts exist
-if [[ ! -f "$INSTALL_SCRIPT" ]]; then
-    error_exit "Helper script not found.\n\nExpected: $INSTALL_SCRIPT"
-fi
-if [[ ! -f "$PERSISTENCE_SCRIPT" ]]; then
-    error_exit "Helper script not found.\n\nExpected: $PERSISTENCE_SCRIPT"
+ROOT_SCRIPT="$SCRIPT_DIR/migrate-to-deb-root.sh"
+if [[ ! -f "$ROOT_SCRIPT" ]]; then
+    error_exit "Helper script not found.\n\nExpected: $ROOT_SCRIPT"
 fi
 
-# Part 1: Install the package (requires root)
-echo "Installing securedrop-admin package (requires password)..."
-if ! pkexec bash "$INSTALL_SCRIPT" "$DEB_PACKAGE"; then
-    error_exit "Failed to install package."
+# Run the root script
+echo "Configuring Tails persistence (requires password)..."
+if ! pkexec bash "$ROOT_SCRIPT"; then
+    error_exit "Failed to configure Tails persistence."
 fi
 
 # Verify installation
@@ -73,19 +59,7 @@ if ! command -v /usr/bin/securedrop-admin >/dev/null 2>&1; then
 fi
 echo "- securedrop-admin command is available"
 
-# Part 2: Configure Tails persistence and bind-mount (requires root)
-echo "Configuring Tails persistence (requires password)..."
-if ! pkexec bash "$PERSISTENCE_SCRIPT"; then
-    error_exit "Failed to configure Tails persistence."
-fi
-
 NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
-
-# TODO: Make package install on every boot
-# In production, this will be handled by a persistent APT repository
-# For development/testing, the .deb needs to be manually reinstalled after reboot
-# or we need to add a startup script to reinstall it
-echo "TODO: In production, package will persist via APT repository"
 
 # Copy site-specific config
 SITE_SPECIFIC_FILE="$OLD_CONFIG_DIR/group_vars/all/site-specific"
