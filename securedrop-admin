@@ -15,8 +15,11 @@ fi
 # Get the directory this script is in
 d=$(dirname "$0")
 
-# Only support setup and tailsconfig commands for migration
+# Only support setup command for migration
 if [ "$1" = "setup" ]; then
+    # Get parent PID to pass to wrapper (so it can kill the GUI updater)
+    parent_pid=$PPID
+
     # Show intro message about migration
     if command -v zenity >/dev/null 2>&1; then
         zenity --info \
@@ -25,14 +28,11 @@ if [ "$1" = "setup" ]; then
             --text="With this update, we are changing how the SecureDrop admin tools are installed. You will need to type your password multiple times to continue with the update."
     fi
 
-    # Launch detached wrapper in terminal
-    kgx -T 'SecureDrop Workstation Migration' -e "bash $d/admin/migrate-to-deb-wrapper.sh" &
+    # Launch detached wrapper in terminal, passing parent PID
+    kgx -T 'SecureDrop Workstation Migration' -e "bash $d/admin/migrate-to-deb-wrapper.sh $parent_pid" &
     disown
 
     # Exit immediately so GUI updater doesn't timeout
-    exit 0
-
-elif [ "$1" = "tailsconfig" ]; then
     exit 0
 
 else

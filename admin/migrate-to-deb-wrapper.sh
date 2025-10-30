@@ -6,6 +6,19 @@ set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Get the GUI updater parent PID from argument
+GUI_UPDATER_PID="$1"
+
+# Wait for securedrop-admin to disown this process
+sleep 1
+
+# Kill the GUI updater process if we have a PID
+if [[ -n "$GUI_UPDATER_PID" ]]; then
+    echo "Closing GUI updater (PID: $GUI_UPDATER_PID)..."
+    kill "$GUI_UPDATER_PID" 2>/dev/null || true
+    echo ""
+fi
+
 echo "========================================"
 echo "SecureDrop Workstation Migration"
 echo "========================================"
