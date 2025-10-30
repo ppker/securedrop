@@ -20,11 +20,3 @@ error_exit() {
 }
 
 /usr/bin/securedrop-admin localconfig || error_exit "securedrop-admin localconfig failed."
-
-# Show reboot notification
-if command -v zenity >/dev/null 2>&1; then
-    zenity --info \
-        --title="Reboot Tails" \
-        --width=500 \
-        --text="Please REBOOT Tails to complete this SecureDrop Admin Workstation update."
-fi

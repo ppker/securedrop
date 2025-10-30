@@ -4,18 +4,10 @@
 set -e
 set -o pipefail
 
-# Error handler - shows GUI dialog and exits
+# Error handler - outputs to terminal only (wrapper handles zenity dialogs)
 error_exit() {
     local message="$1"
-    echo "ERROR: $message"
-    if command -v zenity >/dev/null 2>&1; then
-        zenity --error \
-            --title="SecureDrop Migration Error" \
-            --width=400 \
-            --text="$message"
-    else
-        echo "CRITICAL: zenity not available for GUI error display"
-    fi
+    echo "ERROR: $message" >&2
     exit 1
 }
 
