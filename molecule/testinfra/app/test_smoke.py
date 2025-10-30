@@ -12,11 +12,24 @@ import testutils
 sdvars = testutils.securedrop_test_vars
 testinfra_hosts = [sdvars.app_hostname]
 
+_TIMEOUT = 30.0
+_POLL_FREQUENCY = 5.0
 
 JOURNALIST_PUB = "/var/lib/securedrop/journalist.pub"
 WEAK_KEY_CONTENTS = (
     Path(__file__).parent.parent.parent.parent / "redwood/res/weak_sample_key.asc"
 ).read_text()
+
+
+def wait_for(necessary_condition, timeout=_TIMEOUT):
+    """Polling wait for an arbitrary true/false condition"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if necessary_condition():
+            return True
+        time.sleep(_POLL_FREQUENCY)
+    # one last chance!
+    return necessary_condition()
 
 
 @pytest.mark.parametrize(
@@ -34,13 +47,13 @@ def test_interface_up(host, name, url, curl_flags, expected):
     best to grab the error log and print it via an intentionally failed
     assertion.
     """
-    response = host.run(f"curl -{curl_flags}i {url}").stdout
-    if "200 OK" not in response:
+    if not wait_for(lambda: "200 OK" in host.run(f"curl -{curl_flags}i {url}").stdout):
         # Try to grab the log and print it via a failed assertion
         with host.sudo():
             f = host.file(f"/var/log/apache2/{name}-error.log")
             if f.exists:
                 assert "nopenopenope" in f.content_string
+    response = host.run(f"curl -{curl_flags}i {url}").stdout
     assert "200 OK" in response
     assert expected in response
 
@@ -76,12 +89,19 @@ def test_weak_submission_key(host):
             # give the interfaces a chance to come up - a TODO could be polling here
             time.sleep(10)
             # Now try to hit the JI
-            response = host.run("curl -Li http://localhost:8080/").stdout
-            assert "HTTP/1.1 500 Internal Server Error" in response
+            assert wait_for(
+                lambda: "HTTP/1.1 500 Internal Server Error"
+                in host.run("curl -Li http://localhost:8080/").stdout
+            )
             # Now hit the SI
-            response = host.run("curl -i http://localhost:80/").stdout
-            assert "HTTP/1.1 503 SERVICE UNAVAILABLE" in response  # Flask shouts
-            assert "We're sorry, our SecureDrop is currently offline." in response
+            assert wait_for(
+                lambda: "HTTP/1.1 503 SERVICE UNAVAILABLE"
+                in host.run("curl -i http://localhost:80/").stdout
+            )
+            assert wait_for(
+                lambda: "We're sorry, our SecureDrop is currently offline"
+                in host.run("curl -i http://localhost:80/").stdout
+            )
 
         finally:
             set_public_key(host, old_public_key)
