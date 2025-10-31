@@ -33,6 +33,12 @@ if "$SCRIPT_DIR/migrate-to-deb.sh"; then
     echo "Migration completed successfully!"
     echo "========================================"
     echo ""
+
+    # Inform user to click Install Every Time
+    zenity --info \
+        --title="Click Install Every Time" \
+        --width=500 \
+        --text="In the Additional Software notification above, click \"Install Every Time\"."
 else
     echo ""
     echo "========================================"
