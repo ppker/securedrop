@@ -70,8 +70,7 @@ jobs:
         run: |
           find . -name '*.deb' -exec sha256sum {} \;
           # FIXME: securedrop-app-code isn't reproducible
-          # FIXME: securedrop-admin isn't reproducible
-          for pkg in ossec-agent ossec-server securedrop-config securedrop-keyring securedrop-ossec-agent securedrop-ossec-server
+          for pkg in ossec-agent ossec-server securedrop-config securedrop-keyring securedrop-ossec-agent securedrop-ossec-server securedrop-admin
           do
               echo "Checking ${pkg}..."
               diffoscope ${{ matrix.ubuntu_version }}-one/${pkg}_*.deb ${{ matrix.ubuntu_version }}-two/${pkg}_*.deb
