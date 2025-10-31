@@ -869,3 +869,83 @@ def test_api2_event_ordering(journalist_app, journalist_api_token, test_files):
 
         # Event "2" (sent first, processed second) finds it missing.
         assert resp.json["events"]["3419026047977394171"][0] == 410
+
+
+def test_api2_source_conversation_deleted_resubmission(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """
+    A rejected event (409) MUST be handled (200) if corrected and resubmitted.
+    An accepted (i.e., corrected) event MUST be acknowledged (208) if
+    resubmitted.
+    """
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        source_uuid = source.uuid
+
+        # 1. Submit with the wrong version --> Conflict (409).
+        event = Event(
+            id="600100",
+            target=SourceTarget(source_uuid=source_uuid, version="wrong-version"),
+            type=EventType.SOURCE_CONVERSATION_DELETED,
+        )
+        res1 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert res1.status_code == 200
+        assert res1.json["events"][event.id][0] == 409
+
+        # Confirm that nothing has been deleted.
+        for submission in test_files["submissions"]:
+            assert (
+                Submission.query.filter(Submission.uuid == submission.uuid).one_or_none()
+                is not None
+            )
+        for reply in test_files["replies"]:
+            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is not None
+
+        expected_item_uuids = {item.uuid for item in test_files["submissions"]}
+        expected_item_uuids.update({item.uuid for item in test_files["replies"]})
+
+        # 2. Resubmit the same event with the correct version --> OK (200).
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        correct_version = index.json["sources"][source_uuid]
+
+        event.target = SourceTarget(source_uuid=source_uuid, version=correct_version)
+        res2 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert res2.status_code == 200
+        assert res2.json["events"][event.id] == [200, None]
+
+        # Confirm that items are returned as deleted.
+        assert res2.json["sources"][source_uuid] is not None
+        for item_uuid in expected_item_uuids:
+            assert item_uuid in res2.json["items"]
+            assert res2.json["items"][item_uuid] is None
+
+        # Confirm that items have actually been deleted.
+        for submission in test_files["submissions"]:
+            assert Submission.query.filter(Submission.uuid == submission.uuid).one_or_none() is None
+        for reply in test_files["replies"]:
+            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is None
+        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is not None
+
+        # 3. Resubmit the same event again --> Already Reported (208).
+        res3 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert res3.status_code == 200
+        assert res3.json["events"][event.id][0] == 208
