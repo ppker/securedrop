@@ -41,10 +41,17 @@ class EventHandler:
     """
 
     def __init__(self, session: Session, redis: Redis) -> None:
+        """
+        Configure the `EventHandler`.  Attributes set here are for internal use
+        by the `EventHandler`; handler methods are static and do not have access
+        to them, which means they cannot influence the processing of a given
+        event.
+        """
+
         self._session = session
         self._redis = redis
 
-    def process(self, event: Event) -> EventResult:
+    def process(self, event: Event, minor: int) -> EventResult:
         """The per-event entry-point for handling a single event."""
 
         try:
@@ -73,7 +80,7 @@ class EventHandler:
             )
 
         self.mark_progress(event)  # prevent races
-        result = handler(event)
+        result = handler(event, minor)
         self.mark_progress(event, result.status[0])  # enforce idempotence
         return result
 
@@ -103,7 +110,7 @@ class EventHandler:
             )
 
     @staticmethod
-    def handle_item_deleted(event: Event) -> EventResult:
+    def handle_item_deleted(event: Event, minor: int) -> EventResult:
         item = find_item(event.target.item_uuid)
         if item is None:
             return EventResult(
@@ -119,7 +126,7 @@ class EventHandler:
         )
 
     @staticmethod
-    def handle_reply_sent(event: Event) -> EventResult:
+    def handle_reply_sent(event: Event, minor: int) -> EventResult:
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
@@ -142,7 +149,7 @@ class EventHandler:
         )
 
     @staticmethod
-    def handle_source_deleted(event: Event) -> EventResult:
+    def handle_source_deleted(event: Event, minor: int) -> EventResult:
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
@@ -154,7 +161,7 @@ class EventHandler:
                 ),
             )
 
-        current_version = json_version(source.to_api_v2())
+        current_version = json_version(source.to_api_v2(minor))
         if event.target.version != current_version:
             return EventResult(
                 event_id=event.id,
@@ -176,7 +183,7 @@ class EventHandler:
         )
 
     @staticmethod
-    def handle_source_conversation_deleted(event: Event) -> EventResult:
+    def handle_source_conversation_deleted(event: Event, minor: int) -> EventResult:
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
@@ -188,7 +195,7 @@ class EventHandler:
                 ),
             )
 
-        current_version = json_version(source.to_api_v2())
+        current_version = json_version(source.to_api_v2(minor))
         if event.target.version != current_version:
             return EventResult(
                 event_id=event.id,
@@ -212,7 +219,7 @@ class EventHandler:
         )
 
     @staticmethod
-    def handle_source_starred(event: Event) -> EventResult:
+    def handle_source_starred(event: Event, minor: int) -> EventResult:
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
@@ -235,7 +242,7 @@ class EventHandler:
         )
 
     @staticmethod
-    def handle_source_unstarred(event: Event) -> EventResult:
+    def handle_source_unstarred(event: Event, minor: int) -> EventResult:
         try:
             source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
         except NoResultFound:
@@ -258,7 +265,7 @@ class EventHandler:
         )
 
     @staticmethod
-    def handle_item_seen(event: Event) -> EventResult:
+    def handle_item_seen(event: Event, minor: int) -> EventResult:
         item = find_item(event.target.item_uuid)
         if item is None:
             return EventResult(
