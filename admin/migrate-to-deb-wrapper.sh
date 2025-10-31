@@ -55,6 +55,12 @@ echo ""
 echo "Configuring your SecureDrop Workstation..."
 echo ""
 
+# Inform user they will need to enter password in the terminal
+zenity --info \
+    --title="Password Required" \
+    --width=500 \
+    --text="When the Console prompts for \"SUDO password:\", please type your Tails Administration password and press Enter."
+
 # Run localconfig directly
 if /usr/bin/securedrop-admin localconfig; then
     echo ""
