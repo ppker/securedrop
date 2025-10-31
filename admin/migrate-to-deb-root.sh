@@ -54,16 +54,15 @@ else
     echo "- Persistence bind-mount already active"
 fi
 
-# Configure apt-test.freedom.press repository persistence
-APT_PERSISTENCE_LINE='/etc/apt/sources.list.d  source=apt/sources,link'
-APT_SOURCES_DIR='/live/persistence/TailsData_unlocked/apt/sources'
-SECUREDROP_SOURCES_FILE='/usr/share/tails/apt/securedrop-test.sources'
-SECUREDROP_SOURCES_SYMLINK="$APT_SOURCES_DIR/securedrop-test.sources"
+# Configure apt repository persistence
+APT_PERSISTENCE_LINE='/etc/apt/sources.list.d  source=apt-sources.list.d,link'
+APT_SOURCES_DIR='/live/persistence/TailsData_unlocked/apt-sources.list.d'
+SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop-test.sources"
 
 echo "Configuring SecureDrop APT repository..."
 
 # Add APT sources persistence to persistence.conf
-if ! grep -qP '^/etc/apt/sources\.list\.d\h+source=apt/sources,link' "$PERSISTENCE_FILE"; then
+if ! grep -qP '^/etc/apt/sources\.list\.d\h+source=apt-sources\.list\.d,link' "$PERSISTENCE_FILE"; then
     echo "$APT_PERSISTENCE_LINE" >> "$PERSISTENCE_FILE"
     echo "- Added APT sources persistence to $PERSISTENCE_FILE"
 else
@@ -78,7 +77,7 @@ else
     echo "- APT sources directory already exists: $APT_SOURCES_DIR"
 fi
 
-# Create the SecureDrop repository sources file
+# Create the SecureDrop repository sources file with inline GPG key
 cat > "$SECUREDROP_SOURCES_FILE" << EOF
 Types: deb
 URIs: tor+$APT_REPO_URL
@@ -99,18 +98,13 @@ else
     exit 1
 fi
 
+# Set proper permissions and ownership
 chmod 644 "$SECUREDROP_SOURCES_FILE"
+chown root:root "$SECUREDROP_SOURCES_FILE"
+
 echo "- Created SecureDrop repository sources file: $SECUREDROP_SOURCES_FILE"
 echo "  Repository: $APT_REPO_URL"
 echo "  Signing key: $APT_SIGNING_KEY_FILE"
-
-# Create symlink to persistent storage
-if [[ ! -L "$SECUREDROP_SOURCES_SYMLINK" ]]; then
-    ln -s "$SECUREDROP_SOURCES_FILE" "$SECUREDROP_SOURCES_SYMLINK"
-    echo "- Created symlink: $SECUREDROP_SOURCES_SYMLINK -> $SECUREDROP_SOURCES_FILE"
-else
-    echo "- Symlink already exists: $SECUREDROP_SOURCES_SYMLINK"
-fi
 
 # Update apt cache and install securedrop-admin
 echo "Installing securedrop-admin package from repository..."
