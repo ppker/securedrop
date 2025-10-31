@@ -106,6 +106,20 @@ echo "- Created SecureDrop repository sources file: $SECUREDROP_SOURCES_FILE"
 echo "  Repository: $APT_REPO_URL"
 echo "  Signing key: $APT_SIGNING_KEY_FILE"
 
+# Manually activate the APT sources bind-mount without requiring reboot
+if ! mountpoint -q /etc/apt/sources.list.d 2>/dev/null; then
+    echo "Activating APT sources bind-mount..."
+    # The directory should already exist, but verify
+    if [[ ! -d /etc/apt/sources.list.d ]]; then
+        mkdir -p /etc/apt/sources.list.d
+    fi
+    # Bind-mount the persistent APT sources directory
+    mount --bind "$APT_SOURCES_DIR" /etc/apt/sources.list.d
+    echo "- Activated APT sources bind-mount (will persist after reboot)"
+else
+    echo "- APT sources bind-mount already active"
+fi
+
 # Update apt cache and install securedrop-admin
 echo "Installing securedrop-admin package from repository..."
 if apt-get update; then
