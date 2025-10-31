@@ -86,11 +86,21 @@ class EventHandler:
     def mark_progress(
         self, event: Event, status: EventStatusCode = EventStatusCode.Processing
     ) -> None:
-        self._redis.set(
-            self.idempotence_key(event),
-            status,
-            ex=IDEMPOTENCE_PERIOD,
-        )
+        """
+        If `status` is a non-error code, mark it as the progress of `event`, to
+        be returned later as "Already Reported".
+
+        If `status` is an error code, clear it, since `event` MAY be resubmitted
+        later.
+        """
+        if status >= EventStatusCode.BadRequest:
+            self._redis.delete(self.idempotence_key(event))
+        else:
+            self._redis.set(
+                self.idempotence_key(event),
+                status,
+                ex=IDEMPOTENCE_PERIOD,
+            )
 
     @staticmethod
     def handle_item_deleted(event: Event) -> EventResult:
