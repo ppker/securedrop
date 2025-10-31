@@ -121,21 +121,28 @@ def data() -> Response:
                 response.items[uuid] = item.to_api_v2() if item is not None else None
             response.events[result.event_id] = result.status
 
+    # The set of items (UUIDs) that were emitted by processed events.
+    items_emitted = frozenset(response.items.keys())
+
     if requested.sources:
         source_query: EagerQuery = eager_query("Source")
         for source in source_query.filter(Source.uuid.in_(str(uuid) for uuid in requested.sources)):
             response.sources[source.uuid] = source.to_api_v2()
 
     if requested.items:
+        # If an item was explicitly requested but was already emitted by a
+        # processed event, we don't need to (and shouldn't) reread it.
+        left_to_read = set(requested.items) - items_emitted
+
         submission_query: EagerQuery = eager_query("Submission")
         for item in submission_query.filter(
-            Submission.uuid.in_(str(uuid) for uuid in requested.items)
+            Submission.uuid.in_(str(uuid) for uuid in left_to_read)
         ):
             response.items[item.uuid] = item.to_api_v2()
 
         reply_query: EagerQuery = eager_query("Reply")
-        for item in reply_query.filter(Reply.uuid.in_(str(uuid) for uuid in requested.items)):
-            if item.uuid in response.items:
+        for item in reply_query.filter(Reply.uuid.in_(str(uuid) for uuid in left_to_read)):
+            if item.uuid in response.items.keys() - items_emitted:
                 # Fail if we get unlucky and hit a UUID collision between the
                 # `Submission` and `Reply` tables.  This is vanishingly unlikely,
                 # but SQLite can't enforce uniqueness between them.
