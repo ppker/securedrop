@@ -9,12 +9,15 @@ set -o pipefail
 SECUREDROP_ENV="test"  # Change to "prod" for production environment
 
 # Configure repository based on environment
+APT_SOURCES_DIR='/live/persistence/TailsData_unlocked/apt-sources.list.d'
 if [[ "$SECUREDROP_ENV" == "prod" ]]; then
     APT_REPO_URL="https://apt.freedom.press"
     APT_SIGNING_KEY_FILE="fpf-signing-key-2021.pub"
+    SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop.sources"
 else
     APT_REPO_URL="https://apt-test.freedom.press"
     APT_SIGNING_KEY_FILE="apt-test-signing-key.pub"
+    SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop-test.sources"
 fi
 
 ADMIN_CONFIG_DIR='/live/persistence/TailsData_unlocked/securedrop-admin'
@@ -56,8 +59,6 @@ fi
 
 # Configure apt repository persistence
 APT_PERSISTENCE_LINE='/etc/apt/sources.list.d  source=apt-sources.list.d,link'
-APT_SOURCES_DIR='/live/persistence/TailsData_unlocked/apt-sources.list.d'
-SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop-test.sources"
 
 echo "Configuring SecureDrop APT repository..."
 
