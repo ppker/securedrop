@@ -108,7 +108,19 @@ def make_blueprint(config: SecureDropConfig) -> Blueprint:
             if not date_codenames_expire or datetime.now(timezone.utc) >= date_codenames_expire:
                 return clear_session_and_redirect_to_logged_out_page(flask_session=session)
 
-            tab_id = request.form["tab_id"]
+            tab_id = request.form.get("tab_id")
+            if not tab_id or tab_id not in session.get("codenames", {}):
+                # Use generic error message text for source creation issue
+                session.clear()
+                flash_msg(
+                    "error",
+                    None,
+                    gettext(
+                        "There was a temporary problem creating your account. Please try again."
+                    ),
+                )
+                return redirect(url_for("main.index"))
+
             codename = session["codenames"][tab_id]
             del session["codenames"]
 
