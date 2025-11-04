@@ -949,3 +949,52 @@ def test_api2_source_conversation_deleted_resubmission(
         )
         assert res3.status_code == 200
         assert res3.json["events"][event.id][0] == 208
+
+
+def test_api2_reply_sent_then_requested_item_is_deduped(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """
+    When a reply is created by a `REPLY_SENT` event and the same UUID is also
+    requested in the same `BatchRequest`, the request should succeed (200) and
+    return the reply once.
+    """
+    with journalist_app.test_client() as app:
+        # Fetch an existing reply so that we can resubmit it.
+        source = test_files["source"]
+        reply = test_files["replies"][0]
+        reply_res = app.get(
+            url_for("api.download_reply", source_uuid=source.uuid, reply_uuid=reply.uuid),
+            headers=get_api_headers(journalist_api_token),
+        )
+        reply_ct = reply_res.data
+        armored_ct = ascii_armor(reply_ct)
+
+        # Get current source version to build a valid "reply_sent" event.
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        source_version = index.json["sources"][source.uuid]
+
+        new_reply_uuid = str(uuid.uuid4())
+        event = Event(
+            id="987654321",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.REPLY_SENT,
+            data={"uuid": new_reply_uuid, "reply": armored_ct},
+        )
+
+        # The same batch both creates the reply (`events`) and requests it (`items`).
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)], "items": [new_reply_uuid]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.status_code == 200
+        assert response.json["events"][event.id] == [200, None]
+        assert new_reply_uuid in response.json["items"]
+        assert response.json["items"][new_reply_uuid] is not None
