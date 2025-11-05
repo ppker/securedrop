@@ -34,7 +34,7 @@ echo "- Old config directory found: $OLD_CONFIG_DIR"
 
 # Verify root script exist
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_SCRIPT="$SCRIPT_DIR/migrate-to-deb-root.sh"
+ROOT_SCRIPT="$SCRIPT_DIR/configure-tails-persistence.sh"
 if [[ ! -f "$ROOT_SCRIPT" ]]; then
     error_exit "Helper script not found.\n\nExpected: $ROOT_SCRIPT"
 fi

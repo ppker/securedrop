@@ -76,12 +76,10 @@ if /usr/bin/securedrop-admin localconfig; then
     echo ""
 
     # Show reboot notification
-    if command -v zenity >/dev/null 2>&1; then
-        zenity --info \
-            --title="Reboot Tails" \
-            --width=500 \
-            --text="Please REBOOT Tails to complete this SecureDrop Admin Workstation update."
-    fi
+    zenity --info \
+        --title="Reboot Tails" \
+        --width=500 \
+        --text="Please REBOOT Tails to complete this SecureDrop Admin Workstation update."
 
     exit 0
 else

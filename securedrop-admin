@@ -33,12 +33,26 @@ if [ "$1" = "setup" ]; then
     # Exit immediately so GUI updater doesn't timeout
     exit 0
 
+elif [ "$1" = "tails-bootstrap" ]; then
+    # Show intro message about bootstrap
+    zenity --info \
+        --title="SecureDrop Admin Tools Bootstrap" \
+        --width=500 \
+        --text="This will install the SecureDrop admin tools on Tails.\n\nYou will need to type your Tails Administration password to continue."
+
+    # Launch detached wrapper in terminal
+    kgx -T 'SecureDrop Admin Tools Bootstrap' -e "bash $d/admin/bootstrap-tails-wrapper.sh" &
+    disown
+
+    exit 0
+
 else
     echo "Error: This git-based installer has been deprecated."
     echo ""
-    echo "To migrate to the new package-based installer, run:"
-    echo "  ./securedrop-admin setup"
+    echo "Available commands:"
+    echo "  ./securedrop-admin setup            - Migrate existing installation to package-based installer"
+    echo "  ./securedrop-admin tails-bootstrap  - Fresh install on Tails"
     echo ""
-    echo "After migration, use 'securedrop-admin' (installed in /usr/bin) for all operations."
+    echo "After installation, use 'securedrop-admin' (installed in /usr/bin) for all operations."
     exit 1
 fi
