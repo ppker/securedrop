@@ -40,10 +40,8 @@ elif [ "$1" = "tails-bootstrap" ]; then
         --width=500 \
         --text="This will install the SecureDrop admin tools on Tails.\n\nYou will need to type your Tails Administration password to continue."
 
-    # Launch detached wrapper in terminal
-    kgx -T 'SecureDrop Admin Tools Bootstrap' -e "bash $d/admin/bootstrap-tails-wrapper.sh" &
-    disown
-
+    # Launch detached bootstrap wrapper in terminal
+    bash "$d/admin/bootstrap-tails-wrapper.sh"
     exit 0
 
 else
