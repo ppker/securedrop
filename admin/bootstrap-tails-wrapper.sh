@@ -7,9 +7,7 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if running on Tails
-if grep -q 'NAME="Tails"' /etc/os-release; then
-    PLATFORM="tails"
-else
+if ! grep -q 'NAME="Tails"' /etc/os-release; then
     zenity --error \
         --title="Unsupported Platform" \
         --width=500 \

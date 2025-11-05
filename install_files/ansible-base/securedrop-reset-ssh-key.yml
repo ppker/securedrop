@@ -1,17 +1,4 @@
 ---
-# Conditional update check - runs unless skip_update_check is true
-- name: Check for securedrop-admin updates
-  hosts: localhost
-  become: yes
-  max_fail_percentage: 0
-  any_errors_fatal: yes
-  connection: local
-  gather_facts: yes
-  environment:
-    LC_ALL: C
-  roles:
-    - role: update-check
-
 - name: Reset authorized_keys to restrict SSH access to this Admin Workstation
   hosts: securedrop
   max_fail_percentage: 0
