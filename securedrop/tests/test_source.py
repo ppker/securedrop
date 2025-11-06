@@ -145,6 +145,34 @@ def test_create_new_source(source_app):
         assert "codenames" not in session
 
 
+def test_create_no_tab_id(source_app):
+    with source_app.test_client() as app:
+        resp = app.post(url_for("main.generate"), data=GENERATE_DATA)
+        assert resp.status_code == 200
+        resp = app.post(url_for("main.create"), follow_redirects=True)
+        assert not SessionManager.is_user_logged_in(db_session=db.session)
+
+        # should be redirected to /lookup
+        text = resp.data.decode("utf-8")
+        assert "There was a temporary problem" in text
+        assert "Get Started" in text
+        assert "codenames" not in session
+
+
+def test_create_bad_tab_id(source_app):
+    with source_app.test_client() as app:
+        resp = app.post(url_for("main.generate"), data=GENERATE_DATA)
+        assert resp.status_code == 200
+        resp = app.post(url_for("main.create"), data={"tab_id": "ohno"}, follow_redirects=True)
+        assert not SessionManager.is_user_logged_in(db_session=db.session)
+
+        # should be redirected to /lookup
+        text = resp.data.decode("utf-8")
+        assert "There was a temporary problem" in text
+        assert "Get Started" in text
+        assert "codenames" not in session
+
+
 def test_generate_as_post(source_app):
     with source_app.test_client() as app:
         resp = app.post(url_for("main.generate"), data=GENERATE_DATA)
