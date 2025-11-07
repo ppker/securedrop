@@ -23,4 +23,4 @@ types-PyYAML
 types-redis
 types-requests
 types-setuptools>=70.0.0
-uv>=0.9.5  # Safety 80597
+uv>=0.9.6  # Safety 80896
