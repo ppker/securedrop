@@ -3,18 +3,23 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import Tuple
+from uuid import uuid4
 
 import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
-from journalist_app import api2
+from journalist_app import api2, create_app
 from journalist_app.api2.shared import json_version
 from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
 from models import Reply, Source, SourceStar, Submission, db
 from sqlalchemy.orm.exc import MultipleResultsFound
-from tests.utils import ascii_armor, decrypt_as_journalist
+from tests.factories import SecureDropConfigFactory
+from tests.utils import ascii_armor, decrypt_as_journalist, i18n
 from tests.utils.api_helper import get_api_headers
 from tests.utils.db_helper import init_source, submit
+from werkzeug.routing import BuildError
 
 
 def filtered_queries():
@@ -54,6 +59,37 @@ def test_json_version():
     d2 = {"baz": "biz", "foo": "bar"}
     version2 = json_version(d2)
     assert version1 == version2
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "api2.index",
+        "api2.data",
+    ],
+)
+def test_api2_not_available_when_disabled(
+    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
+    setup_rqworker: Tuple[str, str],
+    endpoint: str,
+) -> None:
+    journalist_key_fingerprint, gpg_key_dir = setup_journalist_key_and_gpg_folder
+    worker_name, _ = setup_rqworker
+    config_without_v2api = SecureDropConfigFactory.create(
+        SECUREDROP_DATA_ROOT=Path(f"/tmp/sd-tests/conftest-{uuid4()}"),
+        GPG_KEY_DIR=gpg_key_dir,
+        JOURNALIST_KEY=journalist_key_fingerprint,
+        SUPPORTED_LOCALES=i18n.get_test_locales(),
+        RQ_WORKER_NAME=worker_name,
+        V2_API_ENABLED=False,
+    )
+    app = create_app(config_without_v2api)
+    app.config["SERVER_NAME"] = "localhost.localdomain"
+
+    with app.app_context():
+        with app.test_client() as client_app:
+            with pytest.raises(BuildError):
+                client_app.get(url_for(endpoint))
 
 
 @pytest.mark.parametrize(
