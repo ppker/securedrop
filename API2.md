@@ -15,6 +15,14 @@ strategy for the v2 Journalist API.
 A client-side implementation should be able to interact with the endpoints
 implemented in `securedrop.journalist_app.api2` according to this specification.
 
+## Audience
+
+This API is intended for use by the [SecureDrop journalist app][app], and this
+documentation is intended to support its development. We make no guarantees
+about support, compatibility, or documentation for other purposes.
+
+[app]: https://github.com/freedomofpress/securedrop-client/tree/main/app
+
 ## Goals and properties
 
 Although the SecureDrop Server remains the source of truth for its clients, the
