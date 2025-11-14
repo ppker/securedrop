@@ -5,19 +5,18 @@ set -e
 set -o pipefail
 
 # Environment configuration
-# Set to "prod" for production, "test" for testing
-SECUREDROP_ENV="test"  # Change to "prod" for production environment
+# To configure an alternate repo or signing key, create a file named
+# ~/securedrop_bootstrap.env, which sets the APT_REPO_URL and
+# APT_SIGNING_KEY_FILE env vars to appropriate values.
 
-# Configure repository based on environment
 APT_SOURCES_DIR='/live/persistence/TailsData_unlocked/apt-sources.list.d'
-if [[ "$SECUREDROP_ENV" == "prod" ]]; then
+SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop.sources"
+
+if [[ -e /home/amnesia/securedrop_bootstrap.env ]]; then
+    source /home/amnesia/securedrop_bootstrap.env
+else
     APT_REPO_URL="https://apt.freedom.press"
     APT_SIGNING_KEY_FILE="fpf-signing-key-2021.pub"
-    SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop.sources"
-else
-    APT_REPO_URL="https://apt-test.freedom.press"
-    APT_SIGNING_KEY_FILE="apt-test-signing-key.pub"
-    SECUREDROP_SOURCES_FILE="$APT_SOURCES_DIR/securedrop-test.sources"
 fi
 
 ADMIN_CONFIG_DIR='/live/persistence/TailsData_unlocked/securedrop-admin'
