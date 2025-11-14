@@ -45,6 +45,12 @@ JOURNALIST_KEY = '{{ securedrop_app_gpg_fingerprint }}'
 # encrypted submissions.
 SECUREDROP_DATA_ROOT = '/var/lib/securedrop'
 
+# Feature flags for journalist interface services, with default production values.
+# Only the v2 api is feature-flagged for now.
+
+V2_API_ENABLED = False
+
+
 # Modify configuration for alternative environments
 env = os.environ.get('SECUREDROP_ENV') or 'prod'
 
@@ -57,11 +63,13 @@ elif env == 'dev':
     # Use MAX_CONTENT_LENGTH to mimic the behavior of Apache's LimitRequestBody
     # in the development environment. See #1714.
     FlaskConfig.MAX_CONTENT_LENGTH = 524288000
+    V2_API_ENABLED = True
 elif env == 'test':
     FlaskConfig.TESTING = True
     # Disable CSRF checks to make writing tests easier
     FlaskConfig.WTF_CSRF_ENABLED = False
     SECUREDROP_DATA_ROOT = '/tmp/securedrop'
+    V2_API_ENABLED = True
 
 # The following configuration is dependent on SECUREDROP_DATA_ROOT
 
