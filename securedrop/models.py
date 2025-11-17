@@ -182,7 +182,7 @@ class Source(db.Model):
         except GpgKeyNotFoundError:
             return None
 
-    def to_api_v2(self) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> Dict[str, Any]:
         if self.last_updated:
             last_updated = self.last_updated
         else:
@@ -191,7 +191,7 @@ class Source(db.Model):
         starred = bool(self.star and self.star.starred)
         collection = {}
         for item in self.collection:
-            collection[item.uuid] = item.to_api_v2()
+            collection[item.uuid] = item.to_api_v2(minor)
 
         return {
             "uuid": self.uuid,
@@ -287,7 +287,7 @@ class Submission(db.Model):
     def is_message(self) -> bool:
         return self.filename.endswith("msg.gpg")
 
-    def to_api_v2(self) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> Dict[str, Any]:
         if self.is_file:
             seen_by = [f.journalist.uuid for f in self.seen_files if f.journalist]
         else:  # is_message
@@ -297,7 +297,7 @@ class Submission(db.Model):
         # (format: {interaction_count}-{journalist_filename}-*)
         interaction_count = int(self.filename.split("-")[0])
 
-        return {
+        data = {
             "kind": "file" if self.is_file else "message",
             "uuid": self.uuid,
             "source": self.source.uuid,
@@ -305,8 +305,12 @@ class Submission(db.Model):
             # TODO: how is this different from seen_by?
             "is_read": self.seen,
             "seen_by": seen_by,
-            "interaction_count": interaction_count,
         }
+
+        if minor >= 2:
+            data["interaction_count"] = interaction_count
+
+        return data
 
     def to_api_v1(self) -> "Dict[str, Any]":
         seen_by = {
@@ -405,12 +409,12 @@ class Reply(db.Model):
             base.joinedload(cls.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
         )
 
-    def to_api_v2(self) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> Dict[str, Any]:
         # Extract interaction_count from filename
         # (format: {interaction_count}-{journalist_filename}-reply.gpg)
         interaction_count = int(self.filename.split("-")[0])
 
-        return {
+        data = {
             "kind": "reply",
             "uuid": self.uuid,
             "source": self.source.uuid,
@@ -418,8 +422,12 @@ class Reply(db.Model):
             "journalist_uuid": self.journalist.uuid,
             "is_deleted_by_source": self.deleted_by_source,
             "seen_by": [r.journalist.uuid for r in self.seen_replies],
-            "interaction_count": interaction_count,
         }
+
+        if minor >= 2:
+            data["interaction_count"] = interaction_count
+
+        return data
 
     def to_api_v1(self) -> "Dict[str, Any]":
         seen_by = [r.journalist.uuid for r in SeenReply.query.filter(SeenReply.reply_id == self.id)]
@@ -849,7 +857,7 @@ class Journalist(db.Model):
 
         return json_user
 
-    def to_api_v2(self) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> Dict[str, Any]:
         return {
             "username": self.username,
             "uuid": self.uuid,

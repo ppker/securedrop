@@ -1034,3 +1034,62 @@ def test_api2_reply_sent_then_requested_item_is_deduped(
         assert response.json["events"][event.id] == [200, None]
         assert new_reply_uuid in response.json["items"]
         assert response.json["items"][new_reply_uuid] is not None
+
+
+@pytest.mark.parametrize("minor", [0, 1, 2, 3])
+def test_api_minor_versions(journalist_app, journalist_api_token, test_files, minor):
+    """
+    Verify that the API response shape changes according to the documented
+    values of securedrop.journalist_app.api2.API_MINOR_VERSION.
+    """
+    headers = get_api_headers(journalist_api_token)
+    headers["Prefer"] = f"securedrop={minor}"
+
+    with journalist_app.test_client() as app:
+        index = app.get(url_for("api2.index"), headers=headers)
+        assert index.status_code == 200
+
+        data = index.json
+
+        # 1. `Index` and `BatchResponse` include `journalists`
+        if minor < 1:
+            assert "journalists" not in data
+        else:
+            assert "journalists" in data
+            # At least one journalist should exist in the fixtures
+            assert len(data["journalists"]) >= 1
+
+        # 2. `Reply` and `Submission` objects include `interaction_count`
+        item_uuid = test_files["submissions"][0].uuid
+        resp = app.post(
+            url_for("api2.data"),
+            json={"items": [item_uuid]},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+        item_obj = resp.json["items"][item_uuid]
+        if minor < 2:
+            assert "interaction_count" not in item_obj
+        else:
+            assert "interaction_count" in item_obj
+
+        # 3. `BatchRequest` accepts `events` to process, with results returned
+        #    in `BatchResponse.events`
+        if minor >= 3:
+            event = {
+                "id": "123456",
+                "type": "item_seen",
+                "target": {
+                    "item_uuid": test_files["submissions"][0].uuid,
+                    "version": data["items"][test_files["submissions"][0].uuid],
+                },
+            }
+
+            resp = app.post(url_for("api2.data"), json={"events": [event]}, headers=headers)
+            assert resp.status_code == 200
+            assert "events" in resp.json
+            assert event["id"] in resp.json["events"]
+
+        else:
+            assert "events" not in resp.json
