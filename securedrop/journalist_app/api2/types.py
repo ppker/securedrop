@@ -155,7 +155,8 @@ class Event:
     data: Optional[EventData | Mapping[str, Any]] = None
 
     def __post_init__(self) -> None:
-        # ID must be usable as an int (for snowflake ordering):
+        # ID must be usable as an int (for snowflake ordering; see section
+        # "Snowflake IDs" in `API2.md`):
         if not str(self.id).isdigit():
             raise ValueError(f"event ID must be an integer string: {self.id}")
 
