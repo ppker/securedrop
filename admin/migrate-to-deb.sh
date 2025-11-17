@@ -4,11 +4,50 @@
 set -e
 set -o pipefail
 
+# Check if old config directory exists
+OLD_CONFIG_DIR="$HOME/Persistent/securedrop/install_files/ansible-base"
+if [[ ! -d "$OLD_CONFIG_DIR" ]]; then
+    error_exit "Old configuration directory not found.\n\nExpected: $OLD_CONFIG_DIR\n\nThis script is for migrating existing installations only."
+fi
+echo "- Old config directory found: $OLD_CONFIG_DIR"
+
+NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
+
+SITE_SPECIFIC_FILE="$OLD_CONFIG_DIR/group_vars/all/site-specific"
+
 # Error handler - outputs to terminal only (wrapper handles zenity dialogs)
 error_exit() {
     local message="$1"
     echo "ERROR: $message" >&2
     exit 1
+}
+
+copy_or_continue() {
+    local config_key="$1"
+    file_name=$(grep "^${config_key}:" "${SITE_SPECIFIC_FILE}" | awk '{print $2}' | tr -d "'\"")
+    if [[ -n "${file_name}" && "${file_name}" != "''" ]]; then
+        if [[ -f "${OLD_CONFIG_DIR}/${file_name}" ]]; then
+            cp "${OLD_CONFIG_DIR}/${file_name}" "${NEW_CONFIG_DIR}/"
+            echo "- Migrated item ${config_key}: ${file_name}"
+        else
+            error_exit "Missing file ${file_name} for config item: ${config_key}."
+        fi
+    fi
+}
+
+copy_or_fail() {
+    local config_key="$1"
+    file_name=$(grep "^${config_key}:" "${SITE_SPECIFIC_FILE}" | awk '{print $2}' | tr -d "'\"")
+    if [[ -n "$file_name" && "$file_name" != "''" ]]; then
+        if [[ -f "$OLD_CONFIG_DIR/$file_name" ]]; then
+            cp "$OLD_CONFIG_DIR/$file_name" "$NEW_CONFIG_DIR/"
+            echo "- Migrated item ${config_key}: ${file_name}"
+        else
+            error_exit "Missing file ${file_name} for config item: ${config_key}."
+        fi
+    else
+        error_exit "Required config item missing: ${config_key}."
+    fi
 }
 
 # Check if running on Tails
@@ -24,13 +63,6 @@ if (( tails_major_version < 7 )); then
     error_exit "This migration requires Tails 7 or later.\n\nCurrent version: $tails_version\n\nPlease upgrade Tails before migrating."
 fi
 echo "- Tails version: $tails_version"
-
-# Check if old config directory exists
-OLD_CONFIG_DIR="$HOME/Persistent/securedrop/install_files/ansible-base"
-if [[ ! -d "$OLD_CONFIG_DIR" ]]; then
-    error_exit "Old configuration directory not found.\n\nExpected: $OLD_CONFIG_DIR\n\nThis script is for migrating existing installations only."
-fi
-echo "- Old config directory found: $OLD_CONFIG_DIR"
 
 # Verify root script exist
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -51,59 +83,62 @@ if ! command -v /usr/bin/securedrop-admin >/dev/null 2>&1; then
 fi
 echo "- securedrop-admin command is available"
 
-NEW_CONFIG_DIR="$HOME/.config/securedrop-admin"
-
-# Copy site-specific config
-SITE_SPECIFIC_FILE="$OLD_CONFIG_DIR/group_vars/all/site-specific"
+# Copy admin-specific config, starting with the site-specific config file
 if [[ -f "$SITE_SPECIFIC_FILE" ]]; then
     cp "$SITE_SPECIFIC_FILE" "$NEW_CONFIG_DIR/"
-    echo "- Migrated: site-specific"
+    echo "- Migrated file: site-specific"
 
-    # Parse site-specific for GPG public key filenames and copy them
-    ossec_key=$(grep '^ossec_alert_gpg_public_key:' "$SITE_SPECIFIC_FILE" | awk '{print $2}' | tr -d "'\"")
-    if [[ -n "$ossec_key" && "$ossec_key" != "''" && -f "$OLD_CONFIG_DIR/$ossec_key" ]]; then
-        cp "$OLD_CONFIG_DIR/$ossec_key" "$NEW_CONFIG_DIR/"
-        echo "- Migrated: $ossec_key (OSSEC GPG public key)"
-    elif [[ -n "$ossec_key" && "$ossec_key" != "''" ]]; then
-        echo "! Not found (skipping): $ossec_key (OSSEC GPG public key)"
+    # Parse site-specific for GPG public key filenames and copy them -
+    # the Submission Public Key and OSSEC Key should always be present
+    copy_or_fail "securedrop_app_gpg_public_key"
+    copy_or_fail "ossec_alert_gpg_public_key"
+
+    # The journalist alert key is optional
+    copy_or_continue "journalist_alert_gpg_public_key"
+
+    # If HTTPS support for the source interface is enabled, copy the files needed
+    https_enabled=$(grep '^securedrop_app_https_on_source_interface:' "$SITE_SPECIFIC_FILE" | awk '{print $2}' | tr -d "'\"")
+    if [[ -n "$https_enabled" && "$https_enabled" = "true" ]]; then
+        echo "- HTTPS enabled for the Source Interface, copying files:"
+        copy_or_fail "securedrop_app_https_certificate_cert_src"
+        copy_or_fail "securedrop_app_https_certificate_chain_src"
+        copy_or_fail "securedrop_app_https_certificate_chain_src"
     fi
 
-    securedrop_key=$(grep '^securedrop_app_gpg_public_key:' "$SITE_SPECIFIC_FILE" | awk '{print $2}' | tr -d "'\"")
-    if [[ -n "$securedrop_key" && "$securedrop_key" != "''" && -f "$OLD_CONFIG_DIR/$securedrop_key" ]]; then
-        cp "$OLD_CONFIG_DIR/$securedrop_key" "$NEW_CONFIG_DIR/"
-        echo "- Migrated: $securedrop_key (SecureDrop GPG public key)"
-    elif [[ -n "$securedrop_key" && "$securedrop_key" != "''" ]]; then
-        echo "! Not found (skipping): $securedrop_key (SecureDrop GPG public key)"
+    # if SSH-over-Tor is enabled, copy the needed auth files
+    ssh_tor_enabled=$(grep '^enable_ssh_over_tor:' "$SITE_SPECIFIC_FILE" | awk '{print $2}' | tr -d "'\"")
+    if [[ -n "$ssh_tor_enabled" && "$ssh_tor_enabled" = "true" ]]; then
+        for auth_file in app-ssh.auth_private mon-ssh.auth_private; do
+            if [[ -f "$OLD_CONFIG_DIR/$auth_file" ]]; then
+                cp "$OLD_CONFIG_DIR/$auth_file" "$NEW_CONFIG_DIR/"
+                echo "- Migrated file: $auth_file"
+            else
+                error_exit "Missing required Tor connection file: $auth_file"
+            fi
+        done
     fi
-else
-    echo "! Not found (skipping): site-specific"
-fi
 
-# Copy Tor v3 keys
-if [[ -f "$OLD_CONFIG_DIR/tor_v3_keys.json" ]]; then
-    cp "$OLD_CONFIG_DIR/tor_v3_keys.json" "$NEW_CONFIG_DIR/"
-    echo "- Migrated: tor_v3_keys.json"
-else
-    echo "! Not found (skipping): tor_v3_keys.json"
-fi
-
-# Copy auth files
-for auth_file in app-journalist.auth_private app-ssh.auth_private mon-ssh.auth_private; do
-    if [[ -f "$OLD_CONFIG_DIR/$auth_file" ]]; then
-        cp "$OLD_CONFIG_DIR/$auth_file" "$NEW_CONFIG_DIR/"
-        echo "- Migrated: $auth_file"
+    # Copy the tor v3 auth keys - if site-specific is present then they should be too
+    if [[ -f "$OLD_CONFIG_DIR/tor_v3_keys.json" ]]; then
+        cp "$OLD_CONFIG_DIR/tor_v3_keys.json" "$NEW_CONFIG_DIR/"
+        echo "- Migrated file: tor_v3_keys.json"
     else
-        echo "! Not found (skipping): $auth_file"
+        error_exit "Missing file ${OLD_CONFIG_DIR}/tor_v3_keys.json."
+    fi
+else
+    echo "! Not found (skipping): site-specific - copying journalist-specific files only"
+fi
+
+# Copy SI and JI config files - these should be present for both admins and journalists
+
+for file_name in app-journalist.auth_private app-sourcev3-ths; do
+    if [[ -f "$OLD_CONFIG_DIR/$file_name" ]]; then
+        cp "$OLD_CONFIG_DIR/$file_name" "$NEW_CONFIG_DIR/"
+        echo "- Migrated file: $file_name"
+    else
+        error_exit "Missing required Tor connection file: $file_name"
     fi
 done
-
-# Copy source onion address
-if [[ -f "$OLD_CONFIG_DIR/app-sourcev3-ths" ]]; then
-    cp "$OLD_CONFIG_DIR/app-sourcev3-ths" "$NEW_CONFIG_DIR/"
-    echo "- Migrated: app-sourcev3-ths"
-else
-    echo "! Not found (skipping): app-sourcev3-ths"
-fi
 
 # Set correct permissions
 chmod 700 "$NEW_CONFIG_DIR"
