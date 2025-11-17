@@ -55,6 +55,16 @@ storage in order to:
 The request/response schemas referred to in these sequence diagrams are defined
 as mypy types in `securedrop.journalist_app.api2.types`.
 
+A client can request a specific shape (version) of response from the server by
+including in its requests a header of the form—
+
+```
+Prefer: securedrop=x
+```
+
+—where `x` is one of the values documented in
+`securedrop.journalist_app.api2.API_MINOR_VERSION`.
+
 ### Initial synchronization
 
 **Figure 1.**
