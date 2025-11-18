@@ -27,7 +27,7 @@ about support, compatibility, or documentation for other purposes.
 
 Although the SecureDrop Server remains the source of truth for its clients, the
 v2 Journalist API borrows ideas from distributed systems and content-addressable
-storage.
+storage in order to:
 
 1. Support the Journalist API's "occasionally connected" clients: actions should
    be possible while in offline mode, responsive even over flaky Tor connections,
@@ -42,10 +42,28 @@ storage.
 4. Hash a canonical representation of an endpoint's entire state (all sources,
    all items, etc.) to version it deterministically.
 
+### Non-goals
+
+5. The mechanisms specified here for synchronization, idempotence, etc. are for
+   _performance_, _reliability_, and _integrity_. They assume that these endpoints
+   are authenticated and restricted to SecureDrop journalists and administrators.
+   These mechanisms are not (in themselves) for security, to mitigate
+   denial-of-service attacks, etc.
+
 ## Overview
 
 The request/response schemas referred to in these sequence diagrams are defined
 as mypy types in `securedrop.journalist_app.api2.types`.
+
+A client can request a specific shape (version) of response from the server by
+including in its requests a header of the form—
+
+```
+Prefer: securedrop=x
+```
+
+—where `x` is one of the values documented in
+`securedrop.journalist_app.api2.API_MINOR_VERSION`.
 
 ### Initial synchronization
 
