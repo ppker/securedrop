@@ -12,7 +12,7 @@ from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app import api2, create_app
 from journalist_app.api2.shared import json_version
-from journalist_app.api2.types import Event, EventType, ItemTarget, SourceTarget
+from journalist_app.api2.types import VERSION_LEN, Event, EventType, ItemTarget, SourceTarget
 from models import Reply, Source, SourceStar, Submission, db
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.factories import SecureDropConfigFactory
@@ -550,15 +550,18 @@ def test_api2_item_deleted(
         assert Reply.query.filter(Reply.uuid == event.target.item_uuid).one_or_none() is None
 
         # Try to delete something that doesn't exist:
-        event.id = "345678"
-        event.target.item_uuid = "does not exist"
+        nonexistent_event = Event(
+            id="345678",
+            target=ItemTarget(item_uuid=str(uuid.uuid4()), version=reply_version),
+            type=EventType.ITEM_DELETED,
+        )
         response = app.post(
             url_for("api2.data"),
-            json={"events": [asdict(event)]},
+            json={"events": [asdict(nonexistent_event)]},
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.json["events"][event.id] == [410, None]
-        assert event.target.item_uuid not in response.json["items"]
+        assert response.json["events"][nonexistent_event.id] == [410, None]
+        assert nonexistent_event.target.item_uuid not in response.json["items"]
 
 
 def test_api2_source_deleted(
@@ -574,7 +577,7 @@ def test_api2_source_deleted(
         # Try deleting the source with the wrong version
         event = Event(
             id="394758",
-            target=SourceTarget(source_uuid=source_uuid, version="wrong-version"),
+            target=SourceTarget(source_uuid=source_uuid, version="a" * VERSION_LEN),
             type=EventType.SOURCE_DELETED,
         )
         response = app.post(
@@ -624,14 +627,17 @@ def test_api2_source_deleted(
         assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is None
 
         # Try to delete a source that doesn't exist
-        event.id = "234567"
-        event.target.source_uuid = "does-not-exist"
+        nonexistent_event = Event(
+            id="234567",
+            target=SourceTarget(source_uuid=str(uuid.uuid4()), version=source_version),
+            type=EventType.SOURCE_DELETED,
+        )
         response = app.post(
             url_for("api2.data"),
-            json={"events": [asdict(event)]},
+            json={"events": [asdict(nonexistent_event)]},
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.json["events"][event.id] == [410, None]
+        assert response.json["events"][nonexistent_event.id] == [410, None]
         assert "does-not-exist" not in response.json["sources"]
 
 
@@ -653,7 +659,7 @@ def test_api2_source_conversation_deleted(
         # (intentionally not fetching the correct version)
         event = Event(
             id="498567",
-            target=SourceTarget(source_uuid=source_uuid, version="wrong-version"),
+            target=SourceTarget(source_uuid=source_uuid, version="a" * VERSION_LEN),
             type=EventType.SOURCE_CONVERSATION_DELETED,
         )
         response = app.post(
@@ -842,16 +848,19 @@ def test_api2_item_seen(
         updated_submission = Submission.query.filter(Submission.uuid == submission_uuid).one()
         assert updated_submission.downloaded is True
 
-        # Try with invalid item UUID
-        event.id = "234567"
-        event.target.item_uuid = "invalid-uuid"
+        # Try to mark seen an item that doesn't exist
+        no_such_item_event = Event(
+            id="234567",
+            target=ItemTarget(item_uuid=str(uuid.uuid4()), version=item_version),
+            type=EventType.ITEM_SEEN,
+        )
         response = app.post(
             url_for("api2.data"),
-            json={"events": [asdict(event)]},
+            json={"events": [asdict(no_such_item_event)]},
             headers=get_api_headers(journalist_api_token),
         )
-        assert response.json["events"][event.id][0] == 404
-        assert "could not find item" in response.json["events"][event.id][1]
+        assert response.json["events"][no_such_item_event.id][0] == 404
+        assert "could not find item" in response.json["events"][no_such_item_event.id][1]
 
 
 def test_api2_idempotence_period(journalist_app):
@@ -924,7 +933,7 @@ def test_api2_source_conversation_deleted_resubmission(
         # 1. Submit with the wrong version --> Conflict (409).
         event = Event(
             id="600100",
-            target=SourceTarget(source_uuid=source_uuid, version="wrong-version"),
+            target=SourceTarget(source_uuid=source_uuid, version="a" * VERSION_LEN),
             type=EventType.SOURCE_CONVERSATION_DELETED,
         )
         res1 = app.post(
@@ -955,14 +964,18 @@ def test_api2_source_conversation_deleted_resubmission(
         assert index.status_code == 200
         correct_version = index.json["sources"][source_uuid]
 
-        event.target = SourceTarget(source_uuid=source_uuid, version=correct_version)
+        corrected_event = Event(
+            id=event.id,
+            target=SourceTarget(source_uuid=source_uuid, version=correct_version),
+            type=event.type,
+        )
         res2 = app.post(
             url_for("api2.data"),
-            json={"events": [asdict(event)]},
+            json={"events": [asdict(corrected_event)]},
             headers=get_api_headers(journalist_api_token),
         )
         assert res2.status_code == 200
-        assert res2.json["events"][event.id] == [200, None]
+        assert res2.json["events"][corrected_event.id] == [200, None]
 
         # Confirm that items are returned as deleted.
         assert res2.json["sources"][source_uuid] is not None
@@ -980,11 +993,11 @@ def test_api2_source_conversation_deleted_resubmission(
         # 3. Resubmit the same event again --> Already Reported (208).
         res3 = app.post(
             url_for("api2.data"),
-            json={"events": [asdict(event)]},
+            json={"events": [asdict(corrected_event)]},
             headers=get_api_headers(journalist_api_token),
         )
         assert res3.status_code == 200
-        assert res3.json["events"][event.id][0] == 208
+        assert res3.json["events"][corrected_event.id][0] == 208
 
 
 def test_api2_reply_sent_then_requested_item_is_deduped(
