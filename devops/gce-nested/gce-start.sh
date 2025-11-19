@@ -25,7 +25,7 @@ function find_latest_ci_image() {
     #    --filter="family:fpf-securedrop AND name ~ ^ci-nested-virt" \
     #    --sort-by=~Name --limit=1 --format="value(Name)"
     # Return hardcoded image id to prevent newer builds from breaking CI
-    echo "ci-nested-virt-bookworm-1762984819"
+    echo "ci-nested-virt-trixie-1763587009"
 }
 
 # Call out to GCE API and start a new instance, designating
@@ -48,8 +48,8 @@ function create_sd_ci_gce_instance() {
           --max-run-duration=3h
 
       # Give box a few more seconds for SSH to become available
-      echo "Sleeping for 20s to wait for SSH to become available"
-      sleep 20
+      echo "Sleeping for 40s to wait for SSH to become available"
+      sleep 40
   fi
 }
 

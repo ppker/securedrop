@@ -8,3 +8,6 @@ ssh_ip: "{{ ansible_default_ipv4.address }}"
 
 # Make sure correct packages are used during installation
 securedrop_target_distribution: "noble"
+
+# config_path needs to be set for packaged securedrop-admin script
+config_path: "/home/{{ lookup('env', 'USER') }}/.config/securedrop-admin"

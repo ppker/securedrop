@@ -56,6 +56,20 @@ copy_securedrop_repo
 # so register a trap to ensure the fetch always runs.
 trap fetch_junit_test_results EXIT
 
+# install a testinfra prerequisite, python3-standard-pipes
+# TODO: Upgrading to a modern version of pytest-testinfra would remove this dependency
+ssh_gce "sudo apt install python3-standard-pipes"
+
+# build server debs
 ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-notest"
 ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-ossec-notest"
+
+# build and install securedrop-admin tools and add staging config
+ssh_gce "OS_VERSION=\"trixie\" make build-debs-admin-notest"
+ssh_gce "mkdir -p /home/sdci/.config/securedrop-admin"
+ssh_gce "sudo apt install -y ./build/trixie/securedrop-admin_*+trixie_amd64.deb"
+ssh_gce "cp ~/securedrop-source/install_files/ansible-base/roles/ossec/files/test_admin_key.pub /home/sdci/.config/securedrop-admin/"
+ssh_gce "cp ~/securedrop-source/install_files/ansible-base/roles/app/files/test_journalist_key.pub /home/sdci/.config/securedrop-admin/"
+
+# start staging environment
 ssh_gce "OS_VERSION=\"${OS_VERSION}\" make staging"
