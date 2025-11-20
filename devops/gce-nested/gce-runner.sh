@@ -56,10 +56,6 @@ copy_securedrop_repo
 # so register a trap to ensure the fetch always runs.
 trap fetch_junit_test_results EXIT
 
-# install a testinfra prerequisite, python3-standard-pipes
-# TODO: Upgrading to a modern version of pytest-testinfra would remove this dependency
-ssh_gce "sudo apt install python3-standard-pipes"
-
 # build server debs
 ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-notest"
 ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-ossec-notest"
