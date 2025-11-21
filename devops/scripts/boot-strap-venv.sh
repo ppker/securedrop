@@ -5,7 +5,7 @@
 set -eo pipefail
 
 # shellcheck disable=SC2034
-UBUNTU_VERSION="noble"
+OS_VERSION="${OS_VERSION:-noble}"
 
 # https://peps.python.org/pep-0508/#environment-markers
 PYTHON_VERSION="$(python3 -c 'import platform; print(".".join(platform.python_version_tuple()[:2]))')"

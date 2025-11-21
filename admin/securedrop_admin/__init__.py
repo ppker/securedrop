@@ -32,24 +32,39 @@ import os
 import re
 import subprocess
 import sys
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
 
 import prompt_toolkit
 import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import x25519
-from packaging.version import Version
 from prompt_toolkit.document import Document
 from prompt_toolkit.validation import ValidationError, Validator
 
 sdlog = logging.getLogger(__name__)
 
-# In the event of a key rotation, this list can be added to
-# in order to support a transition period.
-RELEASE_KEYS = [
-    "2359E6538C0613E652955E6C188EDD3B7B22E6A3",
-]
-DEFAULT_KEYSERVER = "hkps://keys.openpgp.org"
+
+class OSType(Enum):
+    TAILS = "tails"
+    DEBIAN = "debian"
+    OTHER = "other"
+
+    @classmethod
+    def detect(cls) -> "OSType":
+        with open("/etc/os-release") as os_release_file:
+            os_release = os_release_file.read()
+
+        if 'NAME="Debian GNU/Linux"' in os_release:
+            return cls.DEBIAN
+        elif 'NAME="Tails"' in os_release:
+            return cls.TAILS
+
+        return cls.OTHER
+
+
+OS_TYPE = OSType.detect()
+
 SUPPORT_ONION_URL = "http://sup6h5iyiyenvjkfxbgrjynm5wsgijjoatvnvdgyyi7je3xqm4kh6uqd.onion"
 SUPPORT_URL = "https://support.freedom.press"
 EXIT_SUCCESS = 0
@@ -59,8 +74,14 @@ EXIT_INTERRUPT = 2
 MAX_NAMESERVERS = 3
 LIST_SPLIT_RE = re.compile(r"\s*,\s*|\s+")
 
-I18N_CONF = "securedrop/i18n.json"
+I18N_CONF_PATH = "/usr/share/securedrop-admin/i18n.json"
 I18N_DEFAULT_LOCALES = {"en_US"}
+
+READONLY_CONFIG_PATH = "/usr/share/securedrop-admin"
+ANSIBLE_PATH = os.path.join(READONLY_CONFIG_PATH, "ansible-base")
+TRANSLATIONS_PATH = os.path.join(READONLY_CONFIG_PATH, "translations")
+CONFIG_PATH = os.path.expanduser("~/.config/securedrop-admin")
+SITE_CONFIG_PATH = os.path.join(CONFIG_PATH, "site-specific")
 
 
 # Check OpenSSH version - ansible requires an extra argument for scp on OpenSSH 9
@@ -79,9 +100,11 @@ def openssh_version() -> int:
 
 
 def ansible_command() -> List[str]:
-    cmd = ["ansible-playbook"]
+    ansible_playbook_path = os.path.join(READONLY_CONFIG_PATH, "venv", "bin", "ansible-playbook")
+
+    cmd = [ansible_playbook_path]
     if openssh_version() == 9:
-        cmd = ["ansible-playbook", "--scp-extra-args='-O'"]
+        cmd = [ansible_playbook_path, "--scp-extra-args='-O'"]
     return cmd
 
 
@@ -221,19 +244,16 @@ class SiteConfig:
             raise ValidationError(message="Must be an integer")
 
     class Locales:
-        def __init__(self, appdir: str) -> None:
-            self.translation_dir = os.path.realpath(os.path.join(appdir, "translations"))
-
         def get_translations(self) -> Set[str]:
             translations = I18N_DEFAULT_LOCALES
-            for dirname in os.listdir(self.translation_dir):
+            for dirname in os.listdir(TRANSLATIONS_PATH):
                 if dirname != "messages.pot":
                     translations.add(dirname)
             return translations
 
     class ValidateLocales(Validator):
-        def __init__(self, basedir: str, supported: Set[str]) -> None:
-            present = SiteConfig.Locales(basedir).get_translations()
+        def __init__(self, supported: Set[str]) -> None:
+            present = SiteConfig.Locales().get_translations()
             self.available = present & supported
 
             super().__init__()
@@ -284,20 +304,18 @@ class SiteConfig:
                 return True
             return super().validate(document)
 
-    def __init__(self, args: argparse.Namespace) -> None:
-        self.args = args
+    def __init__(self) -> None:
         self.config: dict = {}
         # Hold runtime configuration before save, to support
         # referencing other responses during validation
         self._config_in_progress: dict = {}
 
         supported_locales = I18N_DEFAULT_LOCALES.copy()
-        i18n_conf_path = os.path.join(args.root, I18N_CONF)
-        if os.path.exists(i18n_conf_path):
-            with open(i18n_conf_path) as i18n_conf_file:
+        if os.path.exists(I18N_CONF_PATH):
+            with open(I18N_CONF_PATH) as i18n_conf_file:
                 i18n_conf = json.load(i18n_conf_file)
             supported_locales.update(set(i18n_conf["supported_locales"].keys()))
-        locale_validator = SiteConfig.ValidateLocales(self.args.app_path, supported_locales)
+        locale_validator = SiteConfig.ValidateLocales(supported_locales)
 
         self.desc: List[_DescEntryType] = [
             (
@@ -368,7 +386,7 @@ class SiteConfig:
                 "SecureDrop.asc",
                 str,
                 "Local filepath to public key for " + "SecureDrop Application GPG public key",
-                SiteConfig.ValidatePath(self.args.ansible_path),
+                SiteConfig.ValidatePath(CONFIG_PATH),
                 None,
                 lambda config: True,
             ),
@@ -396,7 +414,7 @@ class SiteConfig:
                 "",
                 str,
                 "Local filepath to HTTPS certificate",
-                SiteConfig.ValidateOptionalPath(self.args.ansible_path),
+                SiteConfig.ValidateOptionalPath(CONFIG_PATH),
                 None,
                 lambda config: config.get("securedrop_app_https_on_source_interface"),
             ),
@@ -405,7 +423,7 @@ class SiteConfig:
                 "",
                 str,
                 "Local filepath to HTTPS certificate key",
-                SiteConfig.ValidateOptionalPath(self.args.ansible_path),
+                SiteConfig.ValidateOptionalPath(CONFIG_PATH),
                 None,
                 lambda config: config.get("securedrop_app_https_on_source_interface"),
             ),
@@ -414,7 +432,7 @@ class SiteConfig:
                 "",
                 str,
                 "Local filepath to HTTPS certificate chain file",
-                SiteConfig.ValidateOptionalPath(self.args.ansible_path),
+                SiteConfig.ValidateOptionalPath(CONFIG_PATH),
                 None,
                 lambda config: config.get("securedrop_app_https_on_source_interface"),
             ),
@@ -432,7 +450,7 @@ class SiteConfig:
                 "ossec.pub",
                 str,
                 "Local filepath to OSSEC alerts GPG public key",
-                SiteConfig.ValidatePath(self.args.ansible_path),
+                SiteConfig.ValidatePath(CONFIG_PATH),
                 None,
                 lambda config: True,
             ),
@@ -459,7 +477,7 @@ class SiteConfig:
                 "",
                 str,
                 "Local filepath to journalist alerts GPG public key (optional)",
-                SiteConfig.ValidateOptionalPath(self.args.ansible_path),
+                SiteConfig.ValidateOptionalPath(CONFIG_PATH),
                 None,
                 lambda config: True,
             ),
@@ -560,6 +578,10 @@ class SiteConfig:
     def update_config(self, prompt: bool = True) -> bool:
         if prompt:
             self.config.update(self.user_prompt_config())
+
+        # Always add the config path to the config, so ansible can reference it
+        self.config["config_path"] = CONFIG_PATH
+
         self.save()
         self.validate_gpg_keys()
         self.validate_journalist_alert_email()
@@ -615,16 +637,16 @@ class SiteConfig:
             ("ossec_alert_gpg_public_key", "ossec_gpg_fpr"),
             ("journalist_alert_gpg_public_key", "journalist_gpg_fpr"),
         )
-        validate = os.path.join(os.path.dirname(__file__), "..", "bin", "validate-gpg-key.sh")
         for public_key, fingerprint in keys:
             if self.config[public_key] == "" and self.config[fingerprint] == "":
                 continue
-            public_key = os.path.join(self.args.ansible_path, self.config[public_key])
+            public_key = os.path.join(CONFIG_PATH, self.config[public_key])
             fingerprint = self.config[fingerprint]
             try:
                 sdlog.debug(
                     subprocess.check_output(
-                        [validate, public_key, fingerprint], stderr=subprocess.STDOUT
+                        ["/usr/bin/validate-gpg-key.sh", public_key, fingerprint],
+                        stderr=subprocess.STDOUT,
                     )
                 )
             except subprocess.CalledProcessError as e:
@@ -666,10 +688,10 @@ class SiteConfig:
         return True
 
     def exists(self) -> bool:
-        return os.path.exists(self.args.site_config)
+        return os.path.exists(SITE_CONFIG_PATH)
 
     def save(self) -> None:
-        with open(self.args.site_config, "w") as site_config_file:
+        with open(SITE_CONFIG_PATH, "w") as site_config_file:
             yaml.safe_dump(self.config, site_config_file, default_flow_style=False)
 
     def clean_config(self, config: Dict) -> Dict:
@@ -721,14 +743,14 @@ class SiteConfig:
         to current specifications.
         """
         try:
-            with open(self.args.site_config) as site_config_file:
+            with open(SITE_CONFIG_PATH) as site_config_file:
                 c = yaml.safe_load(site_config_file)
                 return self.clean_config(c) if validate else c
         except OSError:
             sdlog.error("Config file missing, re-run with sdconfig")
             raise
         except yaml.YAMLError:
-            sdlog.error(f"There was an issue processing {self.args.site_config}")
+            sdlog.error(f"There was an issue processing {SITE_CONFIG_PATH}")
             raise
 
 
@@ -742,6 +764,30 @@ def setup_logger(verbose: bool = False) -> None:
     stdout.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     stdout.setLevel(level)
     sdlog.addHandler(stdout)
+
+
+def check_for_updates(args: argparse.Namespace) -> bool:
+    """Check for SecureDrop updates
+
+    Returns True if updates are needed, False if already up to date.
+    """
+    sdlog.info("Checking for SecureDrop updates...")
+
+    # Run playbook to check for updates
+    ansible_args = [os.path.join(ANSIBLE_PATH, "securedrop-check-for-updates.yml")]
+    if OS_TYPE == OSType.TAILS and os.geteuid() != 0:
+        sdlog.info("You will be prompted for your Tails Administrator password.")
+        ansible_args.append("--ask-become-pass")
+
+    ansible_cmd = ansible_command() + ansible_args
+    try:
+        subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
+        sdlog.info("All updates applied")
+        return False
+    except subprocess.CalledProcessError as e:
+        sdlog.error(f"Update check failed: {e}")
+        sdlog.info("Update needed")
+        return True
 
 
 def update_check_required(cmd_name: str) -> Callable[[_FuncT], _FuncT]:
@@ -764,39 +810,22 @@ def update_check_required(cmd_name: str) -> Callable[[_FuncT], _FuncT]:
                 sdlog.info("Skipping update check because --force argument was provided.")
                 return func(*args, **kwargs)
 
-            update_status, latest_tag = check_for_updates(cli_args)
+            update_status = check_for_updates(cli_args)
             if update_status is True:
-                # Useful for troubleshooting
-                branch_status = get_git_branch(cli_args)
-
                 sdlog.error(
                     "You are not running the most recent signed SecureDrop release "
                     "on this workstation."
                 )
-                sdlog.error(f"Latest available version: {latest_tag}")
-
-                if branch_status is not None:
-                    sdlog.error(f"Current branch status: {branch_status}")
-                else:
-                    sdlog.error("Problem determining current branch status.")
-
-                sdlog.error(
-                    "Running outdated or mismatched code can cause significant technical issues."
-                )
-                sdlog.error(
-                    "To display more information about your repository state, run:\n\n\t"
-                    "git status\n"
-                )
                 sdlog.error(
                     "If you are certain you want to proceed, run:\n\n\t"
-                    f"./securedrop-admin --force {cmd_name}\n"
+                    f"securedrop-admin --force {cmd_name}\n"
                 )
-                sdlog.error("To apply the latest updates, run:\n\n\t./securedrop-admin update\n")
+                sdlog.error("To apply the latest updates, install operating system updates.\n")
                 sdlog.error(
                     "If this fails, see the latest upgrade guide on "
                     "https://docs.securedrop.org/ for instructions."
                 )
-                sys.exit(1)
+                sys.exit(EXIT_SUBPROCESS_ERROR)
             return func(*args, **kwargs)
 
         return cast(_FuncT, wrapper)
@@ -804,10 +833,32 @@ def update_check_required(cmd_name: str) -> Callable[[_FuncT], _FuncT]:
     return decorator_update_check
 
 
-@update_check_required("sdconfig")
+def ensure_config_path() -> None:
+    """Ensure config_path is set in the site-specific config file.
+
+    This is needed for Ansible playbooks that reference config_path.
+    Creates a minimal config if it doesn't exist, or adds config_path
+    to an existing config if missing.
+    """
+    config = SiteConfig()
+    if config.exists():
+        # Load existing config
+        existing_config = config.load(validate=False)
+        if "config_path" not in existing_config:
+            # Add config_path to existing config
+            config.config.update(existing_config)
+            config.config["config_path"] = CONFIG_PATH
+            config.save()
+    else:
+        # Create minimal config with just config_path
+        # This allows localconfig to run before full server configuration
+        config.config["config_path"] = CONFIG_PATH
+        config.save()
+
+
 def sdconfig(args: argparse.Namespace) -> int:
     """Configure SD site settings"""
-    SiteConfig(args).load_and_update_config(validate=False)
+    SiteConfig().load_and_update_config(validate=False)
     return 0
 
 
@@ -840,7 +891,7 @@ def find_or_generate_new_torv3_keys(args: argparse.Namespace) -> int:
     This method will either read v3 Tor onion service keys if found or generate
     a new public/private keypair.
     """
-    secret_key_path = os.path.join(args.ansible_path, "tor_v3_keys.json")
+    secret_key_path = os.path.join(CONFIG_PATH, "tor_v3_keys.json")
     if os.path.exists(secret_key_path):
         print(f"Tor v3 onion service keys already exist in: {secret_key_path}")
         return 0
@@ -868,15 +919,21 @@ def find_or_generate_new_torv3_keys(args: argparse.Namespace) -> int:
 def install_securedrop(args: argparse.Namespace) -> int:
     """Install/Update SecureDrop"""
 
-    SiteConfig(args).load_and_update_config(prompt=False)
+    SiteConfig().load_and_update_config(prompt=False)
 
     sdlog.info("Now installing SecureDrop on remote servers.")
-    sdlog.info("You will be prompted for the sudo password on the servers.")
+    sdlog.info("You will be prompted for your SecureDrop server password.")
     sdlog.info("The sudo password is only necessary during initial installation.")
+
     return subprocess.check_call(
         ansible_command()
-        + [os.path.join(args.ansible_path, "securedrop-prod.yml"), "--ask-become-pass"],
-        cwd=args.ansible_path,
+        + [
+            os.path.join(ANSIBLE_PATH, "securedrop-prod.yml"),
+            "--ask-become-pass",
+            "--extra-vars",
+            f"@{SITE_CONFIG_PATH}",
+        ],
+        cwd=ANSIBLE_PATH,
     )
 
 
@@ -895,8 +952,15 @@ def backup_securedrop(args: argparse.Namespace) -> int:
     back to the Admin Workstation. Future `restore` actions can be performed
     with the backup tarball."""
     sdlog.info("Backing up the Sec Application Server")
-    ansible_cmd = ansible_command() + [os.path.join(args.ansible_path, "securedrop-backup.yml")]
-    return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
+
+    ensure_config_path()
+
+    ansible_cmd = ansible_command() + [
+        os.path.join(ANSIBLE_PATH, "securedrop-backup.yml"),
+        "--extra-vars",
+        f"@{SITE_CONFIG_PATH}",
+    ]
+    return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
 
 @update_check_required("restore")
@@ -905,6 +969,9 @@ def restore_securedrop(args: argparse.Namespace) -> int:
     Requires a tarball of submissions and server config, created via
     the `backup` action."""
     sdlog.info("Restoring the SecureDrop Application Server from backup")
+
+    ensure_config_path()
+
     # Canonicalize filepath to backup tarball, so Ansible sees only the
     # basename. The files must live in args.ansible_path,
     # but the securedrop-admin
@@ -915,7 +982,9 @@ def restore_securedrop(args: argparse.Namespace) -> int:
     os.environ["ANSIBLE_STDOUT_CALLBACK"] = "debug"
 
     ansible_cmd = ansible_command() + [
-        os.path.join(args.ansible_path, "securedrop-restore.yml"),
+        os.path.join(ANSIBLE_PATH, "securedrop-restore.yml"),
+        "--extra-vars",
+        f"@{SITE_CONFIG_PATH}",
         "-e",
     ]
 
@@ -930,7 +999,7 @@ def restore_securedrop(args: argparse.Namespace) -> int:
         ansible_cmd_extras.append("restore_manual_transfer='True'")
 
     ansible_cmd.append(" ".join(ansible_cmd_extras))
-    return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
+    return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
 
 @update_check_required("localconfig")
@@ -938,176 +1007,46 @@ def run_local_config(args: argparse.Namespace) -> int:
     """Configure either Tails or Qubes environment post SD install"""
     sdlog.info("Configuring local environment")
 
-    with open("/etc/os-release") as os_release_file:
-        os_release = os_release_file.read()
+    ensure_config_path()
 
-    if 'NAME="Debian GNU/Linux"' in os_release:
+    if OS_TYPE == OSType.DEBIAN:
         sdlog.info("Detected Debian, running Qubes configuration")
         ansible_cmd = ansible_command() + [
-            os.path.join(args.ansible_path, "securedrop-qubes.yml"),
+            os.path.join(ANSIBLE_PATH, "securedrop-qubes.yml"),
+            "--extra-vars",
+            f"@{SITE_CONFIG_PATH}",
             # Passing an empty inventory file to override the automatic dynamic
             # inventory script, which fails if no site vars are configured.
             "-i",
             "/dev/null",
         ]
-        return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
-    elif 'NAME="Tails"' in os_release:
+        return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
+    elif OS_TYPE == OSType.TAILS:
         sdlog.info("Detected Tails, running Tails configuration")
         sdlog.info(
-            "You'll be prompted for the temporary Tails admin password,"
-            " which was set on Tails login screen"
+            "You will be prompted for your Tails Administrator password,"
+            " which was set on the Tails login screen"
         )
         ansible_cmd = ansible_command() + [
-            os.path.join(args.ansible_path, "securedrop-tails.yml"),
+            os.path.join(ANSIBLE_PATH, "securedrop-tails.yml"),
             "--ask-become-pass",
+            "--extra-vars",
+            f"@{SITE_CONFIG_PATH}",
             # Passing an empty inventory file to override the automatic dynamic
             # inventory script, which fails if no site vars are configured.
             "-i",
             "/dev/null",
         ]
-        return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
-
-    sdlog.error("Unsupported OS detected. Please run the appropriate configuration script.")
-    return 1
-
-
-def check_for_updates_wrapper(args: argparse.Namespace) -> int:
-    check_for_updates(args)
-    # Because the command worked properly exit with 0.
-    return 0
-
-
-def check_for_updates(args: argparse.Namespace) -> Tuple[bool, str]:
-    """Check for SecureDrop updates"""
-    sdlog.info("Checking for SecureDrop updates...")
-
-    # Determine what tag we are likely to be on. Caveat: git describe
-    # may produce very surprising results, because it will locate the most recent
-    # _reachable_ tag. However, in our current branching model, it can be
-    # relied on to determine if we're on the latest tag or not.
-    current_tag = (
-        subprocess.check_output(["git", "describe"], cwd=args.root).decode("utf-8").rstrip("\n")
-    )
-
-    # Fetch all branches
-    git_fetch_cmd = ["git", "fetch", "--all"]
-    subprocess.check_call(git_fetch_cmd, cwd=args.root)
-
-    # Get latest tag
-    git_all_tags = ["git", "tag"]
-    all_tags = (
-        subprocess.check_output(git_all_tags, cwd=args.root)
-        .decode("utf-8")
-        .rstrip("\n")
-        .split("\n")
-    )
-
-    # Do not check out any release candidate tags
-    all_prod_tags = [x for x in all_tags if "rc" not in x]
-
-    # We want the tags to be sorted based on semver
-    all_prod_tags.sort(key=Version)
-
-    latest_tag = all_prod_tags[-1]
-
-    if current_tag != latest_tag:
-        sdlog.info("Update needed")
-        return True, latest_tag
-    sdlog.info("All updates applied")
-    return False, latest_tag
-
-
-def get_git_branch(args: argparse.Namespace) -> Optional[str]:
-    """
-    Returns the starred line of `git branch` output.
-    """
-    git_branch_raw = subprocess.check_output(["git", "branch"], cwd=args.root).decode("utf-8")
-    match = re.search(r"\* (.*)\n", git_branch_raw)
-    if match is not None and len(match.groups()) > 0:
-        return match.group(1)
+        return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
     else:
-        return None
-
-
-def get_release_key_from_keyserver(
-    args: argparse.Namespace, keyserver: Optional[str] = None, timeout: int = 45
-) -> None:
-    gpg_recv = ["timeout", str(timeout), "gpg", "--batch", "--no-tty", "--recv-key"]
-    for release_key in RELEASE_KEYS:
-        # We construct the gpg --recv-key command based on optional keyserver arg.
-        if keyserver:
-            get_key_cmd = gpg_recv + ["--keyserver", keyserver] + [release_key]
-        else:
-            get_key_cmd = gpg_recv + [release_key]
-
-        subprocess.check_call(get_key_cmd, cwd=args.root)
-
-
-def update(args: argparse.Namespace) -> int:
-    """Verify, and apply latest SecureDrop workstation update"""
-    sdlog.info("Applying SecureDrop updates...")
-
-    update_status, latest_tag = check_for_updates(args)
-
-    if not update_status:
-        # Exit if we're up to date
-        return 0
-
-    sdlog.info("Verifying signature on latest update...")
-
-    # Retrieve key from openpgp.org keyserver
-    get_release_key_from_keyserver(args, keyserver=DEFAULT_KEYSERVER)
-
-    git_verify_tag_cmd = ["git", "tag", "-v", latest_tag]
-    try:
-        sig_result = subprocess.check_output(
-            git_verify_tag_cmd, stderr=subprocess.STDOUT, cwd=args.root
-        ).decode("utf-8")
-
-        good_sig_text = [
-            'Good signature from "SecureDrop Release Signing '
-            + 'Key <securedrop-release-key-2021@freedom.press>"',
-        ]
-        bad_sig_text = "BAD signature"
-        gpg_lines = sig_result.split("\n")
-
-        # Check if any strings in good_sig_text match against gpg_lines[]
-        good_sig_matches = [s for s in gpg_lines if any(xs in s for xs in good_sig_text)]
-
-        # To ensure that an adversary cannot name a malicious key good_sig_text
-        # we check that bad_sig_text does not appear, that the release key
-        # appears on the second line of the output, and that there is a single
-        # match from good_sig_text[]
-        if (
-            any(key in gpg_lines[1] for key in RELEASE_KEYS)
-            and len(good_sig_matches) == 1
-            and bad_sig_text not in sig_result
-        ):
-            # Check for duplicate branch name
-            cmd = ["git", "show-ref", "--heads", "--verify", f"refs/heads/{latest_tag}"]
-            try:
-                subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=args.root)
-                sdlog.error("Update failed: Branch name collision detected")
-                return 1
-            except subprocess.CalledProcessError as e:
-                if "not a valid ref" in e.output.decode("utf-8"):
-                    sdlog.info("Signature verification successful.")
-                else:
-                    sdlog.error("Update failed: Git command error")
-                    return 1
-        else:
-            sdlog.error("Update failed: Invalid signature format")
-            return 1
-
-    except subprocess.CalledProcessError:
-        sdlog.error("Update failed: Missing or invalid signature")
+        sdlog.error("Unsupported OS detected. Please run the appropriate configuration script.")
         return 1
 
-    # Only if the proper signature verifies do we check out the latest
-    git_checkout_cmd = ["git", "checkout", latest_tag]
-    subprocess.check_call(git_checkout_cmd, cwd=args.root)
 
-    sdlog.info(f"Updated to SecureDrop {latest_tag}.")
+def check_for_updates_command(args: argparse.Namespace) -> int:
+    """Check for SecureDrop updates"""
+    check_for_updates(args)
+    # Because the command worked properly exit with 0.
     return 0
 
 
@@ -1115,11 +1054,16 @@ def update(args: argparse.Namespace) -> int:
 def get_logs(args: argparse.Namespace) -> int:
     """Get logs for forensics and debugging purposes"""
     sdlog.info("Gathering logs for forensics and debugging")
+
+    ensure_config_path()
+
     ansible_cmd = ansible_command() + [
-        os.path.join(args.ansible_path, "securedrop-logs.yml"),
+        os.path.join(ANSIBLE_PATH, "securedrop-logs.yml"),
+        "--extra-vars",
+        f"@{SITE_CONFIG_PATH}",
     ]
 
-    subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
+    subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
     sdlog.info(
         "Please send the encrypted logs to securedrop@freedom.press or "
         "upload them to the SecureDrop support portal: " + SUPPORT_URL
@@ -1127,28 +1071,20 @@ def get_logs(args: argparse.Namespace) -> int:
     return 0
 
 
-def set_default_paths(args: argparse.Namespace) -> argparse.Namespace:
-    if not args.ansible_path:
-        args.ansible_path = args.root + "/install_files/ansible-base"
-    args.ansible_path = os.path.realpath(args.ansible_path)
-    if not args.site_config:
-        args.site_config = args.ansible_path + "/group_vars/all/site-specific"
-    args.site_config = os.path.realpath(args.site_config)
-    if not args.app_path:
-        args.app_path = args.root + "/securedrop"
-    args.app_path = os.path.realpath(args.app_path)
-    return args
-
-
 @update_check_required("reset_admin_access")
 def reset_admin_access(args: argparse.Namespace) -> int:
     """Resets SSH access to the SecureDrop servers, locking it to
     this Admin Workstation."""
     sdlog.info("Resetting SSH access to the SecureDrop servers")
+
+    ensure_config_path()
+
     ansible_cmd = ansible_command() + [
-        os.path.join(args.ansible_path, "securedrop-reset-ssh-key.yml"),
+        os.path.join(ANSIBLE_PATH, "securedrop-reset-ssh-key.yml"),
+        "--extra-vars",
+        f"@{SITE_CONFIG_PATH}",
     ]
-    return subprocess.check_call(ansible_cmd, cwd=args.ansible_path)
+    return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
 
 def parse_argv(argv: List[str]) -> argparse.Namespace:
@@ -1173,12 +1109,6 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
         required=False,
         help="force command execution without update check",
     )
-    parser.add_argument(
-        "--root", required=True, help="path to the root of the SecureDrop repository"
-    )
-    parser.add_argument("--site-config", help="path to the YAML site configuration file")
-    parser.add_argument("--ansible-path", help="path to the Ansible root")
-    parser.add_argument("--app-path", help="path to the SecureDrop application root")
     subparsers = parser.add_subparsers()
 
     parse_sdconfig = subparsers.add_parser("sdconfig", help=sdconfig.__doc__)
@@ -1219,11 +1149,10 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
         help="Restore using a backup file already present on the server",
     )
 
-    parse_update = subparsers.add_parser("update", help=update.__doc__)
-    parse_update.set_defaults(func=update)
-
-    parse_check_updates = subparsers.add_parser("check_for_updates", help=check_for_updates.__doc__)
-    parse_check_updates.set_defaults(func=check_for_updates_wrapper)
+    parse_check_updates = subparsers.add_parser(
+        "check_for_updates", help=check_for_updates_command.__doc__
+    )
+    parse_check_updates.set_defaults(func=check_for_updates_command)
 
     parse_logs = subparsers.add_parser("logs", help=get_logs.__doc__)
     parse_logs.set_defaults(func=get_logs)
@@ -1239,7 +1168,8 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
         print("Please specify an operation.\n")
         parser.print_help()
         sys.exit(1)
-    return set_default_paths(args)
+
+    return args
 
 
 def main(argv: List[str]) -> None:

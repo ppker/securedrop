@@ -34,7 +34,7 @@ update-admin-pip-requirements:  ## Update admin requirements.
 .PHONY: update-python3-requirements
 update-python3-requirements:  ## Update Python 3 requirements with pip-compile.
 	@echo "███ Updating Python 3 requirements files..."
-	@SLIM_BUILD=1 UBUNTU_VERSION=noble $(DEVSHELL) $(SDBIN)/update-requirements
+	@SLIM_BUILD=1 OS_VERSION=noble $(DEVSHELL) $(SDBIN)/update-requirements
 
 .PHONY: update-pip-requirements
 update-pip-requirements: update-admin-pip-requirements update-python3-requirements ## Update all requirements with pip-compile.
@@ -499,6 +499,29 @@ build-debs-ossec-notest: ## Build OSSEC Debian packages without running tests
 	@echo "$(SCRIPT_MESSAGE)"
 	@echo "$(OUT)"
 
+.PHONY: build-debs-admin
+build-debs-admin: OUT:=$(SCRIPT_OUTPUT_PREFIX)-securedrop-admin.$(SCRIPT_OUTPUT_EXT)
+build-debs-admin: ## Build admin Debian packages
+	@echo "Building admin Debian packages"
+	@export TERM=dumb
+	@WHAT=admin script \
+		--command $(SDROOT)/builder/build-debs.sh --return \
+		$(OUT)
+	@echo
+	@echo "$(SCRIPT_MESSAGE)"
+	@echo "$(OUT)"
+
+.PHONY: build-debs-admin-notest
+build-debs-admin-notest: OUT:=$(SCRIPT_OUTPUT_PREFIX)-securedrop-admin.$(SCRIPT_OUTPUT_EXT)
+build-debs-admin-notest: ## Build admin Debian packages without running tests
+	@echo "Building admin Debian packages, skipping tests..."
+	@export TERM=dumb
+	@NOTEST=1 WHAT=admin script \
+	       --command $(SDROOT)/builder/build-debs.sh --return \
+	       $(OUT)
+	@echo
+	@echo "$(SCRIPT_MESSAGE)"
+	@echo "$(OUT)"
 
 ########################
 #

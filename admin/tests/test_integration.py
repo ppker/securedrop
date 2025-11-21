@@ -1,24 +1,21 @@
 import os
 import re
 import shutil
-import subprocess
-import tempfile
+from pathlib import Path
 
 import pexpect
-import pytest
-import requests
-from flaky import flaky
 
-SD_DIR = ""
 CURRENT_DIR = os.path.dirname(__file__)
-ANSIBLE_BASE = ""
+CONFIG_DIR = f"{str(Path.home())}/.config/securedrop-admin"
+ANSIBLE_BASE = "/usr/share/securedrop-admin/ansible-base/"
 # Regex to strip ANSI escape chars
 # https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
 ANSI_ESCAPE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+SECUREDROP_ADMIN_CMD = "/usr/bin/securedrop-admin"
 
-
-OUTPUT1 = """app_hostname: app
+OUTPUT1 = f"""app_hostname: app
 app_ip: 10.20.2.2
+config_path: {str(Path.home())}/.config/securedrop-admin
 daily_reboot_time: 5
 dns_server:
 - 8.8.8.8
@@ -50,8 +47,9 @@ smtp_relay_port: 587
 ssh_users: sdadmin
 """
 
-JOURNALIST_ALERT_OUTPUT = """app_hostname: app
+JOURNALIST_ALERT_OUTPUT = f"""app_hostname: app
 app_ip: 10.20.2.2
+config_path: {str(Path.home())}/.config/securedrop-admin
 daily_reboot_time: 5
 dns_server:
 - 8.8.8.8
@@ -83,8 +81,9 @@ smtp_relay_port: 587
 ssh_users: sdadmin
 """
 
-HTTPS_OUTPUT_NO_POW = """app_hostname: app
+HTTPS_OUTPUT_NO_POW = f"""app_hostname: app
 app_ip: 10.20.2.2
+config_path: {str(Path.home())}/.config/securedrop-admin
 daily_reboot_time: 5
 dns_server:
 - 8.8.8.8
@@ -118,35 +117,13 @@ ssh_users: sdadmin
 
 
 def setup_function(function):
-    global SD_DIR
-    SD_DIR = tempfile.mkdtemp()
-    ANSIBLE_BASE = f"{SD_DIR}/install_files/ansible-base"
-
-    for name in ["roles", "tasks"]:
-        shutil.copytree(
-            os.path.join(CURRENT_DIR, "../../install_files/ansible-base", name),
-            os.path.join(ANSIBLE_BASE, name),
-        )
-
-    for name in ["ansible.cfg", "securedrop-prod.yml"]:
-        shutil.copy(
-            os.path.join(CURRENT_DIR, "../../install_files/ansible-base", name), ANSIBLE_BASE
-        )
-
-    cmd = f"mkdir -p {ANSIBLE_BASE}/group_vars/all".split()
-    subprocess.check_call(cmd)
+    os.makedirs(CONFIG_DIR, exist_ok=True)
     for name in ["sd_admin_test.pub", "ca.crt", "sd.crt", "key.asc"]:
-        subprocess.check_call(f"cp -r {CURRENT_DIR}/files/{name} {ANSIBLE_BASE}".split())
-    for name in ["de_DE", "es_ES", "fr_FR", "pt_BR"]:
-        dircmd = f"mkdir -p {SD_DIR}/securedrop/translations/{name}"
-        subprocess.check_call(dircmd.split())
-    subprocess.check_call(
-        f"cp {CURRENT_DIR}/files/securedrop/i18n.json {SD_DIR}/securedrop".split()
-    )
+        shutil.copy(os.path.join(CURRENT_DIR, "files", name), CONFIG_DIR)
 
 
 def teardown_function(function):
-    subprocess.check_call(f"rm -rf {SD_DIR}".split())
+    shutil.rmtree(CONFIG_DIR)
 
 
 def verify_username_prompt(child):
@@ -284,8 +261,7 @@ def verify_install_has_valid_config():
     """
     Checks that securedrop-admin install validates the configuration.
     """
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    child = pexpect.spawn(f"python {cmd} --force --root {SD_DIR} install")
+    child = pexpect.spawn(f"{SECUREDROP_ADMIN_CMD} --force install")
     child.expect(b"SUDO password:", timeout=5)
     child.close()
 
@@ -294,8 +270,7 @@ def test_install_with_no_config():
     """
     Checks that securedrop-admin install complains about a missing config file.
     """
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    child = pexpect.spawn(f"python {cmd} --force --root {SD_DIR} install")
+    child = pexpect.spawn(f"{SECUREDROP_ADMIN_CMD} --force install")
     child.expect(b'ERROR: Please run "securedrop-admin sdconfig" first.', timeout=5)
     child.expect(pexpect.EOF, timeout=5)
     child.close()
@@ -304,8 +279,7 @@ def test_install_with_no_config():
 
 
 def test_sdconfig_on_first_run():
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    child = pexpect.spawn(f"python {cmd} --force --root {SD_DIR} sdconfig")
+    child = pexpect.spawn(f"{SECUREDROP_ADMIN_CMD} --force sdconfig")
     verify_username_prompt(child)
     child.sendline("")
     verify_reboot_prompt(child)
@@ -360,9 +334,7 @@ def test_sdconfig_on_first_run():
     assert child.exitstatus == 0
     assert child.signalstatus is None
 
-    with open(
-        os.path.join(SD_DIR, "install_files/ansible-base/group_vars/all/site-specific")
-    ) as fobj:
+    with open(os.path.join(CONFIG_DIR, "site-specific")) as fobj:
         data = fobj.read()
     assert data == OUTPUT1
 
@@ -370,8 +342,7 @@ def test_sdconfig_on_first_run():
 
 
 def test_sdconfig_enable_journalist_alerts():
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    child = pexpect.spawn(f"python {cmd} --force --root {SD_DIR} sdconfig")
+    child = pexpect.spawn(f"{SECUREDROP_ADMIN_CMD} --force sdconfig")
     verify_username_prompt(child)
     child.sendline("")
     verify_reboot_prompt(child)
@@ -430,9 +401,7 @@ def test_sdconfig_enable_journalist_alerts():
     assert child.exitstatus == 0
     assert child.signalstatus is None
 
-    with open(
-        os.path.join(SD_DIR, "install_files/ansible-base/group_vars/all/site-specific")
-    ) as fobj:
+    with open(os.path.join(CONFIG_DIR, "site-specific")) as fobj:
         data = fobj.read()
     assert data == JOURNALIST_ALERT_OUTPUT
 
@@ -440,8 +409,7 @@ def test_sdconfig_enable_journalist_alerts():
 
 
 def test_sdconfig_enable_https_disable_pow_on_source_interface():
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    child = pexpect.spawn(f"python {cmd} --force --root {SD_DIR} sdconfig")
+    child = pexpect.spawn(f"{SECUREDROP_ADMIN_CMD} --force sdconfig")
     verify_username_prompt(child)
     child.sendline("")
     verify_reboot_prompt(child)
@@ -507,184 +475,8 @@ def test_sdconfig_enable_https_disable_pow_on_source_interface():
     assert child.exitstatus == 0
     assert child.signalstatus is None
 
-    with open(
-        os.path.join(SD_DIR, "install_files/ansible-base/group_vars/all/site-specific")
-    ) as fobj:
+    with open(os.path.join(CONFIG_DIR, "site-specific")) as fobj:
         data = fobj.read()
     assert data == HTTPS_OUTPUT_NO_POW
 
     verify_install_has_valid_config()
-
-
-# The following is the minimal git configuration which can be used to fetch
-# from the SecureDrop GitHub repository. We want to use this because the
-# developers may have the git setup to fetch from git@github.com: instead
-# of the https, and that requires authentication information.
-GIT_CONFIG = """[core]
-        repositoryformatversion = 0
-        filemode = true
-        bare = false
-        logallrefupdates = true
-[remote "origin"]
-        url = https://github.com/freedomofpress/securedrop.git
-        fetch = +refs/heads/*:refs/remotes/origin/*
-"""
-
-
-@pytest.fixture
-def securedrop_git_repo(tmpdir):
-    cwd = os.getcwd()
-    os.chdir(str(tmpdir))
-    # Clone the SecureDrop repository into the temp directory.
-    cmd = ["git", "clone", "https://github.com/freedomofpress/securedrop.git"]
-    subprocess.check_call(cmd)
-    os.chdir(os.path.join(str(tmpdir), "securedrop/admin"))
-    subprocess.check_call("git reset --hard".split())
-    # Now we will put in our own git configuration
-    with open("../.git/config", "w") as fobj:
-        fobj.write(GIT_CONFIG)
-    # Let us move to an older tag
-    subprocess.check_call("git checkout 0.6".split())
-    yield tmpdir
-
-    # Save coverage information in same directory as unit test coverage
-    test_name = str(tmpdir).split("/")[-1]
-    try:
-        subprocess.check_call(
-            [
-                "cp",
-                f"{str(tmpdir)}/securedrop/admin/.coverage",
-                f"{CURRENT_DIR}/../.coverage.{test_name}",
-            ]
-        )
-    except subprocess.CalledProcessError:
-        # It means the coverage file may not exist, don't error
-        pass
-
-    os.chdir(cwd)
-
-
-def set_reliable_keyserver(gpgdir):
-    # If gpg.conf doesn't exist, create it and set a reliable default
-    # keyserver for the tests.
-    gpgconf_path = os.path.join(gpgdir, "gpg.conf")
-    if not os.path.exists(gpgconf_path):
-        os.mkdir(gpgdir)
-        with open(gpgconf_path, "a") as f:
-            f.write("keyserver hkps://keys.openpgp.org")
-
-        # Ensure correct permissions on .gnupg home directory.
-        os.chmod(gpgdir, 0o0700)
-
-
-@flaky(max_runs=3)
-def test_check_for_update_when_updates_needed(securedrop_git_repo):
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    ansible_base = os.path.join(str(securedrop_git_repo), "securedrop/install_files/ansible-base")
-    fullcmd = f"coverage run {cmd} --root {ansible_base} check_for_updates"
-    child = pexpect.spawn(fullcmd)
-    child.expect(b"Update needed", timeout=20)
-
-    child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
-    child.close()
-    assert child.exitstatus == 0
-    assert child.signalstatus is None
-
-
-@flaky(max_runs=3)
-def test_check_for_update_when_updates_not_needed(securedrop_git_repo):
-    # Determine latest production tag using GitHub release object
-    github_url = "https://api.github.com/repos/freedomofpress/securedrop/releases/latest"
-    latest_release = requests.get(github_url, timeout=60).json()
-    latest_tag = str(latest_release["tag_name"])
-
-    subprocess.check_call(["git", "checkout", latest_tag])
-
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    ansible_base = os.path.join(str(securedrop_git_repo), "securedrop/install_files/ansible-base")
-    fullcmd = f"coverage run {cmd} --root {ansible_base} check_for_updates"
-    child = pexpect.spawn(fullcmd)
-    child.expect(b"All updates applied", timeout=20)
-
-    child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
-    child.close()
-    assert child.exitstatus == 0
-    assert child.signalstatus is None
-
-
-@flaky(max_runs=3)
-def test_update(securedrop_git_repo):
-    gpgdir = os.path.join(os.path.expanduser("~"), ".gnupg")
-    set_reliable_keyserver(gpgdir)
-
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    ansible_base = os.path.join(str(securedrop_git_repo), "securedrop/install_files/ansible-base")
-    child = pexpect.spawn(f"coverage run {cmd} --root {ansible_base} update")
-
-    output = child.read()
-    assert b"Updated to SecureDrop" in output
-    assert b"Signature verification successful" in output
-
-    child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
-    child.close()
-    assert child.exitstatus == 0
-    assert child.signalstatus is None
-
-
-@flaky(max_runs=3)
-def test_update_fails_when_no_signature_present(securedrop_git_repo):
-    gpgdir = os.path.join(os.path.expanduser("~"), ".gnupg")
-    set_reliable_keyserver(gpgdir)
-
-    # First we make a very high version tag of SecureDrop so that the
-    # updater will try to update to it. Since the tag is unsigned, it
-    # should fail.
-    subprocess.check_call("git checkout develop".split())
-    subprocess.check_call("git tag 9999999.0.0".split())
-
-    # Switch back to an older branch for the test
-    subprocess.check_call("git checkout 0.6".split())
-
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    ansible_base = os.path.join(str(securedrop_git_repo), "securedrop/install_files/ansible-base")
-    child = pexpect.spawn(f"coverage run {cmd} --root {ansible_base} update")
-    output = child.read()
-    assert b"Updated to SecureDrop" not in output
-    assert b"Update failed: Missing or invalid signature" in output
-
-    child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
-    child.close()
-
-    # Failures should eventually exit non-zero.
-    assert child.exitstatus != 0
-    assert child.signalstatus != 0
-
-
-@flaky(max_runs=3)
-def test_update_with_duplicate_branch_and_tag(securedrop_git_repo):
-    gpgdir = os.path.join(os.path.expanduser("~"), ".gnupg")
-    set_reliable_keyserver(gpgdir)
-
-    github_url = "https://api.github.com/repos/freedomofpress/securedrop/releases/latest"
-    latest_release = requests.get(github_url, timeout=60).json()
-    latest_tag = str(latest_release["tag_name"])
-
-    # Create a branch with the same name as a tag.
-    subprocess.check_call(["git", "checkout", "-b", latest_tag])
-    # Checkout the older tag again in preparation for the update.
-    subprocess.check_call("git checkout 0.6".split())
-
-    cmd = os.path.join(os.path.dirname(CURRENT_DIR), "securedrop_admin/__init__.py")
-    ansible_base = os.path.join(str(securedrop_git_repo), "securedrop/install_files/ansible-base")
-
-    child = pexpect.spawn(f"coverage run {cmd} --root {ansible_base} update")
-    output = child.read()
-    # Verify that we do not falsely check out a branch instead of a tag.
-    assert b"Switched to branch" not in output
-    assert b"Updated to SecureDrop" not in output
-    assert b"Update failed: Branch name collision detected" in output
-
-    child.expect(pexpect.EOF, timeout=10)  # Wait for CLI to exit
-    child.close()
-    assert child.exitstatus != 0
-    assert child.signalstatus != 0

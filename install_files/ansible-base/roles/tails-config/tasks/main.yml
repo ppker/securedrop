@@ -14,8 +14,8 @@
 
 - name: Check that we are on an admin workstation
   stat:
-    path: group_vars/all/site-specific
-  register: site_specific_result
+    path: "{{ config_path }}/tor_v3_keys.json"
+  register: admin_check_result
 
 - include_tasks: create_ssh_aliases.yml
-  when: site_specific_result.stat.exists
+  when: admin_check_result.stat.exists

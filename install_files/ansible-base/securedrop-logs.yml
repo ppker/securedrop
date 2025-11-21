@@ -9,20 +9,20 @@
   vars:
     log_paths_reference:
       app:
-        - '/var/log/apt' # dir
-        - '/var/log/cron-apt' # dir
-        - '/var/log/aptitude*'
-        - '/tmp/generated-logs' # dir
+        - "/var/log/apt" # dir
+        - "/var/log/cron-apt" # dir
+        - "/var/log/aptitude*"
+        - "/tmp/generated-logs" # dir
       mon:
-        - '/var/log/apt' # dir
-        - '/var/log/cron-apt' # dir
-        - '/var/log/aptitude*'
+        - "/var/log/apt" # dir
+        - "/var/log/cron-apt" # dir
+        - "/var/log/aptitude*"
         # syscheck contains the file integrity checking data store
-        - '/var/ossec/queue/syscheck'
-        - '/var/ossec/queue/rootcheck'
+        - "/var/ossec/queue/syscheck"
+        - "/var/ossec/queue/rootcheck"
         # OSSEC alerts archives
-        - '/var/ossec/logs'
-        - '/tmp/generated-logs' # dir
+        - "/var/ossec/logs"
+        - "/tmp/generated-logs" # dir
     fpf_support_gpg_fingerprint: "734F6E707434ECA6C007E1AE82BD6C9616DABB79"
 
   tasks:
@@ -63,7 +63,7 @@
         flat: yes
         fail_on_missing: yes
         src: "{{ log_tarball_filename }}"
-        dest: "{{ playbook_dir }}/{{ log_tarball_filename }}"
+        dest: "{{ config_path }}/{{ log_tarball_filename }}"
 
     - name: Delete tarball from server admin home directory.
       file:
@@ -89,19 +89,19 @@
       local_action: >-
         shell
         gpg --encrypt --recipient "{{ fpf_support_gpg_fingerprint }}"
-        --output "{{ log_tarball_filename }}.gpg"
+        --output "{{ config_path }}/{{ log_tarball_filename }}.gpg"
         --trust-model always
         --batch --yes
-        "{{ log_tarball_filename }}"
+        "{{ config_path }}/{{ log_tarball_filename }}"
 
     - name: Delete local unencrypted log tarballs.
       become: no
       local_action:
         module: file
-        path: "{{ log_tarball_filename }}"
+        path: "{{ config_path }}/{{ log_tarball_filename }}"
         state: absent
 
     - name: Display filenames of local log tarballs.
       debug:
         msg: >-
-          Logs copied successfully, find them at {{ (playbook_dir +'/'+ log_tarball_filename )|realpath }}.gpg .
+          Logs copied successfully, find them at {{ config_path +'/'+ log_tarball_filename  }}.gpg .

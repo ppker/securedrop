@@ -1,0 +1,24 @@
+ARG BASE_IMAGE=debian:trixie
+FROM ${BASE_IMAGE}
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get -y update && apt-get upgrade -y && apt-get install -y \
+        coreutils \
+        debhelper \
+        devscripts \
+        dh-python \
+        make \
+        pkg-config \
+        python3-all \
+        python3-pip \
+        python3-setuptools \
+        python3-venv \
+        rsync \
+        sudo \
+        tzdata \
+        unzip \
+        virtualenv
+
+COPY build-debs-admin.sh /build-debs-admin
+COPY fixup-changelog.sh /fixup-changelog
+COPY dep-check.sh /dep-check

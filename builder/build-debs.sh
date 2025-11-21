@@ -16,7 +16,13 @@ git status --short
 
 # --- END keep this section in sync. ---
 
-export UBUNTU_VERSION="${UBUNTU_VERSION:-noble}"
+WHAT="${WHAT:-securedrop}"
+
+if [[ $WHAT == "admin" ]]; then
+    export OS_VERSION="${OS_VERSION:-trixie}"
+else
+    export OS_VERSION="${OS_VERSION:-noble}"
+fi
 
 OCI_RUN_ARGUMENTS="--user=root -v $(pwd):/src:Z -e HOST_UID=$(id -u) -e HOST_GID=$(id -g)"
 
@@ -37,37 +43,66 @@ fi
 export OCI_RUN_ARGUMENTS
 export OCI_BIN
 
-WHAT="${WHAT:-securedrop}"
+echo "::group::Environment"
+echo "Running build-debs.sh with the follow environment:"
+echo "OS_VERSION='$OS_VERSION'"
+echo "WHAT='$WHAT'"
+echo "OCI_BIN='$OCI_BIN'"
+echo "OCI_RUN_ARGUMENTS='$OCI_RUN_ARGUMENTS'"
+echo "::endgroup::"
 
 cd "$(git rev-parse --show-toplevel)"
 
-. ./builder/image_prep.sh
+echo "::group::Building the builder image"
+if [[ $WHAT == "admin" ]]; then
+    # Build the admin builder
+    . ./builder/image_prep.sh admin
+else
+    # Build the server builder
+    . ./builder/image_prep.sh
+fi
+echo "::endgroup::"
 
-mkdir -p "build/${UBUNTU_VERSION}"
+mkdir -p "build/${OS_VERSION}"
 
+echo "::group::Building debian packages"
 if [[ $WHAT == "ossec" ]]; then
     # We need to build each variant separately because it dirties the container
     $OCI_BIN run --rm $OCI_RUN_ARGUMENTS \
         -e VARIANT=agent --entrypoint "/build-debs-ossec" \
-        fpf.local/sd-server-builder-${UBUNTU_VERSION}
+        fpf.local/sd-server-builder-${OS_VERSION}
     $OCI_BIN run --rm $OCI_RUN_ARGUMENTS \
         -e VARIANT=server --entrypoint "/build-debs-ossec" \
-        fpf.local/sd-server-builder-${UBUNTU_VERSION}
+        fpf.local/sd-server-builder-${OS_VERSION}
+elif [[ $WHAT == "admin" ]]; then
+    $OCI_BIN run --rm $OCI_RUN_ARGUMENTS \
+        --entrypoint "/build-debs-admin" \
+        fpf.local/sd-admin-builder-${OS_VERSION}
 else
     $OCI_BIN run --rm $OCI_RUN_ARGUMENTS \
         --entrypoint "/build-debs-securedrop" \
-        fpf.local/sd-server-builder-${UBUNTU_VERSION}
+        fpf.local/sd-server-builder-${OS_VERSION}
 fi
+echo "::endgroup::"
+
+# Display files in build, for debug purposes
+echo "::group::Contents of build directory"
+find build
+echo "::endgroup::"
 
 NOTEST="${NOTEST:-}"
 
 if [[ $NOTEST == "" ]]; then
+    echo "::group::Running tests"
     . ./devops/scripts/boot-strap-venv.sh
     virtualenv_bootstrap
 
     if [[ $WHAT == "ossec" ]]; then
         pytest -v builder/tests/test_ossec_package.py
+    elif [[ $WHAT == "admin" ]]; then
+        pytest -v builder/tests/test_admin_package.py
     else
         pytest -v builder/tests/test_securedrop_deb_package.py
     fi
+    echo "::endgroup::"
 fi
