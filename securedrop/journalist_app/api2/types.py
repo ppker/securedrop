@@ -36,6 +36,7 @@ class EventType(StrEnum):
     ITEM_SEEN = auto()
     SOURCE_DELETED = auto()
     SOURCE_CONVERSATION_DELETED = auto()
+    SOURCE_CONVERSATION_TRUNCATED = auto()
     SOURCE_STARRED = auto()
     SOURCE_UNSTARRED = auto()
 
@@ -43,6 +44,9 @@ class EventType(StrEnum):
 class EventStatusCode(IntEnum):
     Processing = 102
     OK = 200
+    # This event decomposes into multiple actions, some of which succeeded and
+    # some of which failed.  Retries for failures must be submitted in a new event.
+    MultiStatus = 207
     # We already saw and processed this event
     AlreadyReported = 208
     BadRequest = 400
@@ -144,7 +148,21 @@ class ReplySentData(EventData):
             raise ValueError("reply must be a non-empty string")
 
 
-EVENT_DATA_TYPES = {EventType.REPLY_SENT: ReplySentData}
+@dataclass(frozen=True)
+class SourceConversationTruncatedData(EventData):
+    # An upper bound of n means "delete items with interaction counts (sparsely)
+    # up to and including n".
+    upper_bound: int
+
+    def __post_init__(self) -> None:
+        if self.upper_bound < 0:
+            raise ValueError("upper_bound must be non-negative")
+
+
+EVENT_DATA_TYPES = {
+    EventType.REPLY_SENT: ReplySentData,
+    EventType.SOURCE_CONVERSATION_TRUNCATED: SourceConversationTruncatedData,
+}
 
 
 @dataclass(frozen=True)

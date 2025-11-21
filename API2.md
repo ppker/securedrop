@@ -155,7 +155,7 @@ direction TB
 [*] --> CacheLookup : process(event)
 CacheLookup: status = redis.get(event.id)
 
-CacheLookup --> IdempotentBranch : status in {102 Processing, 200 OK}
+CacheLookup --> IdempotentBranch : status in {102 Processing, 200 OK, 207 MultiStatus}
 CacheLookup --> StartBranch : status == None
 
 state "Enforce idempotency" as IdempotentBranch {
@@ -176,10 +176,13 @@ state "handle_&lt;event.type&gt;()" as Handler {
 Handler --> OK
 state "Cache and report success" as SuccessBranch {
     OK : 200 OK
-    OK --> UpdateCache
+    MultiStatus : 207 MultiStatus
 
-    UpdateCache : redis.set(event.id, OK, ttl)
-    UpdateCache --> [*] : return (OK, delta)
+    OK --> UpdateCache
+    MultiStatus --> UpdateCache
+
+    UpdateCache : redis.set(event.id, status, ttl)
+    UpdateCache --> [*] : return (status, delta)
 }
 
 Handler --> BadRequest

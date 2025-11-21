@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from typing import Any, Dict
 
 from db import db
 from journalist_app import utils
@@ -69,6 +70,7 @@ class EventHandler:
                 EventType.SOURCE_CONVERSATION_DELETED: self.handle_source_conversation_deleted,
                 EventType.SOURCE_STARRED: self.handle_source_starred,
                 EventType.SOURCE_UNSTARRED: self.handle_source_unstarred,
+                EventType.SOURCE_CONVERSATION_TRUNCATED: self.handle_source_conversation_truncated,
             }[event.type]
         except KeyError:
             return EventResult(
@@ -216,6 +218,50 @@ class EventHandler:
             status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
             items=deleted_items,
+        )
+
+    @staticmethod
+    def handle_source_conversation_truncated(event: Event, minor: int) -> EventResult:
+        """
+        A `source_conversation_truncated` event involves deleting all the items
+        in the source's collection with interaction counts less than or equal to
+        the specified upper bound, assumed to be the last item known to the
+        client.  This achieves the same consistency as a
+        `source_conversation_deleted` event without requiring its strict
+        versioning.
+        """
+
+        try:
+            source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
+        except NoResultFound:
+            return EventResult(
+                event_id=event.id,
+                status=(
+                    EventStatusCode.Gone,
+                    None,
+                ),
+            )
+
+        deleted: Dict[ItemUUID, Any] = {}
+        for item in source.collection:
+            if item.interaction_count <= event.data.upper_bound:
+                try:
+                    utils.delete_file_object(item)
+                    deleted[item.uuid] = None
+                except ValueError:
+                    deleted[item.uuid] = item
+
+        if any(deleted.values()):
+            status = EventStatusCode.MultiStatus
+        else:
+            status = EventStatusCode.OK
+
+        db.session.refresh(source)
+        return EventResult(
+            event_id=event.id,
+            status=(status, None),
+            sources={source.uuid: source},
+            items=deleted,
         )
 
     @staticmethod
