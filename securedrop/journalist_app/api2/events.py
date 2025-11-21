@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any, Dict
+from typing import List
 
 from db import db
 from journalist_app import utils
@@ -255,26 +255,27 @@ class EventHandler:
                 ),
             )
 
-        deleted: Dict[ItemUUID, Any] = {}
+        deleted: List[ItemUUID] = []
         for item in source.collection:
             if item.interaction_count <= event.data.upper_bound:
                 try:
                     utils.delete_file_object(item)
-                    deleted[item.uuid] = None
                 except ValueError:
-                    deleted[item.uuid] = item
+                    # `utils.delete_file_object()` is non-atomic: it guarantees
+                    # database deletion but not filesystem deletion.  The former
+                    # is all we need for consistency with the client, and the
+                    # latter will be caught by monitoring for "disconnected"
+                    # submissions.
+                    pass
 
-        if any(deleted.values()):
-            status = EventStatusCode.MultiStatus
-        else:
-            status = EventStatusCode.OK
+                deleted.append(item.uuid)
 
         db.session.refresh(source)
         return EventResult(
             event_id=event.id,
-            status=(status, None),
+            status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
-            items=deleted,
+            items={item_uuid: None for item_uuid in deleted},
         )
 
     @staticmethod

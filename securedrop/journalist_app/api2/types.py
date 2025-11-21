@@ -44,9 +44,6 @@ class EventType(StrEnum):
 class EventStatusCode(IntEnum):
     Processing = 102
     OK = 200
-    # This event decomposes into multiple actions, some of which succeeded and
-    # some of which failed.  Retries for failures must be submitted in a new event.
-    MultiStatus = 207
     # We already saw and processed this event
     AlreadyReported = 208
     BadRequest = 400

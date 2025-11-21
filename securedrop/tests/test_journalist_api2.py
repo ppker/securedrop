@@ -1170,10 +1170,10 @@ def test_api2_source_conversation_truncated(
 
         status_code, msg = response.json["events"][event.id]
         # Because some deletes may fail (simulated) and some succeed, the handler
-        # returns 200 if all succeed, or 207 (MultiStatus) if any fail.
+        # returns 200 if all succeed.
         # The test_files fixtures never cause delete_file_object() to raise,
         # so OK (200) is expected.
-        assert status_code in (200, 207)
+        assert status_code == 200
 
         # Verify item-wise results
         returned_items = response.json["items"]
