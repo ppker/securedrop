@@ -120,12 +120,18 @@ class EventHandler:
                 status=(EventStatusCode.Gone, None),
             )
 
-        utils.delete_file_object(item)
-        return EventResult(
-            event_id=event.id,
-            status=(EventStatusCode.OK, None),
-            items={event.target.item_uuid: None},
-        )
+        try:
+            utils.delete_file_object(item)
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.OK, None),
+                items={event.target.item_uuid: None},
+            )
+        except ValueError as exc:
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.InternalServerError, str(exc)),
+            )
 
     @staticmethod
     def handle_reply_sent(event: Event, minor: int) -> EventResult:
@@ -176,13 +182,19 @@ class EventHandler:
         # Mark as deleted all the items in the source's collection
         deleted_items = {item.uuid: None for item in source.collection}
 
-        utils.delete_collection(source.filesystem_id)
-        return EventResult(
-            event_id=event.id,
-            status=(EventStatusCode.OK, None),
-            sources={event.target.source_uuid: None},
-            items=deleted_items,
-        )
+        try:
+            utils.delete_collection(source.filesystem_id)
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.OK, None),
+                sources={event.target.source_uuid: None},
+                items=deleted_items,
+            )
+        except ValueError as exc:
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.InternalServerError, str(exc)),
+            )
 
     @staticmethod
     def handle_source_conversation_deleted(event: Event, minor: int) -> EventResult:
@@ -210,6 +222,7 @@ class EventHandler:
         # Mark as deleted all the items in the source's collection
         deleted_items = {item.uuid: None for item in source.collection}
 
+        # NB. Does not raise exceptions from `utils.delete_file_object()`.
         utils.delete_source_files(source.filesystem_id)
         db.session.refresh(source)
 

@@ -56,6 +56,7 @@ class EventStatusCode(IntEnum):
     Conflict = 409
     # The target UUID doesn't exist and it was a deletion request
     Gone = 410
+    InternalServerError = 500
     NotImplemented = 501
 
 
