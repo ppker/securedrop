@@ -1106,3 +1106,104 @@ def test_api_minor_versions(journalist_app, journalist_api_token, test_files, mi
 
         else:
             assert "events" not in resp.json
+
+
+def test_api2_source_conversation_truncated(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """
+    Test processing of the "source_conversation_truncated" event.
+    Items with interaction_count <= upper_bound must be deleted.
+    Items with interaction_count > upper_bound must remain.
+    """
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+
+        # Ensure we have submissions/replies and interaction_count fields
+        assert len(test_files["submissions"]) >= 1
+        assert len(test_files["replies"]) >= 1
+
+        # Fetch index to get current versions and interaction counts
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+
+        # Build a map of item_uuid -> interaction_count
+        item_uuids = [item.uuid for item in (test_files["submissions"] + test_files["replies"])]
+
+        batch_resp = app.post(
+            url_for("api2.data"),
+            json={"items": item_uuids},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert batch_resp.status_code == 200
+        data = batch_resp.json
+
+        initial_counts = {
+            item_uuid: item["interaction_count"] for item_uuid, item in data["items"].items()
+        }
+
+        # Choose a bound that deletes some but not all items
+        # Pick the median interaction_count so we get both outcomes
+        sorted_counts = sorted(initial_counts.values())
+        upper_bound = sorted_counts[len(sorted_counts) // 2]
+
+        source_version = index.json["sources"][source.uuid]
+
+        event = Event(
+            id="999001",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.SOURCE_CONVERSATION_TRUNCATED,
+            data={"upper_bound": upper_bound},
+        )
+
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.status_code == 200
+
+        status_code, msg = response.json["events"][event.id]
+        # Because some deletes may fail (simulated) and some succeed, the handler
+        # returns 200 if all succeed.
+        # The test_files fixtures never cause delete_file_object() to raise,
+        # so OK (200) is expected.
+        assert status_code == 200
+
+        # Verify item-wise results
+        returned_items = response.json["items"]
+        assert isinstance(returned_items, dict)
+
+        for item_uuid, count in initial_counts.items():
+            if count <= upper_bound:
+                # Must be returned as deleted: {uuid: None}
+                assert item_uuid in returned_items
+                assert returned_items[item_uuid] is None
+                # Also confirm removal in DB
+                assert (
+                    Submission.query.filter(Submission.uuid == item_uuid).one_or_none()
+                    or Reply.query.filter(Reply.uuid == item_uuid).one_or_none()
+                ) is None
+            else:
+                # Must not be deleted
+                assert (
+                    Submission.query.filter(Submission.uuid == item_uuid).one_or_none()
+                    or Reply.query.filter(Reply.uuid == item_uuid).one_or_none()
+                ) is not None
+
+        # Source must still exist
+        assert Source.query.filter(Source.uuid == source.uuid).one_or_none() is not None
+
+        # Resubmission must yield "Already Reported" (208)
+        res2 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert res2.status_code == 200
+        assert res2.json["events"][event.id][0] == 208

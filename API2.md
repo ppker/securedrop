@@ -179,7 +179,7 @@ state "Cache and report success" as SuccessBranch {
     OK --> UpdateCache
 
     UpdateCache : redis.set(event.id, OK, ttl)
-    UpdateCache --> [*] : return (OK, delta)
+    UpdateCache --> [*] : return (status, delta)
 }
 
 Handler --> BadRequest

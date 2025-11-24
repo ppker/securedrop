@@ -280,6 +280,12 @@ class Submission(db.Model):
         )
 
     @property
+    def interaction_count(self) -> int:
+        # Extract interaction_count from filename
+        # (format: {interaction_count}-{journalist_filename}-*)
+        return int(self.filename.split("-")[0])
+
+    @property
     def is_file(self) -> bool:
         return self.filename.endswith("doc.gz.gpg") or self.filename.endswith("doc.zip.gpg")
 
@@ -293,10 +299,6 @@ class Submission(db.Model):
         else:  # is_message
             seen_by = [m.journalist.uuid for m in self.seen_messages if m.journalist]
 
-        # Extract interaction_count from filename
-        # (format: {interaction_count}-{journalist_filename}-*)
-        interaction_count = int(self.filename.split("-")[0])
-
         data = {
             "kind": "file" if self.is_file else "message",
             "uuid": self.uuid,
@@ -308,7 +310,7 @@ class Submission(db.Model):
         }
 
         if minor >= 2:
-            data["interaction_count"] = interaction_count
+            data["interaction_count"] = self.interaction_count
 
         return data
 
@@ -409,11 +411,13 @@ class Reply(db.Model):
             base.joinedload(cls.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
         )
 
-    def to_api_v2(self, minor: int) -> Dict[str, Any]:
+    @property
+    def interaction_count(self) -> int:
         # Extract interaction_count from filename
-        # (format: {interaction_count}-{journalist_filename}-reply.gpg)
-        interaction_count = int(self.filename.split("-")[0])
+        # (format: {interaction_count}-{journalist_filename}-*)
+        return int(self.filename.split("-")[0])
 
+    def to_api_v2(self, minor: int) -> Dict[str, Any]:
         data = {
             "kind": "reply",
             "uuid": self.uuid,
@@ -425,7 +429,7 @@ class Reply(db.Model):
         }
 
         if minor >= 2:
-            data["interaction_count"] = interaction_count
+            data["interaction_count"] = self.interaction_count
 
         return data
 

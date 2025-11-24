@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from typing import List
 
 from db import db
 from journalist_app import utils
@@ -69,6 +70,7 @@ class EventHandler:
                 EventType.SOURCE_CONVERSATION_DELETED: self.handle_source_conversation_deleted,
                 EventType.SOURCE_STARRED: self.handle_source_starred,
                 EventType.SOURCE_UNSTARRED: self.handle_source_unstarred,
+                EventType.SOURCE_CONVERSATION_TRUNCATED: self.handle_source_conversation_truncated,
             }[event.type]
         except KeyError:
             return EventResult(
@@ -118,12 +120,18 @@ class EventHandler:
                 status=(EventStatusCode.Gone, None),
             )
 
-        utils.delete_file_object(item)
-        return EventResult(
-            event_id=event.id,
-            status=(EventStatusCode.OK, None),
-            items={event.target.item_uuid: None},
-        )
+        try:
+            utils.delete_file_object(item)
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.OK, None),
+                items={event.target.item_uuid: None},
+            )
+        except ValueError as exc:
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.InternalServerError, str(exc)),
+            )
 
     @staticmethod
     def handle_reply_sent(event: Event, minor: int) -> EventResult:
@@ -174,13 +182,19 @@ class EventHandler:
         # Mark as deleted all the items in the source's collection
         deleted_items = {item.uuid: None for item in source.collection}
 
-        utils.delete_collection(source.filesystem_id)
-        return EventResult(
-            event_id=event.id,
-            status=(EventStatusCode.OK, None),
-            sources={event.target.source_uuid: None},
-            items=deleted_items,
-        )
+        try:
+            utils.delete_collection(source.filesystem_id)
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.OK, None),
+                sources={event.target.source_uuid: None},
+                items=deleted_items,
+            )
+        except ValueError as exc:
+            return EventResult(
+                event_id=event.id,
+                status=(EventStatusCode.InternalServerError, str(exc)),
+            )
 
     @staticmethod
     def handle_source_conversation_deleted(event: Event, minor: int) -> EventResult:
@@ -208,6 +222,7 @@ class EventHandler:
         # Mark as deleted all the items in the source's collection
         deleted_items = {item.uuid: None for item in source.collection}
 
+        # NB. Does not raise exceptions from `utils.delete_file_object()`.
         utils.delete_source_files(source.filesystem_id)
         db.session.refresh(source)
 
@@ -216,6 +231,51 @@ class EventHandler:
             status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
             items=deleted_items,
+        )
+
+    @staticmethod
+    def handle_source_conversation_truncated(event: Event, minor: int) -> EventResult:
+        """
+        A `source_conversation_truncated` event involves deleting all the items
+        in the source's collection with interaction counts less than or equal to
+        the specified upper bound, assumed to be the last item known to the
+        client.  This achieves the same consistency as a
+        `source_conversation_deleted` event without requiring its strict
+        versioning.
+        """
+
+        try:
+            source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
+        except NoResultFound:
+            return EventResult(
+                event_id=event.id,
+                status=(
+                    EventStatusCode.Gone,
+                    None,
+                ),
+            )
+
+        deleted: List[ItemUUID] = []
+        for item in source.collection:
+            if item.interaction_count <= event.data.upper_bound:
+                try:
+                    utils.delete_file_object(item)
+                except ValueError:
+                    # `utils.delete_file_object()` is non-atomic: it guarantees
+                    # database deletion but not filesystem deletion.  The former
+                    # is all we need for consistency with the client, and the
+                    # latter will be caught by monitoring for "disconnected"
+                    # submissions.
+                    pass
+
+                deleted.append(item.uuid)
+
+        db.session.refresh(source)
+        return EventResult(
+            event_id=event.id,
+            status=(EventStatusCode.OK, None),
+            sources={source.uuid: source},
+            items={item_uuid: None for item_uuid in deleted},
         )
 
     @staticmethod

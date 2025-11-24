@@ -36,6 +36,7 @@ class EventType(StrEnum):
     ITEM_SEEN = auto()
     SOURCE_DELETED = auto()
     SOURCE_CONVERSATION_DELETED = auto()
+    SOURCE_CONVERSATION_TRUNCATED = auto()
     SOURCE_STARRED = auto()
     SOURCE_UNSTARRED = auto()
 
@@ -52,6 +53,7 @@ class EventStatusCode(IntEnum):
     Conflict = 409
     # The target UUID doesn't exist and it was a deletion request
     Gone = 410
+    InternalServerError = 500
     NotImplemented = 501
 
 
@@ -144,7 +146,21 @@ class ReplySentData(EventData):
             raise ValueError("reply must be a non-empty string")
 
 
-EVENT_DATA_TYPES = {EventType.REPLY_SENT: ReplySentData}
+@dataclass(frozen=True)
+class SourceConversationTruncatedData(EventData):
+    # An upper bound of n means "delete items with interaction counts (sparsely)
+    # up to and including n".
+    upper_bound: int
+
+    def __post_init__(self) -> None:
+        if self.upper_bound < 0:
+            raise ValueError("upper_bound must be non-negative")
+
+
+EVENT_DATA_TYPES = {
+    EventType.REPLY_SENT: ReplySentData,
+    EventType.SOURCE_CONVERSATION_TRUNCATED: SourceConversationTruncatedData,
+}
 
 
 @dataclass(frozen=True)
