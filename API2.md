@@ -233,8 +233,18 @@ E_n\}$; and
 
 4. $C$'s index SHOULD match $S$'s index without a subsequent synchronization.
 
-This property does not hold for resubmitted events (returning HTTP `208 Already
-Reported)`. A subsequent synchronization MAY be necessary for the client to
+This property does not hold:
+
+- when the server has multiple active clients. Because this API reuses some
+  utility functions from the v1 Journalist API, it inherits the inconsistent
+  transaction isolation of the latter's use of a shared SQLAlchemy session, which
+  may cause side effects of events received very close in time to be interleaved
+  at the SQLite level.
+
+- for resubmitted events, which return an HTTP `208 Already Reported` status
+  without the full result of the event.
+
+In these cases, a subsequent synchronization MAY be necessary for the client to
 "catch up" to the effects of accepted events.
 
 #### Snowflake IDs
