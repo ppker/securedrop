@@ -1,15 +1,20 @@
-securedrop (2.13.0~rc1) unstable; urgency=medium
+securedrop (2.14.0~rc1) unstable; urgency=medium
+
+  * 
+
+ -- SecureDrop Team <securedrop@freedom.press>  Fri, 05 Dec 2025 10:56:53 -0500
+
+securedrop (2.13.0) unstable; urgency=medium
 
   * see changelog.md
 
- -- SecureDrop Team <securedrop@freedom.press>  Thu, 25 Sep 2025 11:06:25 -0400
+ -- SecureDrop Team <securedrop@freedom.press>  Thu, 04 Dec 2025 10:45:00 -0500
 
 securedrop (2.12.10) unstable; urgency=medium
 
   * see changelog.md
 
  -- SecureDrop Team <securedrop@freedom.press>  Wed, 24 Sep 2025 14:36:57 -0400
-
 
 securedrop (2.12.9) unstable; urgency=medium
 
