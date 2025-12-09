@@ -13,8 +13,6 @@ pytest-mock
 requests[socks]>=2.31.0
 selenium>4.15.1
 tbselenium>=0.9
-urllib3>=2.5.0;python_version>="3.9"
-urllib3>=1.26.5
 # mypy and co.
 mypy>=1.0
 sqlalchemy-stubs==0.4
