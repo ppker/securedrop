@@ -1,6 +1,8 @@
 [advisories]
 # advisory IDs to ignore e.g. ["RUSTSEC-2019-0001", ...]
 ignore = [
+    # CVE-2025-67897 in Sequoia, we don't decrypt packets from attackers (just journalists)
+    "RUSTSEC-2025-0136"
 ]
 
 # Output Configuration
