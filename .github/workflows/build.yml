@@ -43,7 +43,7 @@ jobs:
       - name: Build admin packages
         run: |
           OS_VERSION=${{ matrix.versions.ubuntu }} WHAT=admin ./builder/build-debs.sh
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         id: upload
         with:
           name: ${{ matrix.versions.ubuntu }}-${{ matrix.build }}
