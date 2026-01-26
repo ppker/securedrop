@@ -12,7 +12,13 @@ from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app import api2, create_app
 from journalist_app.api2.shared import json_version
-from journalist_app.api2.types import VERSION_LEN, Event, EventType, ItemTarget, SourceTarget
+from journalist_app.api2.types import (
+    VERSION_LEN,
+    Event,
+    EventType,
+    ItemTarget,
+    SourceTarget,
+)
 from models import Reply, Source, SourceStar, Submission, db
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.factories import SecureDropConfigFactory

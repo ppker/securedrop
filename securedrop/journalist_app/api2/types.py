@@ -126,8 +126,8 @@ class ItemTarget(Target):
 @dataclass(frozen=True)
 class EventData:
     """
-    Base class for `<EventType>Data dataclasses, to make their union usable at runtime.
-    For non-empty events, subclass and add to `EVENT_DATA_TYPES`.
+    Base class for `<EventType>Data` dataclasses, to make their union usable at
+    runtime.  For non-empty events, subclass and add to `EVENT_TYPES`.
     """
 
 
@@ -157,9 +157,15 @@ class SourceConversationTruncatedData(EventData):
             raise ValueError("upper_bound must be non-negative")
 
 
-EVENT_DATA_TYPES = {
-    EventType.REPLY_SENT: ReplySentData,
-    EventType.SOURCE_CONVERSATION_TRUNCATED: SourceConversationTruncatedData,
+EVENT_TYPES = {
+    EventType.REPLY_SENT: (SourceTarget, ReplySentData),
+    EventType.ITEM_DELETED: (ItemTarget, None),
+    EventType.ITEM_SEEN: (ItemTarget, None),
+    EventType.SOURCE_DELETED: (SourceTarget, None),
+    EventType.SOURCE_CONVERSATION_DELETED: (SourceTarget, None),
+    EventType.SOURCE_CONVERSATION_TRUNCATED: (SourceTarget, SourceConversationTruncatedData),
+    EventType.SOURCE_STARRED: (SourceTarget, None),
+    EventType.SOURCE_UNSTARRED: (SourceTarget, None),
 }
 
 
@@ -180,45 +186,46 @@ class Event:
         if not isinstance(self.type, EventType):
             object.__setattr__(self, "type", EventType(self.type))
 
+        # Look up the expected types for this event type:
+        expected_target_type, expected_data_type = EVENT_TYPES[self.type]
+
         # Normalize target:
         target = self.target
-        if not isinstance(target, Target):
+        if not isinstance(target, expected_target_type):
             if not isinstance(target, Mapping):
-                raise TypeError(f"invalid event target: {target!r}")
+                raise TypeError(f"invalid event target for type {self.type}: {target!r}")
 
-            if "source_uuid" in target:
-                target = SourceTarget(**target)
-            elif "item_uuid" in target:
-                target = ItemTarget(**target)
-            else:
-                raise TypeError(f"invalid event target: {target}")
+            try:
+                target = expected_target_type(**target)
+            except (TypeError, ValueError):
+                raise TypeError(f"invalid event target for type {self.type}")
 
             object.__setattr__(self, "target", target)
 
         # Normalize data:
         data = self.data
-        if data is None:
+        if data is None and expected_data_type is None:
+            return
+        elif expected_data_type is None:
+            object.__setattr__(self, "data", None)
             return
 
-        # If it's already a `EventData` dataclass, validate it:
+        # If it's already an `EventData` dataclass, validate it:
         if isinstance(data, EventData):
-            expected = EVENT_DATA_TYPES.get(self.type)
-            if expected is not None and not isinstance(data, expected):
+            if not isinstance(data, expected_data_type):
                 raise TypeError(f"invalid event data for type {self.type}")
             return
 
-        # If it's a mapping for an event type that expects data, instantiate an
-        # `EventType` dataclass:
-        if isinstance(data, Mapping) and self.type in EVENT_DATA_TYPES:
+        # If it's a mapping, try to instantiate an `EventData` dataclass:
+        elif isinstance(data, Mapping):
             try:
-                data_obj = EVENT_DATA_TYPES[self.type](**data)
-            except TypeError:
+                data_obj = expected_data_type(**data)
+            except (TypeError, ValueError):
                 raise TypeError(f"invalid event data for type {self.type}")
             object.__setattr__(self, "data", data_obj)
 
-        # Otherwise, discard it.
         else:
-            object.__setattr__(self, "data", None)
+            raise TypeError(f"invalid event data for type {self.type}")
 
 
 @dataclass(frozen=True)
