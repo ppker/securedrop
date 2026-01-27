@@ -6,6 +6,7 @@ packaging==24.1 \
     # via
     #   -r requirements/bootstrap-requirements.in
     #   setuptools-scm
+    #   wheel
 pip==25.2 \
     --hash=sha256:578283f006390f85bb6282dffb876454593d637f5d1be494b5202ce4877e71f2 \
     --hash=sha256:6d67a2b4e7f14d8b31b8b52648866fa717f45a1eb70e83002f4331d07e953717
@@ -22,7 +23,7 @@ setuptools-scm==8.1.0 \
     # via
     #   -c requirements/constraints.txt
     #   -r requirements/bootstrap-requirements.in
-wheel==0.38.4 \
-    --hash=sha256:965f5259b566725405b05e7cf774052044b1ed30119b5d586b2703aafe8719ac \
-    --hash=sha256:b60533f3f5d530e971d6737ca6d58681ee434818fab630c83a734bb10c083ce8
+wheel==0.46.3 \
+    --hash=sha256:4b399d56c9d9338230118d705d9737a2a468ccca63d5e813e2a4fc7815d8bc4d \
+    --hash=sha256:e3e79874b07d776c40bd6033f8ddf76a7dad46a7b8aa1b2787a83083519a1803
     # via -r requirements/bootstrap-requirements.in
