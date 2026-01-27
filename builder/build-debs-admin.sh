@@ -15,6 +15,9 @@ cp -R /src/install_files/ansible-base /srv/securedrop-admin/
 cp -R /src/securedrop/translations /srv/securedrop-admin/
 cp /src/securedrop/i18n.json /srv/securedrop-admin/
 
+# Copy keepassxc template database
+cp -R /src/keepassxc /srv/securedrop-admin/
+
 # Copy binaries
 mkdir -p /srv/securedrop-admin/bin
 cp /src/admin/bin/validate-gpg-key.sh /srv/securedrop-admin/bin/
