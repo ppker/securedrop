@@ -29,12 +29,16 @@ class EventHandler:
     This class is the per-request context for handling events.  To add a handler
     for a new event `thing_done`, you must:
 
-    1. define the enum value `EventType.THING_DONE` in journalist_api2.types;
+    1. define the enum value `EventType.THING_DONE` in
+       `journalist_api2.types.EventType`;
 
-    2. define the handler as a static method `handle_thing_done(event: Event)`
+    2. define its expected target and data types in
+       `journalist_api2.types.EVENT_DATA_TYPES`;
+
+    3. define the handler as a static method `handle_thing_done(event: Event)`
        in this class
 
-    3. explicitly register `{"thing_done": self.handle_thing_done}` inside
+    4. explicitly register `{"thing_done": self.handle_thing_done}` inside
       `EventHandler.process()`.
 
     This is belt-and-suspenders for ensuring that only the intended methods are
