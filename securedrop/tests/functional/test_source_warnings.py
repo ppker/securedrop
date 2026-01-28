@@ -9,19 +9,19 @@ from tests.functional.web_drivers import _FIREFOX_PATH
 
 
 @pytest.fixture
-def orbot_web_driver(sd_servers):
-    # Create new profile and driver with the orbot user agent
-    orbot_user_agent = "Mozilla/5.0 (Android; Mobile; rv:52.0) Gecko/20100101 Firefox/52.0"
+def tor_browser_android_web_driver(sd_servers):
+    # Create new profile and driver with the Tor Browser for Android user agent
+    tba_user_agent = "Mozilla/5.0 (Android 10; Mobile; rv:115.0) Gecko/115.0 Firefox/115.0"
     f_profile_path2 = "/tmp/testprofile2"
     if os.path.exists(f_profile_path2):
         shutil.rmtree(f_profile_path2)
     os.mkdir(f_profile_path2)
     profile = webdriver.FirefoxProfile(f_profile_path2)
-    profile.set_preference("general.useragent.override", orbot_user_agent)
+    profile.set_preference("general.useragent.override", tba_user_agent)
 
-    orbot_options = webdriver.FirefoxOptions()
-    orbot_options.binary_location = _FIREFOX_PATH
-    orbot_options.profile = profile
+    tba_options = webdriver.FirefoxOptions()
+    tba_options.binary_location = _FIREFOX_PATH
+    tba_options.profile = profile
 
     if sd_servers.journalist_app_base_url.find(".onion") != -1:
         # set FF preference to socks proxy in Tor Browser
@@ -32,17 +32,17 @@ def orbot_web_driver(sd_servers):
         profile.set_preference("network.proxy.socks_remote_dns", True)
         profile.set_preference("network.dns.blockDotOnion", False)
     profile.update_preferences()
-    orbot_web_driver = webdriver.Firefox(options=orbot_options)
+    tba_web_driver = webdriver.Firefox(options=tba_options)
 
     # Set a null locale so this driver behaves the same as the others
-    orbot_web_driver.locale = None  # type: ignore[attr-defined]
+    tba_web_driver.locale = None  # type: ignore[attr-defined]
 
     try:
-        driver_user_agent = orbot_web_driver.execute_script("return navigator.userAgent")
-        assert driver_user_agent == orbot_user_agent
-        yield orbot_web_driver
+        driver_user_agent = tba_web_driver.execute_script("return navigator.userAgent")
+        assert driver_user_agent == tba_user_agent
+        yield tba_web_driver
     finally:
-        orbot_web_driver.quit()
+        tba_web_driver.quit()
 
 
 class TestSourceAppBrowserWarnings:
@@ -72,12 +72,14 @@ class TestSourceAppBrowserWarnings:
 
         navigator.nav_helper.wait_for(warning_banner_is_hidden)
 
-    def test_warning_appears_if_orbot_is_used(self, sd_servers, orbot_web_driver):
+    def test_warning_appears_if_tor_browser_android_is_used(
+        self, sd_servers, tor_browser_android_web_driver
+    ):
         # Given a user
         navigator = SourceAppNavigator(
             source_app_base_url=sd_servers.source_app_base_url,
-            # Who is using Orbot instead of the (desktop) Tor browser
-            web_driver=orbot_web_driver,
+            # Who is using Tor Browser for Android instead of the desktop Tor Browser
+            web_driver=tor_browser_android_web_driver,
         )
 
         # When they access the source app's home page
