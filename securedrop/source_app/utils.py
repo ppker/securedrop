@@ -13,7 +13,7 @@ from source_user import SourceUser
 from store import Storage
 
 if typing.TYPE_CHECKING:
-    from typing import Optional
+    pass
 
 
 def codename_detected(message: str, codename: str) -> bool:
@@ -28,7 +28,7 @@ def codename_detected(message: str, codename: str) -> bool:
 
 def flash_msg(
     category: str,
-    declarative: "Optional[str]",
+    declarative: "str | None",
     *msg_contents: "str",
 ) -> None:
     """
@@ -87,7 +87,7 @@ def normalize_timestamps(logged_in_source: SourceUser) -> None:
             )
 
 
-def check_url_file(path: str, regexp: str) -> "Optional[str]":
+def check_url_file(path: str, regexp: str) -> "str | None":
     """
     Check that a file exists at the path given and contains a single line
     matching the regexp. Used for checking the source interface address
@@ -105,7 +105,7 @@ def check_url_file(path: str, regexp: str) -> "Optional[str]":
         return None
 
 
-def get_sourcev3_url() -> "Optional[str]":
+def get_sourcev3_url() -> "str | None":
     return check_url_file("/var/lib/securedrop/source_v3_url", r"^[a-z0-9]{56}\.onion$")
 
 

@@ -1,6 +1,6 @@
 import time
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, Tuple
 
 import pytest
 from selenium.webdriver.common.by import By
@@ -15,8 +15,8 @@ SESSION_EXPIRATION_SECONDS = 3
 
 @pytest.fixture(scope="session")
 def sd_servers_with_short_timeout(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, str],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, str],
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Spawn the source and journalist apps as separate processes with a short session timeout."""
     # Generate a securedrop config with a very short session timeout

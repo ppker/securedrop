@@ -5,7 +5,7 @@ This module contains helper functions factored out of the v1 Journalist API
 
 import hashlib
 import os
-from typing import Mapping
+from collections.abc import Mapping
 from uuid import UUID
 
 from db import db

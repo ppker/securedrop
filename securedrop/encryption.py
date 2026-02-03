@@ -3,7 +3,7 @@ import re
 import typing
 from io import BytesIO
 from pathlib import Path
-from typing import BinaryIO, Dict, Optional
+from typing import BinaryIO, Optional
 
 import pretty_bad_protocol as gnupg
 from redis import Redis
@@ -59,7 +59,7 @@ class EncryptionManager:
         # see: https://lists.gnupg.org/pipermail/gnupg-users/2016-May/055965.html
         self._gpg_for_key_deletion = None
 
-    def gpg(self, for_deletion: Optional[bool] = False) -> gnupg.GPG:
+    def gpg(self, for_deletion: bool | None = False) -> gnupg.GPG:
         if for_deletion:
             if self._gpg_for_key_deletion is None:
                 # GPG binary to be used for key deletion: always delete keys without
@@ -189,7 +189,7 @@ class EncryptionManager:
 
         return out.data.decode("utf-8")
 
-    def _get_source_key_details(self, source_filesystem_id: str) -> Dict[str, str]:
+    def _get_source_key_details(self, source_filesystem_id: str) -> dict[str, str]:
         for key in self.gpg().list_keys():
             for uid in key["uids"]:
                 if source_filesystem_id in uid and self.SOURCE_KEY_UID_RE.match(uid):

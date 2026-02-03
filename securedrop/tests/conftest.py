@@ -5,9 +5,10 @@ import os
 import shutil
 import signal
 import subprocess
+from collections.abc import Generator
 from os import path
 from pathlib import Path
-from typing import Any, Dict, Generator, Tuple
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -68,7 +69,7 @@ def insecure_scrypt() -> Generator[None, None, None]:
 
 
 @pytest.fixture(scope="session")
-def setup_journalist_key_and_gpg_folder() -> Generator[Tuple[str, Path], None, None]:
+def setup_journalist_key_and_gpg_folder() -> Generator[tuple[str, Path], None, None]:
     """Set up the journalist test key and the key folder, and reduce source key length for speed.
 
     This fixture takes about 2s to complete hence we use the "session" scope to only run it once.
@@ -101,8 +102,8 @@ def setup_journalist_key_and_gpg_folder() -> Generator[Tuple[str, Path], None, N
 
 @pytest.fixture
 def config(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, str],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, str],
 ) -> Generator[SecureDropConfig, None, None]:
     journalist_key_fingerprint, gpg_key_dir = setup_journalist_key_and_gpg_folder
     worker_name, _ = setup_rqworker
@@ -184,7 +185,7 @@ def journalist_app(config: SecureDropConfig, app_storage: Storage) -> Generator[
 
 
 @pytest.fixture
-def test_journo(journalist_app: Flask) -> Dict[str, Any]:
+def test_journo(journalist_app: Flask) -> dict[str, Any]:
     with journalist_app.app_context():
         user, password = utils.db_helper.init_journalist(is_admin=False)
         username = user.username
@@ -202,7 +203,7 @@ def test_journo(journalist_app: Flask) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def test_admin(journalist_app: Flask) -> Dict[str, Any]:
+def test_admin(journalist_app: Flask) -> dict[str, Any]:
     with journalist_app.app_context():
         user, password = utils.db_helper.init_journalist(is_admin=True)
         username = user.username
@@ -217,7 +218,7 @@ def test_admin(journalist_app: Flask) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def test_source(journalist_app: Flask, app_storage: Storage) -> Dict[str, Any]:
+def test_source(journalist_app: Flask, app_storage: Storage) -> dict[str, Any]:
     with journalist_app.app_context():
         passphrase = PassphraseGenerator.get_default().generate_passphrase()
         source_user = create_source_user(
@@ -238,7 +239,7 @@ def test_source(journalist_app: Flask, app_storage: Storage) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def test_submissions(journalist_app: Flask, app_storage: Storage) -> Dict[str, Any]:
+def test_submissions(journalist_app: Flask, app_storage: Storage) -> dict[str, Any]:
     with journalist_app.app_context():
         source, codename = utils.db_helper.init_source(app_storage)
         utils.db_helper.submit(app_storage, source, 2)
@@ -323,7 +324,7 @@ def journalist_api_token(journalist_app, test_journo):
 
 
 @pytest.fixture(scope="session")
-def setup_rqworker() -> Generator[Tuple[str, Path], None, None]:
+def setup_rqworker() -> Generator[tuple[str, Path], None, None]:
     # The PID file and name for the redis worker are hard-coded below
     test_worker_pid_file = Path("/tmp/securedrop_test_worker.pid")
     test_worker_name = "test"

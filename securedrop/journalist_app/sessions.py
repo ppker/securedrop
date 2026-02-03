@@ -1,8 +1,8 @@
 import typing
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from json.decoder import JSONDecodeError
 from secrets import token_urlsafe
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from flask import Flask, Request, Response
 from flask import current_app as app
@@ -27,7 +27,7 @@ class ServerSideSession(CallbackDict, SessionMixin):
             self.set_uid(initial["uid"])
             self.set_user()
         else:
-            self.uid: Optional[int] = None
+            self.uid: int | None = None
             self.user = None
         CallbackDict.__init__(self, initial, on_update)
         self.sid = sid
@@ -37,14 +37,14 @@ class ServerSideSession(CallbackDict, SessionMixin):
         self.to_destroy = False
         self.to_regenerate = False
         self.modified = False
-        self.flash: Optional[Tuple[str, str]] = None
-        self.locale: Optional[str] = None
+        self.flash: tuple[str, str] | None = None
+        self.locale: str | None = None
 
-    def get_token(self) -> Optional[str]:
+    def get_token(self) -> str | None:
         return self.token
 
     def get_lifetime(self) -> datetime:
-        return datetime.now(timezone.utc) + timedelta(seconds=self.lifetime)
+        return datetime.now(UTC) + timedelta(seconds=self.lifetime)
 
     def set_user(self) -> None:
         if self.uid is not None:
@@ -54,10 +54,10 @@ class ServerSideSession(CallbackDict, SessionMixin):
             self.uid = None
             self.to_destroy = True
 
-    def get_user(self) -> Optional[Journalist]:
+    def get_user(self) -> Journalist | None:
         return self.user
 
-    def get_uid(self) -> Optional[int]:
+    def get_uid(self) -> int | None:
         return self.uid
 
     def set_uid(self, uid: int) -> None:
@@ -68,7 +68,7 @@ class ServerSideSession(CallbackDict, SessionMixin):
         return self.uid is not None
 
     def destroy(
-        self, flash: Optional[Tuple[str, str]] = None, locale: Optional[str] = None
+        self, flash: tuple[str, str] | None = None, locale: str | None = None
     ) -> None:
         # The parameters are needed to pass the information to the new session
         self.locale = locale
@@ -126,7 +126,7 @@ class SessionInterface(FlaskSessionInterface):
         session.is_api = is_api
         return session
 
-    def open_session(self, app: Flask, request: Request) -> Optional[ServerSideSession]:
+    def open_session(self, app: Flask, request: Request) -> ServerSideSession | None:
         """This function is called by the flask session interface at the
         beginning of each request.
         """
@@ -140,7 +140,7 @@ class SessionInterface(FlaskSessionInterface):
                 split = auth_header.split(" ")
                 if len(split) != 2 or split[0] != "Token":
                     return self._new_session(is_api)
-                sid: Optional[str] = split[1]
+                sid: str | None = split[1]
             else:
                 return self._new_session(is_api)
         else:
@@ -175,7 +175,7 @@ class SessionInterface(FlaskSessionInterface):
         domain = self.get_cookie_domain(app)
         path = self.get_cookie_path(app)
         if session.to_destroy:
-            initial: Dict[str, Any] = {"locale": session.locale}
+            initial: dict[str, Any] = {"locale": session.locale}
             if session.flash:
                 initial["_flashes"] = [session.flash]
             self.redis.delete(self.key_prefix + session.sid)

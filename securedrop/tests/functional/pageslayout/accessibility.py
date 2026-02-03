@@ -2,7 +2,6 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union
 
 from selenium.webdriver.firefox.webdriver import WebDriver
 
@@ -107,7 +106,7 @@ def sniff_accessibility_issues(driver: WebDriver, locale: str, test_name: str) -
     raw_messages = driver.execute_script(html_codesniffer + _HTMLCS_RUNNER_CODE)
 
     # 3. Organize the data
-    messages: Dict[str, List[Message]] = {
+    messages: dict[str, list[Message]] = {
         "machine-verified": [],
         "human-reviewed": [],
     }
@@ -138,7 +137,7 @@ def summarize_accessibility_results() -> None:
     """
 
     try:
-        summary: Dict[str, Dict[str, Dict[str, Union[int, bool]]]] = {}
+        summary: dict[str, dict[str, dict[str, int | bool]]] = {}
 
         # since `sniff_accessibility_issues` creates empty files, all locale/type combinations will
         # contain the same set of files; getting filenames from en_US/reviews instead of, say,
@@ -151,7 +150,7 @@ def summarize_accessibility_results() -> None:
 
             # collect all of the relevant data
             for message_type in ["reviews", "errors"]:
-                outputs: Dict[str, Dict[str, List[str]]] = {}
+                outputs: dict[str, dict[str, list[str]]] = {}
 
                 for locale in ["en_US", "ar"]:
                     outputs[locale] = {}

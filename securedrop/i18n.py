@@ -17,8 +17,8 @@
 #
 import collections
 import json
+from collections import OrderedDict
 from pathlib import Path
-from typing import DefaultDict, List, OrderedDict, Set
 
 from babel.core import (
     Locale,
@@ -127,11 +127,11 @@ def configure_babel(config: SecureDropConfig, app: Flask) -> Babel:
     return babel
 
 
-def parse_locale_set(codes: List[str]) -> Set[Locale]:
+def parse_locale_set(codes: list[str]) -> set[Locale]:
     return {Locale.parse(code) for code in codes}
 
 
-def validate_locale_configuration(config: SecureDropConfig, babel: Babel) -> Set[Locale]:
+def validate_locale_configuration(config: SecureDropConfig, babel: Babel) -> set[Locale]:
     """
     Check that configured locales are available in the filesystem and therefore usable by
     Babel.  Warn about configured locales that are not usable, unless we're left with
@@ -169,7 +169,7 @@ def validate_locale_configuration(config: SecureDropConfig, babel: Babel) -> Set
 
 
 def map_locale_display_names(
-    config: SecureDropConfig, usable_locales: Set[Locale]
+    config: SecureDropConfig, usable_locales: set[Locale]
 ) -> OrderedDict[str, RequestLocaleInfo]:
     """
     Create a map of locale identifiers to names for display.
@@ -183,7 +183,7 @@ def map_locale_display_names(
     # Deduplicate before sorting.
     supported_locales = sorted(list(set(config.SUPPORTED_LOCALES)))
 
-    language_locale_counts: DefaultDict[str, int] = collections.defaultdict(int)
+    language_locale_counts: collections.defaultdict[str, int] = collections.defaultdict(int)
     for code in supported_locales:
         locale = RequestLocaleInfo(code)
         language_locale_counts[locale.language] += 1
@@ -219,7 +219,7 @@ def get_locale(config: SecureDropConfig) -> str:
     - config.DEFAULT_LOCALE
     - config.FALLBACK_LOCALE
     """
-    preferences: List[str] = []
+    preferences: list[str] = []
     if session and session.get("locale"):
         preferences.append(session["locale"])
     if request.args.get("l"):
@@ -238,7 +238,7 @@ def get_locale(config: SecureDropConfig) -> str:
     return negotiated
 
 
-def get_accepted_languages() -> List[str]:
+def get_accepted_languages() -> list[str]:
     """
     Convert a request's list of accepted languages into locale identifiers.
     """

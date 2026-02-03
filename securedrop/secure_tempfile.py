@@ -1,7 +1,6 @@
 import base64
 import os
 from tempfile import _TemporaryFileWrapper  # type: ignore
-from typing import Optional, Union
 
 from cryptography.exceptions import AlreadyFinalized
 from cryptography.hazmat.backends import default_backend
@@ -74,7 +73,7 @@ class SecureTemporaryFile(_TemporaryFileWrapper):
         self.encryptor = self.cipher.encryptor()
         self.decryptor = self.cipher.decryptor()
 
-    def write(self, data: Union[bytes, str]) -> int:
+    def write(self, data: bytes | str) -> int:
         """Write `data` to the secure temporary file. This method may be
         called any number of times following instance initialization,
         but after calling :meth:`read`, you cannot write to the file
@@ -91,7 +90,7 @@ class SecureTemporaryFile(_TemporaryFileWrapper):
 
         return self.file.write(self.encryptor.update(data_as_bytes))
 
-    def read(self, count: Optional[int] = None) -> bytes:
+    def read(self, count: int | None = None) -> bytes:
         """Read `data` from the secure temporary file. This method may
         be called any number of times following instance initialization
         and once :meth:`write has been called at least once, but not

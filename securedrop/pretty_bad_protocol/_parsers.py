@@ -1295,7 +1295,7 @@ class ImportResult:
 
         #: Counts of all the status message results, :data:`_fields` which
         #: have appeared.
-        self.counts = OrderedDict(zip(self._fields, [0 for x in range(len(self._fields))]))
+        self.counts = OrderedDict(zip(self._fields, [0 for x in range(len(self._fields))], strict=False))
 
         #: A list of strings containing the fingerprints of the GnuPG keyIDs
         #: imported.
@@ -1401,7 +1401,7 @@ class ExportResult:
 
         #: Counts of all the status message results, :data:`_fields` which
         #: have appeared.
-        self.counts = OrderedDict(zip(self._fields, [0 for x in range(len(self._fields))]))
+        self.counts = OrderedDict(zip(self._fields, [0 for x in range(len(self._fields))], strict=False))
 
         #: A list of strings containing the fingerprints of the GnuPG keyIDs
         #: exported.

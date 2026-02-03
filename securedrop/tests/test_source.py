@@ -4,7 +4,7 @@ import re
 import shutil
 import subprocess
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
 from unittest import mock
@@ -989,7 +989,7 @@ def test_source_session_expiration(source_app):
 
         # But we're now 6 hours later hence their session expired
         with mock.patch("source_app.session_manager.datetime") as mock_datetime:
-            six_hours_later = datetime.now(timezone.utc) + timedelta(hours=6)
+            six_hours_later = datetime.now(UTC) + timedelta(hours=6)
             mock_datetime.now.return_value = six_hours_later
 
             # When they browse to an authenticated page
@@ -1008,7 +1008,7 @@ def test_source_session_expiration_create(source_app):
 
         # But we're now 6 hours later hence they did not finish the account creation flow in time
         with mock.patch("source_app.main.datetime") as mock_datetime:
-            six_hours_later = datetime.now(timezone.utc) + timedelta(hours=6)
+            six_hours_later = datetime.now(UTC) + timedelta(hours=6)
             mock_datetime.now.return_value = six_hours_later
 
             # When the user tries to complete the create flow

@@ -3,9 +3,9 @@ import re
 import shutil
 import subprocess
 from collections import OrderedDict
+from collections.abc import Generator
 from contextlib import contextmanager
 from os import path
-from typing import Generator
 
 import pytest
 from alembic.config import Config as AlembicConfig

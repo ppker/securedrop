@@ -7,7 +7,7 @@ Vars should be placed in `testinfra/vars/<hostname>.yml`.
 """
 
 import os
-from typing import Any, Dict
+from typing import Any
 
 import testutils
 import yaml
@@ -72,9 +72,9 @@ def securedrop_import_testinfra_vars(hostname, with_header=False):
 
 
 class TestVars(dict):
-    managed_attrs: Dict[str, Any] = {}
+    managed_attrs: dict[str, Any] = {}
 
-    def __init__(self, initial: Dict[str, Any]) -> None:
+    def __init__(self, initial: dict[str, Any]) -> None:
         self.securedrop_target_distribution = os.environ.get("SECUREDROP_TARGET_DISTRIBUTION")
         self.managed_attrs.update(initial)
 

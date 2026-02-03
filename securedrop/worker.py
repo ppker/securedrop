@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import List, Optional
 
 from redis import Redis
 from rq.exceptions import InvalidJobOperation, NoSuchJobError
@@ -20,7 +19,7 @@ def create_queue(name: str, timeout: int = 3600) -> Queue:
     return Queue(name=name, connection=Redis(**config.REDIS_KWARGS), default_timeout=timeout)
 
 
-def rq_workers(queue: Queue = None) -> List[Worker]:
+def rq_workers(queue: Queue = None) -> list[Worker]:
     """
     Returns the list of current rq ``Worker``s.
     """
@@ -29,7 +28,7 @@ def rq_workers(queue: Queue = None) -> List[Worker]:
     return Worker.all(connection=Redis(**config.REDIS_KWARGS), queue=queue)
 
 
-def worker_for_job(job_id: str) -> Optional[Worker]:
+def worker_for_job(job_id: str) -> Worker | None:
     """
     If the job is being run, return its ``Worker``.
     """

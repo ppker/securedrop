@@ -1,12 +1,13 @@
 import logging
 import os
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 from os.path import abspath, dirname, expanduser, join, realpath
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Any
 
 import tbselenium.common as cm
 from selenium import webdriver
@@ -38,7 +39,7 @@ _DRIVER_RETRY_INTERVAL = 5
 
 
 def _create_driver(
-    web_driver_type: WebDriverTypeEnum, accept_languages: Optional[str] = None, **kwargs: Any
+    web_driver_type: WebDriverTypeEnum, accept_languages: str | None = None, **kwargs: Any
 ) -> WebDriver:
     """
     Creates and configures a WebDriver instance based on the specified driver class.
@@ -129,7 +130,7 @@ def _create_driver(
 @contextmanager
 def get_web_driver(
     web_driver_type: WebDriverTypeEnum,
-    accept_languages: Optional[str] = None,
+    accept_languages: str | None = None,
 ) -> Generator[WebDriver, None, None]:
     # Creates the webdriver based on the class inserted
     web_driver = _create_driver(web_driver_type=web_driver_type, accept_languages=accept_languages)

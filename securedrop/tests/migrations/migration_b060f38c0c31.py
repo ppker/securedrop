@@ -1,6 +1,6 @@
 import random
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from db import db
@@ -35,8 +35,8 @@ class UpgradeTester:
     """
 
     source_count = 10
-    original_sources: Dict[str, Any] = {}
-    source_submissions: Dict[str, Any] = {}
+    original_sources: dict[str, Any] = {}
+    source_submissions: dict[str, Any] = {}
 
     def __init__(self, config):
         self.config = config
@@ -111,8 +111,8 @@ class DowngradeTester:
     """
 
     source_count = 10
-    original_sources: Dict[str, Any] = {}
-    source_submissions: Dict[str, Any] = {}
+    original_sources: dict[str, Any] = {}
+    source_submissions: dict[str, Any] = {}
 
     def __init__(self, config):
         self.config = config

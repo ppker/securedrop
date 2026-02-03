@@ -1,5 +1,4 @@
 import sys
-from typing import Optional
 
 from encryption import EncryptionManager
 from flask import Flask
@@ -7,7 +6,7 @@ from flask import Flask
 import redwood
 
 
-def validate_journalist_key(app: Optional[Flask] = None) -> bool:
+def validate_journalist_key(app: Flask | None = None) -> bool:
     """Verify the journalist PGP key is valid"""
     encryption_mgr = EncryptionManager.get_default()
     # First check that we can read it

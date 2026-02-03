@@ -3,7 +3,6 @@ import binascii
 import secrets
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
 
 import qrcode
 
@@ -74,7 +73,7 @@ class HOTP:
 
     def verify(self, token: str, counter: int) -> int:
         """Validate an HOTP-generated token and return the counter value that succeeded."""
-        counter_value_that_succeeded: Optional[int] = None
+        counter_value_that_succeeded: int | None = None
         for counter_value in range(counter, counter + self._LOOK_AHEAD_WINDOW_SIZE):
             try:
                 self._hotp.verify(token.encode("ascii"), counter_value)

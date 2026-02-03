@@ -8,7 +8,7 @@ import zipfile
 from hashlib import sha256
 from pathlib import Path
 from tempfile import _TemporaryFileWrapper
-from typing import BinaryIO, List, Optional, Type, Union
+from typing import BinaryIO, Optional
 
 import rm
 from encryption import EncryptionManager
@@ -186,7 +186,7 @@ class Storage:
         return absolute
 
     def get_bulk_archive(
-        self, selected_submissions: "List", zip_directory: str = ""
+        self, selected_submissions: "list", zip_directory: str = ""
     ) -> "_TemporaryFileWrapper":
         """Generate a zip file from the selected submissions"""
         zip_file = tempfile.NamedTemporaryFile(
@@ -299,7 +299,7 @@ class Storage:
         filesystem_id: str,
         count: int,
         journalist_filename: str,
-        filename: Optional[str],
+        filename: str | None,
         stream: BinaryIO,
     ) -> str:
         if filename is not None:
@@ -365,7 +365,7 @@ class Storage:
         return filename
 
 
-def async_add_checksum_for_file(db_obj: "Union[Submission, Reply]", storage: Storage) -> Job:
+def async_add_checksum_for_file(db_obj: "Submission | Reply", storage: Storage) -> Job:
     config = SecureDropConfig.get_current()
     return create_queue(config.RQ_WORKER_NAME).enqueue(
         queued_add_checksum_for_file,
@@ -377,7 +377,7 @@ def async_add_checksum_for_file(db_obj: "Union[Submission, Reply]", storage: Sto
 
 
 def queued_add_checksum_for_file(
-    db_model: "Union[Type[Submission], Type[Reply]]", model_id: int, file_path: str, db_uri: str
+    db_model: "type[Submission | Reply]", model_id: int, file_path: str, db_uri: str
 ) -> str:
     # we have to create our own DB session because there is no app context
     session = sessionmaker(bind=create_engine(db_uri))()
@@ -388,7 +388,7 @@ def queued_add_checksum_for_file(
 
 
 def add_checksum_for_file(
-    session: "Session", db_obj: "Union[Submission, Reply]", file_path: str
+    session: "Session", db_obj: "Submission | Reply", file_path: str
 ) -> None:
     hasher = sha256()
     with open(file_path, "rb") as f:

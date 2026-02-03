@@ -2,8 +2,8 @@ import collections
 import contextlib
 import functools
 import os
+from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 import pytest
 from babel.core import get_locale_identifier, parse_locale
@@ -14,16 +14,16 @@ from flask_babel import force_locale
 from sdconfig import SecureDropConfig
 
 
-@functools.lru_cache(maxsize=None)
-def get_test_locales(default_locale: str = "en_US") -> List[str]:
+@functools.cache
+def get_test_locales(default_locale: str = "en_US") -> list[str]:
     locales = set(os.environ.get("TEST_LOCALES", "ar").split())
     if default_locale:
         locales.add(default_locale)
     return sorted(list(locales))
 
 
-@functools.lru_cache(maxsize=None)
-def get_plural_tests() -> Dict[str, Tuple[int, ...]]:
+@functools.cache
+def get_plural_tests() -> dict[str, tuple[int, ...]]:
     return collections.defaultdict(
         lambda: (0, 1, 2),
         ar=(0, 1, 2, 3, 11, 100),
@@ -45,7 +45,7 @@ def language_tag(locale: str) -> str:
     return get_locale_identifier(parse_locale(locale), sep="-")
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def message_catalog(translation_dir: Path, locale: str) -> Catalog:
     """
     Returns the gettext message catalog for the given locale.
@@ -64,7 +64,7 @@ def message_catalog(translation_dir: Path, locale: str) -> Catalog:
     return read_po(open(translation_dir / locale / "LC_MESSAGES" / "messages.po"))
 
 
-def page_language(page_text: str) -> Optional[str]:
+def page_language(page_text: str) -> str | None:
     """
     Returns the "lang" attribute of the page's "html" element.
     """

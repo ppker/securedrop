@@ -3,9 +3,10 @@ import binascii
 import datetime
 import os
 import uuid
+from collections.abc import Callable
 from hmac import compare_digest
 from logging import Logger
-from typing import Any, Callable, Dict, List, Literal, NewType, Optional, Tuple, Union, overload
+from typing import Any, Literal, NewType, Optional, overload
 
 import argon2
 
@@ -39,7 +40,7 @@ def eager_query(model: EagerModelName) -> EagerQuery: ...
 def eager_query(model: str) -> Query: ...
 
 
-def eager_query(model: str) -> Union[EagerQuery, Query]:
+def eager_query(model: str) -> EagerQuery | Query:
     """
     Return an ``EagerQuery`` with the registered eager-loading options applied.
     Falls back to a plain ``Query`` if no options are registered.  A caller that
@@ -117,7 +118,7 @@ class Source(db.Model):
         return f"<Source {self.journalist_designation!r}>"
 
     @classmethod
-    def query_options(cls, base: Optional[Load] = None) -> Tuple[Load, ...]:
+    def query_options(cls, base: Load | None = None) -> tuple[Load, ...]:
         configure_mappers()
         base = base or Load(cls)
         return (
@@ -133,7 +134,7 @@ class Source(db.Model):
             [c for c in self.journalist_designation.lower().replace(" ", "_") if c in valid_chars]
         )
 
-    def documents_messages_count(self) -> "Dict[str, int]":
+    def documents_messages_count(self) -> "dict[str, int]":
         self.docs_msgs_count = {"messages": 0, "documents": 0}
         for submission in self.submissions:
             if submission.is_message:
@@ -143,10 +144,10 @@ class Source(db.Model):
         return self.docs_msgs_count
 
     @property
-    def collection(self) -> "List[Union[Submission, Reply]]":
+    def collection(self) -> "list[Submission | Reply]":
         """Return the list of submissions and replies for this source, sorted
         in ascending order by the filename/interaction count."""
-        collection: List[Union[Submission, Reply]] = []
+        collection: list[Submission | Reply] = []
         collection.extend(self.submissions)
         collection.extend(self.replies)
         collection.sort(key=lambda x: int(x.filename.split("-")[0]))
@@ -165,7 +166,7 @@ class Source(db.Model):
         return any(submission.is_file for submission in self.submissions)
 
     @property
-    def fingerprint(self) -> Optional[str]:
+    def fingerprint(self) -> str | None:
         if self.pgp_fingerprint is not None:
             return self.pgp_fingerprint
         try:
@@ -174,7 +175,7 @@ class Source(db.Model):
             return None
 
     @property
-    def public_key(self) -> Optional[str]:
+    def public_key(self) -> str | None:
         if self.pgp_public_key:
             return self.pgp_public_key
         try:
@@ -182,11 +183,11 @@ class Source(db.Model):
         except GpgKeyNotFoundError:
             return None
 
-    def to_api_v2(self, minor: int) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> dict[str, Any]:
         if self.last_updated:
             last_updated = self.last_updated
         else:
-            last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
+            last_updated = datetime.datetime.now(tz=datetime.UTC)
 
         starred = bool(self.star and self.star.starred)
         collection = {}
@@ -204,13 +205,13 @@ class Source(db.Model):
             "fingerprint": self.fingerprint,
         }
 
-    def to_api_v1(self) -> "Dict[str, object]":
+    def to_api_v1(self) -> "dict[str, object]":
         docs_msg_count = self.documents_messages_count()
 
         if self.last_updated:
             last_updated = self.last_updated
         else:
-            last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
+            last_updated = datetime.datetime.now(tz=datetime.UTC)
 
         if self.star and self.star.starred:
             starred = True
@@ -270,7 +271,7 @@ class Submission(db.Model):
         return f"<Submission {self.filename!r}>"
 
     @classmethod
-    def query_options(cls, base: Optional[Load] = None) -> Tuple[Load, ...]:
+    def query_options(cls, base: Load | None = None) -> tuple[Load, ...]:
         configure_mappers()
         base = base or Load(cls)
         return (
@@ -293,7 +294,7 @@ class Submission(db.Model):
     def is_message(self) -> bool:
         return self.filename.endswith("msg.gpg")
 
-    def to_api_v2(self, minor: int) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> dict[str, Any]:
         if self.is_file:
             seen_by = [f.journalist.uuid for f in self.seen_files if f.journalist]
         else:  # is_message
@@ -314,7 +315,7 @@ class Submission(db.Model):
 
         return data
 
-    def to_api_v1(self) -> "Dict[str, Any]":
+    def to_api_v1(self) -> "dict[str, Any]":
         seen_by = {
             f.journalist.uuid
             for f in SeenFile.query.filter(SeenFile.file_id == self.id)
@@ -402,7 +403,7 @@ class Reply(db.Model):
         return f"<Reply {self.filename!r}>"
 
     @classmethod
-    def query_options(cls, base: Optional[Load] = None) -> Tuple[Load, ...]:
+    def query_options(cls, base: Load | None = None) -> tuple[Load, ...]:
         configure_mappers()
         base = base or Load(cls)
         return (
@@ -417,7 +418,7 @@ class Reply(db.Model):
         # (format: {interaction_count}-{journalist_filename}-*)
         return int(self.filename.split("-")[0])
 
-    def to_api_v2(self, minor: int) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> dict[str, Any]:
         data = {
             "kind": "reply",
             "uuid": self.uuid,
@@ -433,7 +434,7 @@ class Reply(db.Model):
 
         return data
 
-    def to_api_v1(self) -> "Dict[str, Any]":
+    def to_api_v1(self) -> "dict[str, Any]":
         seen_by = [r.journalist.uuid for r in SeenReply.query.filter(SeenReply.reply_id == self.id)]
         return {
             "source_url": (
@@ -567,10 +568,10 @@ class Journalist(db.Model):
         self,
         username: str,
         password: str,
-        first_name: "Optional[str]" = None,
-        last_name: "Optional[str]" = None,
+        first_name: "str | None" = None,
+        last_name: "str | None" = None,
         is_admin: bool = False,
-        otp_secret: "Optional[str]" = None,
+        otp_secret: "str | None" = None,
     ) -> None:
         self.check_username_acceptable(username)
         self.username = username
@@ -592,7 +593,7 @@ class Journalist(db.Model):
         return "<Journalist {}{}>".format(self.username, " [admin]" if self.is_admin else "")
 
     @classmethod
-    def query_options(cls, base: Optional[Load] = None) -> Tuple:
+    def query_options(cls, base: Load | None = None) -> tuple:
         base = base or Load(cls)
         configure_mappers()
         return ()
@@ -612,7 +613,7 @@ class Journalist(db.Model):
     MAX_PASSWORD_LEN = 128
     MIN_PASSWORD_LEN = 14
 
-    def set_password(self, passphrase: "Optional[str]") -> None:
+    def set_password(self, passphrase: "str | None") -> None:
         if passphrase is None:
             raise PasswordError()
 
@@ -633,7 +634,7 @@ class Journalist(db.Model):
 
         self.passphrase_hash = hasher.hash(passphrase)
 
-    def set_name(self, first_name: Optional[str], last_name: Optional[str]) -> None:
+    def set_name(self, first_name: str | None, last_name: str | None) -> None:
         if first_name:
             self.check_name_acceptable(first_name)
             self.first_name = first_name
@@ -679,7 +680,7 @@ class Journalist(db.Model):
         if len(password.split()) < 7:
             raise NonDicewarePassword()
 
-    def valid_password(self, passphrase: "Optional[str]") -> bool:
+    def valid_password(self, passphrase: "str | None") -> bool:
         if not passphrase:
             return False
 
@@ -765,7 +766,7 @@ class Journalist(db.Model):
     def formatted_otp_secret(self) -> str:
         return two_factor.format_secret(self.otp_secret)
 
-    def verify_2fa_token(self, token: Optional[str]) -> str:
+    def verify_2fa_token(self, token: str | None) -> str:
         if not token:
             raise two_factor.OtpTokenInvalid()
 
@@ -816,8 +817,8 @@ class Journalist(db.Model):
     def login(
         cls,
         username: str,
-        password: Optional[str],
-        token: Optional[str],
+        password: str | None,
+        token: str | None,
     ) -> "Journalist":
         try:
             user = Journalist.query.filter_by(username=username).one()
@@ -841,11 +842,11 @@ class Journalist(db.Model):
 
         return user
 
-    def to_api_v1(self, all_info: bool = True) -> Dict[str, Any]:
+    def to_api_v1(self, all_info: bool = True) -> dict[str, Any]:
         """Returns a JSON representation of the journalist user. If all_info is
         False, potentially sensitive or extraneous fields are excluded. Note
         that both representations do NOT include credentials."""
-        json_user: Dict[str, Any] = {
+        json_user: dict[str, Any] = {
             "username": self.username,
             "uuid": self.uuid,
             "first_name": self.first_name,
@@ -861,7 +862,7 @@ class Journalist(db.Model):
 
         return json_user
 
-    def to_api_v2(self, minor: int) -> Dict[str, Any]:
+    def to_api_v2(self, minor: int) -> dict[str, Any]:
         return {
             "username": self.username,
             "uuid": self.uuid,

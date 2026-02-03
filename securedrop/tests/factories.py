@@ -1,7 +1,6 @@
 import secrets
 import shutil
 from pathlib import Path
-from typing import List, Optional
 
 from sdconfig import (
     DEFAULT_SECUREDROP_ROOT,
@@ -57,9 +56,9 @@ class SecureDropConfigFactory:
         JOURNALIST_KEY: str,
         RQ_WORKER_NAME: str,
         SESSION_EXPIRATION_MINUTES: float = 120,
-        NOUNS: Optional[Path] = None,
-        ADJECTIVES: Optional[Path] = None,
-        SUPPORTED_LOCALES: Optional[List[str]] = None,
+        NOUNS: Path | None = None,
+        ADJECTIVES: Path | None = None,
+        SUPPORTED_LOCALES: list[str] | None = None,
         DEFAULT_LOCALE: str = "en_US",
         TRANSLATION_DIRS: Path = DEFAULT_SECUREDROP_ROOT / "translations",
         V2_API_ENABLED: bool = True,

@@ -1,5 +1,4 @@
 import time
-from typing import List
 
 from selenium.common.exceptions import NoAlertPresentException, WebDriverException
 from selenium.webdriver.common.by import By
@@ -64,7 +63,7 @@ class NavigationHelper:
         el.click()
         return el
 
-    def safe_click_all_by_css_selector(self, selector: str) -> List[WebElement]:
+    def safe_click_all_by_css_selector(self, selector: str) -> list[WebElement]:
         """
         Clicks each element that matches the given CSS selector.
 

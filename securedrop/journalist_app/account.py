@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Union
 
 import two_factor
 import werkzeug
@@ -52,7 +51,7 @@ def make_blueprint() -> Blueprint:
         return redirect(url_for("account.edit"))
 
     @view.route("/verify-2fa-totp", methods=("POST",))
-    def new_two_factor_totp() -> Union[str, werkzeug.Response]:
+    def new_two_factor_totp() -> str | werkzeug.Response:
         """
         After (re)setting a user's 2FA TOTP, allow them to verify the newly generated code.
 
@@ -103,7 +102,7 @@ def make_blueprint() -> Blueprint:
         )
 
     @view.route("/verify-2fa-hotp", methods=("POST",))
-    def new_two_factor_hotp() -> Union[str, werkzeug.Response]:
+    def new_two_factor_hotp() -> str | werkzeug.Response:
         """
         After (re)setting a user's 2FA HOTP, allow them to verify the newly generated code.
 
@@ -140,7 +139,7 @@ def make_blueprint() -> Blueprint:
         return render_template("account_new_two_factor_hotp.html", user=user)
 
     @view.route("/reset-2fa-hotp", methods=["POST"])
-    def reset_two_factor_hotp() -> Union[str, werkzeug.Response]:
+    def reset_two_factor_hotp() -> str | werkzeug.Response:
         otp_secret = request.form.get("otp_secret", None)
         if otp_secret:
             if not validate_hotp_secret(session.get_user(), otp_secret):

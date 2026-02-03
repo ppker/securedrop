@@ -15,7 +15,6 @@ import secrets
 import string
 from itertools import cycle
 from pathlib import Path
-from typing import Optional, Tuple
 
 import journalist_app
 from db import db
@@ -76,7 +75,7 @@ def random_chars(count: int, chars: str = string.ascii_letters) -> str:
     return "".join([secrets.choice(chars) for _ in range(count)])
 
 
-def random_datetime(nullable: bool) -> Optional[datetime.datetime]:
+def random_datetime(nullable: bool) -> datetime.datetime | None:
     """
     Returns a random datetime or possibly None if nullable.
     """
@@ -129,7 +128,7 @@ def add_journalist(
     is_admin: bool = False,
     first_name: str = "",
     last_name: str = "",
-    progress: Optional[Tuple[int, int]] = None,
+    progress: tuple[int, int] | None = None,
 ) -> Journalist:
     """
     Adds a single journalist account.
@@ -181,7 +180,7 @@ def record_source_interaction(source: Source) -> None:
     db.session.flush()
 
 
-def submit_message(source: Source, journalist_who_saw: Optional[Journalist]) -> None:
+def submit_message(source: Source, journalist_who_saw: Journalist | None) -> None:
     """
     Adds a single message submitted by a source.
     """
@@ -200,7 +199,7 @@ def submit_message(source: Source, journalist_who_saw: Optional[Journalist]) -> 
         db.session.add(seen_message)
 
 
-def submit_file(source: Source, journalist_who_saw: Optional[Journalist], size: int = 0) -> None:
+def submit_file(source: Source, journalist_who_saw: Journalist | None, size: int = 0) -> None:
     """
     Adds a single file submitted by a source.
     """
@@ -227,7 +226,7 @@ def submit_file(source: Source, journalist_who_saw: Optional[Journalist], size: 
 
 
 def add_reply(
-    source: Source, journalist: Journalist, journalist_who_saw: Optional[Journalist]
+    source: Source, journalist: Journalist, journalist_who_saw: Journalist | None
 ) -> None:
     """
     Adds a single reply to a source.
@@ -253,7 +252,7 @@ def add_reply(
     db.session.commit()
 
 
-def add_source(use_gpg: bool = False) -> Tuple[Source, str]:
+def add_source(use_gpg: bool = False) -> tuple[Source, str]:
     """
     Adds a single source.
     """
@@ -298,7 +297,7 @@ def star_source(source: Source) -> None:
     db.session.commit()
 
 
-def create_default_journalists() -> Tuple[Journalist, ...]:
+def create_default_journalists() -> tuple[Journalist, ...]:
     """
     Adds a set of journalists that should always be created.
     """
@@ -340,7 +339,7 @@ def add_journalists(args: argparse.Namespace) -> None:
         add_journalist(username=f"journalist{str(i)}", progress=(i, total))
 
 
-def add_sources(args: argparse.Namespace, journalists: Tuple[Journalist, ...]) -> None:
+def add_sources(args: argparse.Namespace, journalists: tuple[Journalist, ...]) -> None:
     """
     Add sources with submissions and replies.
     """

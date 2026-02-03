@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, List, Optional
 
 FALLBACK_LOCALE = "en_US"
 
@@ -50,7 +49,7 @@ class SecureDropConfig:
     JOURNALIST_KEY: str
     SCRYPT_GPG_PEPPER: str
     SCRYPT_ID_PEPPER: str
-    SCRYPT_PARAMS: Dict[str, int]
+    SCRYPT_PARAMS: dict[str, int]
 
     SECUREDROP_DATA_ROOT: Path
 
@@ -65,7 +64,7 @@ class SecureDropConfig:
     ADJECTIVES: Path
 
     DEFAULT_LOCALE: str
-    SUPPORTED_LOCALES: List[str]
+    SUPPORTED_LOCALES: list[str]
 
     SESSION_EXPIRATION_MINUTES: float
 
@@ -93,7 +92,7 @@ class SecureDropConfig:
         return f"sqlite:///{self.DATABASE_FILE}"
 
     @property
-    def REDIS_KWARGS(self) -> Dict[str, str]:
+    def REDIS_KWARGS(self) -> dict[str, str]:
         """kwargs to pass to `redis.Redis` constructor"""
         return {"password": self.REDIS_PASSWORD}
 
@@ -106,7 +105,7 @@ class SecureDropConfig:
         return _current_config
 
 
-_current_config: Optional[SecureDropConfig] = None
+_current_config: SecureDropConfig | None = None
 
 
 def _parse_config_from_file(config_module_name: str) -> SecureDropConfig:

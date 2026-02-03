@@ -4,9 +4,9 @@ import re
 import stat
 import time
 import zipfile
+from collections.abc import Generator
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator
 
 import pytest
 import store
@@ -199,7 +199,7 @@ def test_get_zip(journalist_app, test_source, app_storage, config):
         archive = zipfile.ZipFile(app_storage.get_bulk_archive(submissions))
         archivefile_contents = archive.namelist()
 
-    for archived_file, actual_file in zip(archivefile_contents, filenames):
+    for archived_file, actual_file in zip(archivefile_contents, filenames, strict=False):
         with open(actual_file, "rb") as f:
             actual_file_content = f.read()
         zipped_file_content = archive.read(archived_file)

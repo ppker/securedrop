@@ -20,8 +20,8 @@ import argparse
 import os
 import shlex
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Set
 
 import polib
 from translate.tools.pocompile import convertmo
@@ -68,7 +68,7 @@ class CatalogVerifier:
         self.mo_target.unlink(missing_ok=True)
 
     @property
-    def strays(self) -> Set[str]:
+    def strays(self) -> set[str]:
         """Return the set of stray (fuzzy or obsolete) entries to mask when
         diffing this catalog."""
 

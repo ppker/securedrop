@@ -78,7 +78,7 @@ def create_app(config: SecureDropConfig) -> Flask:
 
     def _handle_http_exception(
         error: HTTPException,
-    ) -> Tuple[Union[Response, str], Optional[int]]:
+    ) -> tuple[Response | str, int | None]:
         # Workaround for no blueprint-level 404/5 error handlers, see:
         # https://github.com/pallets/flask/issues/503#issuecomment-71383286
         # TODO: clean up API error handling such that all except 404/5s are
@@ -108,7 +108,7 @@ def create_app(config: SecureDropConfig) -> Flask:
         InstanceConfig.get_default(refresh=True)
 
     @app.before_request
-    def setup_g() -> Optional[Response]:
+    def setup_g() -> Response | None:
         """Store commonly used values in Flask's special g object"""
 
         i18n.set_locale(config)

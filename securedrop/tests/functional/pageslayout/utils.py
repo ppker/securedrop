@@ -1,7 +1,6 @@
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import List
 
 from PIL import Image
 from selenium.webdriver.firefox.webdriver import WebDriver
@@ -50,7 +49,7 @@ def _autocrop_btm(img, bottom_padding=12):
     return img.crop((0, 0, img.width, btm))
 
 
-def list_locales() -> List[str]:
+def list_locales() -> list[str]:
     if "TEST_LOCALES" in os.environ:
         locales = os.environ["TEST_LOCALES"].split()
     else:

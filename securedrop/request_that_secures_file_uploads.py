@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import IO, Optional
+from typing import IO
 
 from flask import wrappers
 from secure_tempfile import SecureTemporaryFile
@@ -9,10 +9,10 @@ from werkzeug.formparser import FormDataParser
 class RequestThatSecuresFileUploads(wrappers.Request):
     def _secure_file_stream(
         self,
-        total_content_length: Optional[int],
-        content_type: Optional[str],
-        filename: Optional[str] = None,
-        content_length: Optional[int] = None,
+        total_content_length: int | None,
+        content_type: str | None,
+        filename: str | None = None,
+        content_length: int | None = None,
     ) -> IO[bytes]:
         """Storage class for data streamed in from requests.
 
