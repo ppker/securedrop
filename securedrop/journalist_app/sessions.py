@@ -67,9 +67,7 @@ class ServerSideSession(CallbackDict, SessionMixin):
     def logged_in(self) -> bool:
         return self.uid is not None
 
-    def destroy(
-        self, flash: tuple[str, str] | None = None, locale: str | None = None
-    ) -> None:
+    def destroy(self, flash: tuple[str, str] | None = None, locale: str | None = None) -> None:
         # The parameters are needed to pass the information to the new session
         self.locale = locale
         self.flash = flash

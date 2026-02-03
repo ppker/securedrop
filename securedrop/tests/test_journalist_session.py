@@ -293,10 +293,7 @@ def test_session_api_login(journalist_app, test_journo, redis):
         assert (
             datetime.now(UTC)
             < datetime.fromisoformat(resp.json["expiration"])
-            < (
-                datetime.now(UTC)
-                + timedelta(seconds=journalist_app.config["SESSION_LIFETIME"])
-            )
+            < (datetime.now(UTC) + timedelta(seconds=journalist_app.config["SESSION_LIFETIME"]))
         )
 
         # When querying the endpoint that return the corrent user with the token

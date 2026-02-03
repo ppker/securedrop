@@ -387,9 +387,7 @@ def queued_add_checksum_for_file(
     return "success"
 
 
-def add_checksum_for_file(
-    session: "Session", db_obj: "Submission | Reply", file_path: str
-) -> None:
+def add_checksum_for_file(session: "Session", db_obj: "Submission | Reply", file_path: str) -> None:
     hasher = sha256()
     with open(file_path, "rb") as f:
         while True:

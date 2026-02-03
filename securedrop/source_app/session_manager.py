@@ -48,9 +48,7 @@ class SessionManager:
         # Save the session expiration date in the user's session cookie
         config = SecureDropConfig.get_current()
         session_duration = timedelta(minutes=config.SESSION_EXPIRATION_MINUTES)
-        session[cls._SESSION_COOKIE_KEY_FOR_EXPIRATION_DATE] = (
-            datetime.now(UTC) + session_duration
-        )
+        session[cls._SESSION_COOKIE_KEY_FOR_EXPIRATION_DATE] = datetime.now(UTC) + session_duration
 
         return source_user
 

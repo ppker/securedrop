@@ -248,9 +248,7 @@ def delete_file_object(file_object: Submission | Reply) -> None:
         db.session.commit()
 
 
-def bulk_delete(
-    filesystem_id: str, items_selected: list[Submission | Reply]
-) -> werkzeug.Response:
+def bulk_delete(filesystem_id: str, items_selected: list[Submission | Reply]) -> werkzeug.Response:
     deletion_errors = 0
     for item in items_selected:
         try:
