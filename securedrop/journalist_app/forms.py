@@ -1,4 +1,3 @@
-import typing
 from typing import Any
 
 from flask_babel import lazy_gettext as gettext
@@ -23,7 +22,7 @@ class RequiredIf(DataRequired):
     def __init__(
         self,
         other_field_name: str,
-        custom_message: typing.Optional[str] = None,
+        custom_message: str | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:

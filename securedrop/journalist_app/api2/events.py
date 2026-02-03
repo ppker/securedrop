@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from typing import List
 
 from db import db
 from journalist_app import utils
@@ -259,7 +258,7 @@ class EventHandler:
                 ),
             )
 
-        deleted: List[ItemUUID] = []
+        deleted: list[ItemUUID] = []
         for item in source.collection:
             if item.interaction_count <= event.data.upper_bound:
                 try:

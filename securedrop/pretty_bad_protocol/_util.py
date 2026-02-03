@@ -334,10 +334,7 @@ def _is_list_or_tuple(instance):  # type: ignore[no-untyped-def]
     """
     return isinstance(
         instance,
-        (
-            list,
-            tuple,
-        ),
+        list | tuple,
     )
 
 

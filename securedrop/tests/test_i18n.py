@@ -18,7 +18,6 @@
 import re
 import subprocess
 from pathlib import Path
-from typing import List
 
 import i18n
 import journalist_app as journalist_app_module
@@ -39,7 +38,7 @@ NEVER_LOCALE = "ia"
 
 
 def create_config_for_i18n_test(
-    supported_locales: List[str],
+    supported_locales: list[str],
     default_locale: str = "en_US",
     translation_dirs: Path = DEFAULT_SECUREDROP_ROOT / "translations",
 ) -> SecureDropConfig:

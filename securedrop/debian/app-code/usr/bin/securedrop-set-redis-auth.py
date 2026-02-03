@@ -6,7 +6,6 @@ import secrets
 import shutil
 import sys
 from pathlib import Path
-from typing import Optional
 
 CONFIG_PY = Path("/var/www/securedrop/config.py")
 RQ_CONFIG_PY = Path("/var/www/securedrop/rq_config.py")
@@ -16,7 +15,7 @@ PYTHON_RE = re.compile(r"^REDIS_PASSWORD = ['\"](.*?)['\"]$")
 REDIS_CONF_RE = re.compile(r"^requirepass (.*?)$")
 
 
-def read_python_file(path: Path) -> Optional[str]:
+def read_python_file(path: Path) -> str | None:
     """Extract the password from a Python file"""
     if not path.exists():
         # rq_config.py might not exist yet
@@ -51,7 +50,7 @@ def write_python_file(path: Path, password: str) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
-def read_redis_conf(path: Path) -> Optional[str]:
+def read_redis_conf(path: Path) -> str | None:
     """Extract the password from our redis.conf file"""
     # n.b. we assume redis.conf exists, since the package should already
     # be installed

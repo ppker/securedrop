@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, Tuple
 from uuid import uuid4
 
 import pytest
@@ -39,8 +39,8 @@ def _create_source_and_submission_and_delete_source_key(config_in_use: SecureDro
 
 @pytest.fixture
 def sd_servers_with_deleted_source_key(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, Path],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, Path],
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Same as sd_servers but spawns the apps with a source whose key was deleted.
 

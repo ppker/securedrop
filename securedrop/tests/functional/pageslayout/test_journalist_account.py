@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from typing import Optional
 
 import pytest
 from selenium.webdriver import ActionChains
@@ -63,7 +62,7 @@ class TestJournalistLayoutAccount:
 
     @staticmethod
     def _clicks_reset_secret(
-        journ_app_nav: JournalistAppNavigator, otp_type: str, assert_tooltip_text_is: Optional[str]
+        journ_app_nav: JournalistAppNavigator, otp_type: str, assert_tooltip_text_is: str | None
     ) -> None:
         reset_form = journ_app_nav.nav_helper.wait_for(
             lambda: journ_app_nav.driver.find_element(By.ID, f"reset-two-factor-{otp_type}")

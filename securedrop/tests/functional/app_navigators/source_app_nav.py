@@ -1,7 +1,7 @@
 import tempfile
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, Optional
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.webdriver import WebDriver
@@ -21,7 +21,7 @@ class SourceAppNavigator:
         self,
         source_app_base_url: str,
         web_driver: WebDriver,
-        accept_languages: Optional[str] = None,
+        accept_languages: str | None = None,
     ) -> None:
         self._source_app_base_url = source_app_base_url
         self.nav_helper = NavigationHelper(web_driver)
@@ -35,7 +35,7 @@ class SourceAppNavigator:
     def using_tor_browser_web_driver(
         cls,
         source_app_base_url: str,
-        accept_languages: Optional[str] = None,
+        accept_languages: str | None = None,
     ) -> Generator["SourceAppNavigator", None, None]:
         """Convenience method for auto-creating the web driver to be used by the navigator."""
         with get_web_driver(

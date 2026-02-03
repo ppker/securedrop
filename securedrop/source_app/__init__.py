@@ -1,7 +1,6 @@
 import os
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 import i18n
 import server_os
@@ -90,7 +89,7 @@ def create_app(config: SecureDropConfig) -> Flask:
     # before the potential tor2web 403 response.
     @app.before_request
     @ignore_static
-    def setup_g() -> Optional[werkzeug.Response]:
+    def setup_g() -> werkzeug.Response | None:
         if InstanceConfig.get_default(refresh=True).organization_name:
             g.organization_name = (  # pylint: disable=assigning-non-slot
                 InstanceConfig.get_default().organization_name
@@ -107,7 +106,7 @@ def create_app(config: SecureDropConfig) -> Flask:
 
     @app.before_request
     @ignore_static
-    def check_tor2web() -> Optional[werkzeug.Response]:
+    def check_tor2web() -> werkzeug.Response | None:
         # TODO: expand header checking logic to catch modern tor2web proxies
         if "X-tor2web" in request.headers and request.path != url_for("info.tor2web_warning"):
             return redirect(url_for("info.tor2web_warning"))
@@ -115,7 +114,7 @@ def create_app(config: SecureDropConfig) -> Flask:
 
     @app.before_request
     @ignore_static
-    def check_offline() -> Optional[werkzeug.Response]:
+    def check_offline() -> werkzeug.Response | None:
         if not app.config["SUBMISSION_KEY_VALID"] or app.config["OS_PAST_EOL"]:
             session.clear()
             g.show_offline_message = True
@@ -123,11 +122,11 @@ def create_app(config: SecureDropConfig) -> Flask:
         return None
 
     @app.errorhandler(404)
-    def page_not_found(error: werkzeug.exceptions.HTTPException) -> Tuple[str, int]:
+    def page_not_found(error: werkzeug.exceptions.HTTPException) -> tuple[str, int]:
         return render_template("notfound.html"), 404
 
     @app.errorhandler(500)
-    def internal_error(error: werkzeug.exceptions.HTTPException) -> Tuple[str, int]:
+    def internal_error(error: werkzeug.exceptions.HTTPException) -> tuple[str, int]:
         return render_template("error.html"), 500
 
     # Obscure the creation time of source private keys by touching them all

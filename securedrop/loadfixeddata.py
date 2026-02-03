@@ -10,7 +10,7 @@ import io
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import journalist_app
 import yaml
@@ -55,7 +55,7 @@ def verify_empty_database() -> None:
         )
 
 
-def import_journalists(journalists_data: List[Dict[str, Any]]) -> Dict[str, Journalist]:
+def import_journalists(journalists_data: list[dict[str, Any]]) -> dict[str, Journalist]:
     uuid_to_journalist = {}
 
     print(f"Importing {len(journalists_data)} journalists...")
@@ -84,7 +84,7 @@ def import_journalists(journalists_data: List[Dict[str, Any]]) -> Dict[str, Jour
     return uuid_to_journalist
 
 
-def import_sources(sources_data: List[Dict[str, Any]], yaml_dir: Path) -> Dict[str, Source]:
+def import_sources(sources_data: list[dict[str, Any]], yaml_dir: Path) -> dict[str, Source]:
     """Import sources from YAML data, loading PGP keys from separate files."""
     uuid_to_source = {}
 
@@ -139,12 +139,12 @@ def record_source_interaction(source: Source) -> None:
 
 
 def import_submissions_and_replies(
-    sources_data: List[Dict[str, Any]],
-    uuid_to_source: Dict[str, Source],
-    uuid_to_journalist: Dict[str, Journalist],
+    sources_data: list[dict[str, Any]],
+    uuid_to_source: dict[str, Source],
+    uuid_to_journalist: dict[str, Journalist],
     yaml_dir: Path,
     save_items: bool = False,
-) -> Tuple[Dict[str, Submission], Dict[str, Reply]]:
+) -> tuple[dict[str, Submission], dict[str, Reply]]:
     uuid_to_submission = {}
     uuid_to_reply = {}
     storage = Storage.get_default()
@@ -291,10 +291,10 @@ def import_submissions_and_replies(
 
 
 def import_seen_records(
-    sources_data: List[Dict[str, Any]],
-    uuid_to_submission: Dict[str, Submission],
-    uuid_to_reply: Dict[str, Reply],
-    uuid_to_journalist: Dict[str, Journalist],
+    sources_data: list[dict[str, Any]],
+    uuid_to_submission: dict[str, Submission],
+    uuid_to_reply: dict[str, Reply],
+    uuid_to_journalist: dict[str, Journalist],
 ) -> None:
     """Import seen records from seen_by arrays in items."""
     seen_count = 0

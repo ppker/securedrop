@@ -1,7 +1,4 @@
-from typing import Dict, Optional
-
-
-def proxies_for_url(url: str) -> Optional[Dict[str, str]]:
+def proxies_for_url(url: str) -> dict[str, str] | None:
     """Generate the right proxies argument to pass to requests.get() for supporting Tor."""
     proxies = None
     if ".onion" in url:

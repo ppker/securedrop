@@ -17,8 +17,8 @@
 #
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import pytest
 from selenium.common.exceptions import TimeoutException

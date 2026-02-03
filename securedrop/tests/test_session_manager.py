@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -68,7 +68,7 @@ class TestSessionManager:
 
             # But we're now 6 hours later hence their session expired
             with mock.patch("source_app.session_manager.datetime") as mock_datetime:
-                six_hours_later = datetime.now(timezone.utc) + timedelta(hours=6)
+                six_hours_later = datetime.now(UTC) + timedelta(hours=6)
                 mock_datetime.now.return_value = six_hours_later
 
                 # When querying the current user from the SessionManager

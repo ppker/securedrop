@@ -12,7 +12,6 @@ import time
 import traceback
 from argparse import _SubParsersAction
 from pathlib import Path
-from typing import List, Optional
 
 from flask.ctx import AppContext
 from passphrases import PassphraseGenerator
@@ -54,7 +53,7 @@ def obtain_input(text: str) -> str:
 def reset(
     args: argparse.Namespace,
     alembic_ini_path: Path = Path("alembic.ini"),
-    context: Optional[AppContext] = None,
+    context: AppContext | None = None,
 ) -> int:
     """Clears the SecureDrop development applications' state, restoring them to
     the way they were immediately after running `setup_dev.sh`. This command:
@@ -137,7 +136,7 @@ def _get_username() -> str:
             return username
 
 
-def _get_first_name() -> Optional[str]:
+def _get_first_name() -> str | None:
     while True:
         first_name = obtain_input("First name: ")
         if not first_name:
@@ -149,7 +148,7 @@ def _get_first_name() -> Optional[str]:
             print("Invalid name: " + str(e))
 
 
-def _get_last_name() -> Optional[str]:
+def _get_last_name() -> str | None:
     while True:
         last_name = obtain_input("Last name: ")
         if not last_name:
@@ -175,7 +174,7 @@ def _get_yubikey_usage() -> bool:
             print('Invalid answer. Please type "y" or "n"')
 
 
-def _add_user(is_admin: bool = False, context: Optional[AppContext] = None) -> int:
+def _add_user(is_admin: bool = False, context: AppContext | None = None) -> int:
     with context or app_context():
         username = _get_username()
         first_name = _get_first_name()
@@ -256,7 +255,7 @@ def _get_delete_confirmation(username: str) -> bool:
     return True
 
 
-def delete_user(args: argparse.Namespace, context: Optional[AppContext] = None) -> int:
+def delete_user(args: argparse.Namespace, context: AppContext | None = None) -> int:
     """Deletes a journalist or admin from the application."""
     with context or app_context():
         username = _get_username_to_delete()
@@ -296,7 +295,7 @@ def clean_tmp(args: argparse.Namespace) -> int:
         log.debug(f"{args.directory} does not exist, do nothing")
         return 0
 
-    def listdir_fullpath(d: str) -> List[str]:
+    def listdir_fullpath(d: str) -> list[str]:
         return [os.path.join(d, f) for f in os.listdir(d)]
 
     too_old = args.days * 24 * 60 * 60

@@ -1,15 +1,9 @@
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum, auto
 from typing import (
     Any,
-    Callable,
-    Iterable,
-    List,
-    Mapping,
     NewType,
-    Optional,
-    Set,
-    Tuple,
 )
 from uuid import UUID
 
@@ -57,7 +51,7 @@ class EventStatusCode(IntEnum):
     NotImplemented = 501
 
 
-EventStatus = Tuple[EventStatusCode, Optional[str]]
+EventStatus = tuple[EventStatusCode, str | None]
 
 
 @dataclass
@@ -174,7 +168,7 @@ class Event:
     id: EventID
     target: Target | Mapping[str, Any]
     type: EventType
-    data: Optional[EventData | Mapping[str, Any]] = None
+    data: EventData | Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         # ID must be usable as an int (for snowflake ordering; see section
@@ -234,21 +228,21 @@ class EventResult:
     status: EventStatus
 
     # Changed sources/items, return {<uuid>: None} to indicate deletion:
-    sources: dict[SourceUUID, Optional[Record]] = field(default_factory=dict)
-    items: dict[ItemUUID, Optional[Record]] = field(default_factory=dict)
+    sources: dict[SourceUUID, Record | None] = field(default_factory=dict)
+    items: dict[ItemUUID, Record | None] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class BatchRequest:
     # Source metadata:
-    sources: Set[SourceUUID] = field(default_factory=set)
-    items: Set[ItemUUID] = field(default_factory=set)
+    sources: set[SourceUUID] = field(default_factory=set)
+    items: set[ItemUUID] = field(default_factory=set)
 
     # Non-source metadata:
-    journalists: Set[JournalistUUID] = field(default_factory=set)
+    journalists: set[JournalistUUID] = field(default_factory=set)
 
     # Events submitted by the client:
-    events: List[Event | Mapping[str, Any]] = field(default_factory=list)
+    events: list[Event | Mapping[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         def _normalize_uuids(raw: Iterable[Any], wrap: Callable) -> set:
@@ -263,7 +257,7 @@ class BatchRequest:
 
         normalized_events: list[Event | Mapping[str, Any]] = []
         for e in self.events:
-            if isinstance(e, (Event, Mapping)):
+            if isinstance(e, Event | Mapping):
                 normalized_events.append(e)
             else:
                 raise TypeError("BatchRequest.events must contain Event or Mapping instances")
@@ -277,11 +271,11 @@ class BatchResponse:
     """
 
     # Source metadata:
-    sources: dict[SourceUUID, Optional[Record]] = field(default_factory=dict)
-    items: dict[ItemUUID, Optional[Record]] = field(default_factory=dict)
+    sources: dict[SourceUUID, Record | None] = field(default_factory=dict)
+    items: dict[ItemUUID, Record | None] = field(default_factory=dict)
 
     # Non-source metadata:
-    journalists: dict[JournalistUUID, Optional[Record]] = field(default_factory=dict)
+    journalists: dict[JournalistUUID, Record | None] = field(default_factory=dict)
 
     # Events processed by the server:
     events: dict[EventID, EventStatus] = field(default_factory=dict)

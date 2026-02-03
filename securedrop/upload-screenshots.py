@@ -6,7 +6,6 @@ import sys
 from glob import glob
 
 # Used to generate URLs for API endpoints and links; exposed as argument
-from typing import Dict, List, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -81,9 +80,9 @@ class WeblateUploader:
         base_url: str,
         project: str,
         component: str,
-        files: List[str],
+        files: list[str],
         request_limit: int,
-        canonicalization_rules: List[Tuple[str, str]],
+        canonicalization_rules: list[tuple[str, str]],
     ) -> None:
         if len(token) != 40:
             raise BadOrMissingTokenError(
@@ -110,7 +109,7 @@ class WeblateUploader:
         }
         self.session.headers.update(headers)
 
-    def get_existing_screenshots(self) -> List[Dict[str, str]]:
+    def get_existing_screenshots(self) -> list[dict[str, str]]:
         """
         Obtains a list of all existing screenshots, and returns it as a list
         in the API's format. Paginates up to the request limit.
@@ -119,7 +118,7 @@ class WeblateUploader:
 
         # API results are paginated, so we must loop through a set of results and
         # concatenate them.
-        screenshots: List[Dict[str, str]] = []
+        screenshots: list[dict[str, str]] = []
         request_count = 0
         while next_screenshots_url is not None:
             response = self.session.get(next_screenshots_url)

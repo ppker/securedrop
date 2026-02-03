@@ -1,7 +1,6 @@
 import collections.abc
 import json
-from datetime import datetime, timezone
-from typing import Set, Tuple, Union
+from datetime import UTC, datetime
 
 import flask
 import werkzeug
@@ -38,7 +37,7 @@ def make_blueprint() -> Blueprint:
     api = Blueprint("api", __name__)
 
     @api.route("/")
-    def get_endpoints() -> Tuple[flask.Response, int]:
+    def get_endpoints() -> tuple[flask.Response, int]:
         endpoints = {
             "sources_url": "/api/v1/sources",
             "current_user_url": "/api/v1/user",
@@ -74,7 +73,7 @@ def make_blueprint() -> Blueprint:
                     abort(400, "malformed request")
 
     @api.route("/token", methods=["POST"])
-    def get_token() -> Tuple[flask.Response, int]:
+    def get_token() -> tuple[flask.Response, int]:
         creds = json.loads(request.data.decode("utf-8"))
 
         username = creds.get("username", None)
@@ -102,7 +101,7 @@ def make_blueprint() -> Blueprint:
             )
 
             # Update access metadata
-            journalist.last_access = datetime.now(timezone.utc)
+            journalist.last_access = datetime.now(UTC)
             db.session.add(journalist)
             db.session.commit()
 
@@ -119,12 +118,12 @@ def make_blueprint() -> Blueprint:
             return abort(403, "Token authentication failed.")
 
     @api.route("/sources", methods=["GET"])
-    def get_all_sources() -> Tuple[flask.Response, int]:
+    def get_all_sources() -> tuple[flask.Response, int]:
         sources = Source.query.filter_by(pending=False, deleted_at=None).all()
         return jsonify({"sources": [source.to_api_v1() for source in sources]}), 200
 
     @api.route("/sources/<source_uuid>", methods=["GET", "DELETE"])
-    def single_source(source_uuid: str) -> Tuple[flask.Response, int]:
+    def single_source(source_uuid: str) -> tuple[flask.Response, int]:
         if request.method == "GET":
             source = get_or_404(Source, source_uuid, column=Source.uuid)
             return jsonify(source.to_api_v1()), 200
@@ -136,28 +135,28 @@ def make_blueprint() -> Blueprint:
             abort(405)
 
     @api.route("/sources/<source_uuid>/add_star", methods=["POST"])
-    def add_star(source_uuid: str) -> Tuple[flask.Response, int]:
+    def add_star(source_uuid: str) -> tuple[flask.Response, int]:
         source = get_or_404(Source, source_uuid, column=Source.uuid)
         utils.make_star_true(source.filesystem_id)
         db.session.commit()
         return jsonify({"message": "Star added"}), 201
 
     @api.route("/sources/<source_uuid>/remove_star", methods=["DELETE"])
-    def remove_star(source_uuid: str) -> Tuple[flask.Response, int]:
+    def remove_star(source_uuid: str) -> tuple[flask.Response, int]:
         source = get_or_404(Source, source_uuid, column=Source.uuid)
         utils.make_star_false(source.filesystem_id)
         db.session.commit()
         return jsonify({"message": "Star removed"}), 200
 
     @api.route("/sources/<source_uuid>/flag", methods=["POST"])
-    def flag(source_uuid: str) -> Tuple[flask.Response, int]:
+    def flag(source_uuid: str) -> tuple[flask.Response, int]:
         return (
             jsonify({"message": "Sources no longer need to be flagged for reply"}),
             200,
         )
 
     @api.route("/sources/<source_uuid>/conversation", methods=["DELETE"])
-    def source_conversation(source_uuid: str) -> Tuple[flask.Response, int]:
+    def source_conversation(source_uuid: str) -> tuple[flask.Response, int]:
         if request.method == "DELETE":
             source = get_or_404(Source, source_uuid, column=Source.uuid)
             utils.delete_source_files(source.filesystem_id)
@@ -166,7 +165,7 @@ def make_blueprint() -> Blueprint:
             abort(405)
 
     @api.route("/sources/<source_uuid>/submissions", methods=["GET"])
-    def all_source_submissions(source_uuid: str) -> Tuple[flask.Response, int]:
+    def all_source_submissions(source_uuid: str) -> tuple[flask.Response, int]:
         source = get_or_404(Source, source_uuid, column=Source.uuid)
         return (
             jsonify({"submissions": [submission.to_api_v1() for submission in source.submissions]}),
@@ -190,7 +189,7 @@ def make_blueprint() -> Blueprint:
         "/sources/<source_uuid>/submissions/<submission_uuid>",
         methods=["GET", "DELETE"],
     )
-    def single_submission(source_uuid: str, submission_uuid: str) -> Tuple[flask.Response, int]:
+    def single_submission(source_uuid: str, submission_uuid: str) -> tuple[flask.Response, int]:
         if request.method == "GET":
             get_or_404(Source, source_uuid, column=Source.uuid)
             submission = get_or_404(Submission, submission_uuid, column=Submission.uuid)
@@ -204,7 +203,7 @@ def make_blueprint() -> Blueprint:
             abort(405)
 
     @api.route("/sources/<source_uuid>/replies", methods=["GET", "POST"])
-    def all_source_replies(source_uuid: str) -> Tuple[flask.Response, int]:
+    def all_source_replies(source_uuid: str) -> tuple[flask.Response, int]:
         if request.method == "GET":
             source = get_or_404(Source, source_uuid, column=Source.uuid)
             return (
@@ -247,7 +246,7 @@ def make_blueprint() -> Blueprint:
             abort(405)
 
     @api.route("/sources/<source_uuid>/replies/<reply_uuid>", methods=["GET", "DELETE"])
-    def single_reply(source_uuid: str, reply_uuid: str) -> Tuple[flask.Response, int]:
+    def single_reply(source_uuid: str, reply_uuid: str) -> tuple[flask.Response, int]:
         get_or_404(Source, source_uuid, column=Source.uuid)
         reply = get_or_404(Reply, reply_uuid, column=Reply.uuid)
         if request.method == "GET":
@@ -259,7 +258,7 @@ def make_blueprint() -> Blueprint:
             abort(405)
 
     @api.route("/submissions", methods=["GET"])
-    def get_all_submissions() -> Tuple[flask.Response, int]:
+    def get_all_submissions() -> tuple[flask.Response, int]:
         submissions = Submission.query.all()
         return (
             jsonify(
@@ -273,7 +272,7 @@ def make_blueprint() -> Blueprint:
         )
 
     @api.route("/replies", methods=["GET"])
-    def get_all_replies() -> Tuple[flask.Response, int]:
+    def get_all_replies() -> tuple[flask.Response, int]:
         replies = Reply.query.all()
         return (
             jsonify({"replies": [reply.to_api_v1() for reply in replies if reply.source]}),
@@ -281,7 +280,7 @@ def make_blueprint() -> Blueprint:
         )
 
     @api.route("/seen", methods=["POST"])
-    def seen() -> Tuple[flask.Response, int]:
+    def seen() -> tuple[flask.Response, int]:
         """
         Lists or marks the source conversation items that the journalist has seen.
         """
@@ -295,7 +294,7 @@ def make_blueprint() -> Blueprint:
 
             # gather everything to be marked seen. if any don't exist,
             # reject the request.
-            targets: Set[Union[Submission, Reply]] = set()
+            targets: set[Submission | Reply] = set()
             for file_uuid in request.json.get("files", []):
                 f = Submission.query.filter(Submission.uuid == file_uuid).one_or_none()
                 if f is None or not f.is_file:
@@ -322,22 +321,22 @@ def make_blueprint() -> Blueprint:
         abort(405)
 
     @api.route("/user", methods=["GET"])
-    def get_current_user() -> Tuple[flask.Response, int]:
+    def get_current_user() -> tuple[flask.Response, int]:
         return jsonify(session.get_user().to_api_v1()), 200
 
     @api.route("/users", methods=["GET"])
-    def get_all_users() -> Tuple[flask.Response, int]:
+    def get_all_users() -> tuple[flask.Response, int]:
         users = Journalist.query.all()
         return jsonify({"users": [user.to_api_v1(all_info=False) for user in users]}), 200
 
     @api.route("/logout", methods=["POST"])
-    def logout() -> Tuple[flask.Response, int]:
+    def logout() -> tuple[flask.Response, int]:
         session.destroy()
         return jsonify({"message": "Your token has been revoked."}), 200
 
     def _handle_api_http_exception(
         error: werkzeug.exceptions.HTTPException,
-    ) -> Tuple[flask.Response, int]:
+    ) -> tuple[flask.Response, int]:
         # Workaround for no blueprint-level 404/5 error handlers, see:
         # https://github.com/pallets/flask/issues/503#issuecomment-71383286
         response = jsonify({"error": error.name, "message": error.description})

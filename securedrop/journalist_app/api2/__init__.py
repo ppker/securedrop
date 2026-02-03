@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from typing import Optional
 
 from flask import Blueprint, abort, jsonify, request
 from journalist_app.api2.events import EventHandler
@@ -49,7 +48,7 @@ def get_request_minor_version() -> int:
 
 @blp.get("/index")
 @blp.get("/index/<string:source_prefix>")
-def index(source_prefix: Optional[str] = None) -> Response:
+def index(source_prefix: str | None = None) -> Response:
     """
     By default, return the ETag-versioned ``Index`` of all metadata unless the
     client provides the ETag of the current index.

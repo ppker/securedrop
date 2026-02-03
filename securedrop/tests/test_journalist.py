@@ -7,7 +7,6 @@ import zipfile
 from base64 import b64decode
 from io import BytesIO
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import call, patch
 
 import journalist_app as journalist_app_module
@@ -3255,8 +3254,8 @@ def test_login_with_invalid_password_doesnt_call_argon2(mocker, test_journo):
 
 
 def test_render_locales(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, str],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, str],
 ) -> None:
     """the locales.html template must collect both request.args (l=XX) and
     request.view_args (/<filesystem_id>) to build the URL to

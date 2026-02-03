@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from flask import Response, url_for
@@ -291,12 +291,9 @@ def test_session_api_login(journalist_app, test_journo, redis):
 
         # Then the expiration date returned in `get_token` response also conforms to the same rules
         assert (
-            datetime.now(timezone.utc)
+            datetime.now(UTC)
             < datetime.fromisoformat(resp.json["expiration"])
-            < (
-                datetime.now(timezone.utc)
-                + timedelta(seconds=journalist_app.config["SESSION_LIFETIME"])
-            )
+            < (datetime.now(UTC) + timedelta(seconds=journalist_app.config["SESSION_LIFETIME"]))
         )
 
         # When querying the endpoint that return the corrent user with the token

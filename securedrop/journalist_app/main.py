@@ -1,6 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Union
 
 import store
 import werkzeug
@@ -32,7 +31,7 @@ def make_blueprint() -> Blueprint:
     view = Blueprint("main", __name__)
 
     @view.route("/login", methods=("GET", "POST"))
-    def login() -> Union[str, werkzeug.Response]:
+    def login() -> str | werkzeug.Response:
         if request.method == "POST":
             user = validate_user(
                 request.form["username"],
@@ -47,7 +46,7 @@ def make_blueprint() -> Blueprint:
                 )
 
                 # Update access metadata
-                user.last_access = datetime.now(timezone.utc)
+                user.last_access = datetime.now(UTC)
                 db.session.add(user)
                 db.session.commit()
 
@@ -181,7 +180,7 @@ def make_blueprint() -> Blueprint:
         return redirect(url_for("col.col", filesystem_id=g.filesystem_id))
 
     @view.route("/bulk", methods=("POST",))
-    def bulk() -> Union[str, werkzeug.Response]:
+    def bulk() -> str | werkzeug.Response:
         action = request.form["action"]
         error_redirect = url_for("col.col", filesystem_id=g.filesystem_id)
         doc_names_selected = request.form.getlist("doc_names_selected")

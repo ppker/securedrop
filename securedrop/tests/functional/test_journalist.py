@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, Tuple
 from uuid import uuid4
 
 import pytest
@@ -381,8 +381,8 @@ class TestJournalist:
 
 @pytest.fixture
 def sd_servers_with_missing_file(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, Path],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, Path],
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Same as sd_servers but spawns the apps with a submission whose file has been deleted."""
     journalist_key_fingerprint, gpg_key_dir = setup_journalist_key_and_gpg_folder

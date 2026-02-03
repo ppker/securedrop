@@ -3,7 +3,7 @@ from base64 import b32encode
 from functools import lru_cache
 from pathlib import Path
 from secrets import SystemRandom
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import models
 from cryptography.hazmat.backends import default_backend
@@ -198,7 +198,7 @@ _default_designation_generator: Optional["_DesignationGenerator"] = None
 
 
 class _DesignationGenerator:
-    def __init__(self, nouns: List[str], adjectives: List[str]):
+    def __init__(self, nouns: list[str], adjectives: list[str]):
         self._random_generator = SystemRandom()
 
         # Ensure that there are no empty lists or empty strings

@@ -4,7 +4,6 @@ from copy import deepcopy
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Tuple
 from uuid import uuid4
 
 import pytest
@@ -75,8 +74,8 @@ def test_json_version():
     ],
 )
 def test_api2_not_available_when_disabled(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, str],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, str],
     endpoint: str,
 ) -> None:
     journalist_key_fingerprint, gpg_key_dir = setup_journalist_key_and_gpg_folder

@@ -1,12 +1,13 @@
 import multiprocessing
 import socket
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Generator, Optional, Tuple
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -69,7 +70,7 @@ def _start_source_server(port: int, config_to_use: SecureDropConfig) -> None:
 def _start_journalist_server(
     port: int,
     config_to_use: SecureDropConfig,
-    journalist_app_setup_callback: Optional[Callable[[SecureDropConfig], None]],
+    journalist_app_setup_callback: Callable[[SecureDropConfig], None] | None,
 ) -> None:
     # This function will be called in a separate Process that runs the journalist app
     # Modify the sdconfig module in the app's memory so that it mirrors the supplied config
@@ -105,7 +106,7 @@ class SdServersFixtureResult:
 @contextmanager
 def spawn_sd_servers(
     config_to_use: SecureDropConfig,
-    journalist_app_setup_callback: Optional[Callable[[SecureDropConfig], Any]] = None,
+    journalist_app_setup_callback: Callable[[SecureDropConfig], Any] | None = None,
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Spawn the source and journalist apps as separate processes with the supplied config.
 
@@ -207,8 +208,8 @@ def spawn_sd_servers(
 
 @pytest.fixture(scope="session")
 def sd_servers(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, Path],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, Path],
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Spawn the source and journalist apps as separate processes with a default config.
 
@@ -234,8 +235,8 @@ def sd_servers(
 
 @pytest.fixture
 def sd_servers_with_clean_state(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, Path],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, Path],
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Same as sd_servers but spawns the apps with a clean state.
 
@@ -258,8 +259,8 @@ def sd_servers_with_clean_state(
 
 @pytest.fixture
 def sd_servers_with_submitted_file(
-    setup_journalist_key_and_gpg_folder: Tuple[str, Path],
-    setup_rqworker: Tuple[str, Path],
+    setup_journalist_key_and_gpg_folder: tuple[str, Path],
+    setup_rqworker: tuple[str, Path],
 ) -> Generator[SdServersFixtureResult, None, None]:
     """Same as sd_servers but spawns the apps with an already-submitted source file.
 
@@ -282,7 +283,7 @@ def sd_servers_with_submitted_file(
         yield sd_servers_result
 
 
-def create_source_and_submission(config_in_use: SecureDropConfig) -> Tuple[SourceUser, Path]:
+def create_source_and_submission(config_in_use: SecureDropConfig) -> tuple[SourceUser, Path]:
     """Directly create a source and a submission within the app.
 
     Some tests for the journalist app require a submission to already be present, and this
@@ -322,7 +323,7 @@ def create_source_and_submission(config_in_use: SecureDropConfig) -> Tuple[Sourc
         submission = Submission(source_db_record, encrypted_file_name, app_storage)
         db_session.add(submission)
         source_db_record.pending = False
-        source_db_record.last_updated = datetime.now(timezone.utc)
+        source_db_record.last_updated = datetime.now(UTC)
         db_session.commit()
 
         submission_file_path = app_storage.path(source_user.filesystem_id, submission.filename)

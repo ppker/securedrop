@@ -1,8 +1,8 @@
 import base64
 import gzip
 from binascii import unhexlify
+from collections.abc import Callable, Iterable
 from random import randint
-from typing import Callable, Dict, Iterable, Optional, Tuple
 
 import requests
 import two_factor
@@ -28,7 +28,7 @@ class JournalistAppNavigator:
         self,
         journalist_app_base_url: str,
         web_driver: WebDriver,
-        accept_languages: Optional[str] = None,
+        accept_languages: str | None = None,
     ) -> None:
         self._journalist_app_base_url = journalist_app_base_url
         self.nav_helper = NavigationHelper(web_driver)
@@ -96,7 +96,7 @@ class JournalistAppNavigator:
             assert "1 unread" in unread_span.text
 
     @staticmethod
-    def _download_content_at_url(url: str, cookies: Dict[str, str]) -> bytes:
+    def _download_content_at_url(url: str, cookies: dict[str, str]) -> bytes:
         r = requests.get(url, cookies=cookies, proxies=proxies_for_url(url), stream=True)
         if r.status_code != 200:
             raise Exception("Failed to download the data.")
@@ -120,8 +120,8 @@ class JournalistAppNavigator:
         # using requests, but we need to pass the cookies for logged in user
         # for Flask to allow this.
         def cookie_string_from_selenium_cookies(
-            cookies: Iterable[Dict[str, str]],
-        ) -> Dict[str, str]:
+            cookies: Iterable[dict[str, str]],
+        ) -> dict[str, str]:
             result = {}
             for cookie in cookies:
                 result[cookie["name"]] = cookie["value"]
@@ -234,12 +234,12 @@ class JournalistAppNavigator:
 
     def admin_creates_a_user(
         self,
-        username: Optional[str] = None,
-        hotp_secret: Optional[str] = None,
+        username: str | None = None,
+        hotp_secret: str | None = None,
         is_admin: bool = False,
-        callback_before_submitting_add_user_step: Optional[Callable[[], None]] = None,
-        callback_before_submitting_2fa_step: Optional[Callable[[], None]] = None,
-    ) -> Optional[Tuple[str, str, str]]:
+        callback_before_submitting_add_user_step: Callable[[], None] | None = None,
+        callback_before_submitting_2fa_step: Callable[[], None] | None = None,
+    ) -> tuple[str, str, str] | None:
         self.nav_helper.safe_click_by_id("add-user")
         self.nav_helper.wait_for(lambda: self.driver.find_element(By.ID, "username"))
 

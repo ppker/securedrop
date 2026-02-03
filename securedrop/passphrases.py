@@ -1,6 +1,6 @@
 from pathlib import Path
 from secrets import SystemRandom
-from typing import Dict, List, NewType, Optional, Set
+from typing import NewType, Optional
 
 from sdconfig import SecureDropConfig
 
@@ -27,7 +27,7 @@ class PassphraseGenerator:
     _WORD_LIST_MINIMUM_SIZE = 7300  # Minimum number of words in any of the word lists
 
     def __init__(
-        self, language_to_words: Dict[str, List[str]], fallback_language: str = "en"
+        self, language_to_words: dict[str, list[str]], fallback_language: str = "en"
     ) -> None:
         # SystemRandom sources from the system rand (e.g. urandom, CryptGenRandom, etc)
         # It supplies a CSPRNG but with an interface that supports methods like choice
@@ -95,10 +95,10 @@ class PassphraseGenerator:
         return _default_generator
 
     @property
-    def available_languages(self) -> Set[str]:
+    def available_languages(self) -> set[str]:
         return set(self._language_to_words.keys())
 
-    def generate_passphrase(self, preferred_language: Optional[str] = None) -> DicewarePassphrase:
+    def generate_passphrase(self, preferred_language: str | None = None) -> DicewarePassphrase:
         final_language = preferred_language if preferred_language else self._fallback_language
         try:
             words_list = self._language_to_words[final_language]
@@ -107,13 +107,13 @@ class PassphraseGenerator:
             # default language
             words_list = self._language_to_words[self._fallback_language]
 
-        words: List[str] = [
+        words: list[str] = [
             self._random_generator.choice(words_list) for _ in range(self.PASSPHRASE_WORDS_COUNT)
         ]
         return DicewarePassphrase(" ".join(words))
 
 
-def _parse_available_words_list(securedrop_root: Path) -> Dict[str, List[str]]:
+def _parse_available_words_list(securedrop_root: Path) -> dict[str, list[str]]:
     """Find all .txt files in the wordlists folder and parse them as words lists.
 
     This will also ignore words that are too short.

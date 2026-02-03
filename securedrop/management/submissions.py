@@ -4,7 +4,6 @@ import os
 import sys
 import time
 from argparse import _SubParsersAction
-from typing import List, Optional
 
 from db import db
 from flask.ctx import AppContext
@@ -13,7 +12,7 @@ from models import Reply, Source, Submission
 from rm import secure_delete
 
 
-def find_disconnected_db_submissions(path: str) -> List[Submission]:
+def find_disconnected_db_submissions(path: str) -> list[Submission]:
     """
     Finds Submission records whose file does not exist.
     """
@@ -78,7 +77,7 @@ def delete_disconnected_db_submissions(args: argparse.Namespace) -> None:
             print("Not removing disconnected submissions in database.")
 
 
-def find_disconnected_fs_submissions(path: str) -> List[str]:
+def find_disconnected_fs_submissions(path: str) -> list[str]:
     """
     Finds files in the store that lack a Submission or Reply record.
     """
@@ -168,7 +167,7 @@ def delete_disconnected_fs_submissions(args: argparse.Namespace) -> None:
 
 
 def were_there_submissions_today(
-    args: argparse.Namespace, context: Optional[AppContext] = None
+    args: argparse.Namespace, context: AppContext | None = None
 ) -> None:
     with context or app_context():
         something = (

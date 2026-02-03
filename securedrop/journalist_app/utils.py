@@ -1,7 +1,7 @@
 import binascii
 import os
-from datetime import datetime, timezone
-from typing import List, Literal, Optional, Union
+from datetime import UTC, datetime
+from typing import Literal
 
 import argon2
 import flask
@@ -66,10 +66,10 @@ def get_source(filesystem_id: str, include_deleted: bool = False) -> Source:
 
 def validate_user(
     username: str,
-    password: Optional[str],
-    token: Optional[str],
-    error_message: Optional[str] = None,
-) -> Optional[Journalist]:
+    password: str | None,
+    token: str | None,
+    error_message: str | None = None,
+) -> Journalist | None:
     """
     Validates the user by calling the login and handling exceptions
     :param username: Username
@@ -164,7 +164,7 @@ def validate_hotp_secret(user: Journalist, otp_secret: str) -> bool:
     return True
 
 
-def mark_seen(targets: List[Union[Submission, Reply]], user: Journalist) -> None:
+def mark_seen(targets: list[Submission | Reply], user: Journalist) -> None:
     """
     Marks a list of submissions or replies seen by the given journalist.
     """
@@ -192,8 +192,8 @@ def mark_seen(targets: List[Union[Submission, Reply]], user: Journalist) -> None
 
 def download(
     zip_basename: str,
-    submissions: List[Union[Submission, Reply]],
-    on_error_redirect: Optional[str] = None,
+    submissions: list[Submission | Reply],
+    on_error_redirect: str | None = None,
 ) -> werkzeug.Response:
     """Send client contents of ZIP-file *zip_basename*-<timestamp>.zip
     containing *submissions*. The ZIP-file, being a
@@ -223,7 +223,7 @@ def download(
         return redirect(on_error_redirect)
 
     attachment_filename = "{}--{}.zip".format(
-        zip_basename, datetime.now(timezone.utc).strftime("%Y-%m-%d--%H-%M-%S")
+        zip_basename, datetime.now(UTC).strftime("%Y-%m-%d--%H-%M-%S")
     )
 
     mark_seen(submissions, session.get_user())
@@ -236,7 +236,7 @@ def download(
     )
 
 
-def delete_file_object(file_object: Union[Submission, Reply]) -> None:
+def delete_file_object(file_object: Submission | Reply) -> None:
     path = Storage.get_default().path(file_object.source.filesystem_id, file_object.filename)
     try:
         Storage.get_default().move_to_shredder(path)
@@ -248,9 +248,7 @@ def delete_file_object(file_object: Union[Submission, Reply]) -> None:
         db.session.commit()
 
 
-def bulk_delete(
-    filesystem_id: str, items_selected: List[Union[Submission, Reply]]
-) -> werkzeug.Response:
+def bulk_delete(filesystem_id: str, items_selected: list[Submission | Reply]) -> werkzeug.Response:
     deletion_errors = 0
     for item in items_selected:
         try:
@@ -299,7 +297,7 @@ def make_star_false(filesystem_id: str) -> None:
     source.star.starred = False
 
 
-def col_star(cols_selected: List[str]) -> werkzeug.Response:
+def col_star(cols_selected: list[str]) -> werkzeug.Response:
     for filesystem_id in cols_selected:
         make_star_true(filesystem_id)
 
@@ -307,7 +305,7 @@ def col_star(cols_selected: List[str]) -> werkzeug.Response:
     return redirect(url_for("main.index"))
 
 
-def col_un_star(cols_selected: List[str]) -> werkzeug.Response:
+def col_un_star(cols_selected: list[str]) -> werkzeug.Response:
     for filesystem_id in cols_selected:
         make_star_false(filesystem_id)
 
@@ -315,12 +313,12 @@ def col_un_star(cols_selected: List[str]) -> werkzeug.Response:
     return redirect(url_for("main.index"))
 
 
-def col_delete(cols_selected: List[str]) -> werkzeug.Response:
+def col_delete(cols_selected: list[str]) -> werkzeug.Response:
     """deleting multiple collections from the index"""
     if len(cols_selected) < 1:
         flash(gettext("No collections selected for deletion."), "error")
     else:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         sources = Source.query.filter(Source.filesystem_id.in_(cols_selected))
         sources.update({Source.deleted_at: now}, synchronize_session="fetch")
         db.session.commit()
@@ -359,7 +357,7 @@ def delete_source_files(filesystem_id: str) -> None:
                 pass
 
 
-def col_delete_data(cols_selected: List[str]) -> werkzeug.Response:
+def col_delete_data(cols_selected: list[str]) -> werkzeug.Response:
     """deletes store data for selected sources"""
     if len(cols_selected) < 1:
         flash(
@@ -420,7 +418,7 @@ def purge_deleted_sources() -> None:
             current_app.logger.error("Error deleting source %s: %s", source.uuid, e)
 
 
-def set_name(user: Journalist, first_name: Optional[str], last_name: Optional[str]) -> None:
+def set_name(user: Journalist, first_name: str | None, last_name: str | None) -> None:
     try:
         user.set_name(first_name, last_name)
         db.session.commit()
@@ -429,7 +427,7 @@ def set_name(user: Journalist, first_name: Optional[str], last_name: Optional[st
         flash(gettext("Name not updated: {message}").format(message=e), "error")
 
 
-def set_pending_password(for_: Union[Journalist, Literal["new"]], passphrase: str) -> None:
+def set_pending_password(for_: Journalist | Literal["new"], passphrase: str) -> None:
     """
     The user has requested a password change, but hasn't confirmed it yet.
 
@@ -449,7 +447,7 @@ def set_pending_password(for_: Union[Journalist, Literal["new"]], passphrase: st
     session[f"pending_password_{id}"] = hasher.hash(passphrase)
 
 
-def verify_pending_password(for_: Union[Journalist, Literal["new"]], passphrase: str) -> None:
+def verify_pending_password(for_: Journalist | Literal["new"], passphrase: str) -> None:
     if isinstance(for_, Journalist):
         id = str(for_.id)
     else:  # "new"
@@ -465,7 +463,7 @@ def verify_pending_password(for_: Union[Journalist, Literal["new"]], passphrase:
 
 
 def set_diceware_password(
-    user: Journalist, password: Optional[str], admin: Optional[bool] = False
+    user: Journalist, password: str | None, admin: bool | None = False
 ) -> bool:
     try:
         if password is not None:
@@ -532,7 +530,7 @@ def set_diceware_password(
     return True
 
 
-def col_download_unread(cols_selected: List[str]) -> werkzeug.Response:
+def col_download_unread(cols_selected: list[str]) -> werkzeug.Response:
     """
     Download all unseen submissions from all selected sources.
     """
@@ -550,9 +548,9 @@ def col_download_unread(cols_selected: List[str]) -> werkzeug.Response:
     return download("unread", unseen_submissions)
 
 
-def col_download_all(cols_selected: List[str]) -> werkzeug.Response:
+def col_download_all(cols_selected: list[str]) -> werkzeug.Response:
     """Download all submissions from all selected sources."""
-    submissions: List[Union[Source, Submission]] = []
+    submissions: list[Source | Submission] = []
     for filesystem_id in cols_selected:
         id = (
             Source.query.filter(Source.filesystem_id == filesystem_id)
@@ -564,7 +562,7 @@ def col_download_all(cols_selected: List[str]) -> werkzeug.Response:
     return download("all", submissions)
 
 
-def serve_file_with_etag(db_obj: Union[Reply, Submission]) -> flask.Response:
+def serve_file_with_etag(db_obj: Reply | Submission) -> flask.Response:
     file_path = Storage.get_default().path(db_obj.source.filesystem_id, db_obj.filename)
     add_range_headers = not current_app.config["USE_X_SENDFILE"]
     response = send_file(

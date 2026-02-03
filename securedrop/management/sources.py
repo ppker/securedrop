@@ -1,5 +1,4 @@
 import argparse
-from typing import List
 
 from db import db
 from encryption import EncryptionManager, GpgKeyNotFoundError
@@ -26,7 +25,7 @@ def remove_pending_sources(args: argparse.Namespace) -> int:
     return 0
 
 
-def find_pending_sources(keep_most_recent: int) -> List[Source]:
+def find_pending_sources(keep_most_recent: int) -> list[Source]:
     """
     Finds all sources that are marked as pending
     """

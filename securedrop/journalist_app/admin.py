@@ -1,7 +1,6 @@
 import binascii
 import os
 from datetime import datetime
-from typing import Optional, Union
 
 import two_factor
 import werkzeug
@@ -53,7 +52,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/config", methods=("GET", "POST"))
     @admin_required
-    def manage_config() -> Union[str, werkzeug.Response]:
+    def manage_config() -> str | werkzeug.Response:
         if InstanceConfig.get_default().initial_message_min_len > 0:
             prevent_short_messages = True
         else:
@@ -100,7 +99,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/update-submission-preferences", methods=["POST"])
     @admin_required
-    def update_submission_preferences() -> Optional[werkzeug.Response]:
+    def update_submission_preferences() -> werkzeug.Response | None:
         form = SubmissionPreferencesForm()
         if form.validate_on_submit():
             # The UI prompt ("prevent") is the opposite of the setting ("allow"):
@@ -127,7 +126,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/update-org-name", methods=["POST"])
     @admin_required
-    def update_org_name() -> Union[str, werkzeug.Response]:
+    def update_org_name() -> str | werkzeug.Response:
         form = OrgNameForm()
         if form.validate_on_submit():
             try:
@@ -145,7 +144,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/add", methods=("GET", "POST"))
     @admin_required
-    def add_user() -> Union[str, werkzeug.Response]:
+    def add_user() -> str | werkzeug.Response:
         form = NewUserForm()
         if form.validate_on_submit():
             form_valid = True
@@ -241,7 +240,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/verify-2fa-totp", methods=("POST",))
     @admin_required
-    def new_user_two_factor_totp() -> Union[str, werkzeug.Response]:
+    def new_user_two_factor_totp() -> str | werkzeug.Response:
         """
         After (re)setting a user's 2FA TOTP, allow the admin to verify the newly generated code.
 
@@ -300,7 +299,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/verify-2fa-hotp", methods=("POST",))
     @admin_required
-    def new_user_two_factor_hotp() -> Union[str, werkzeug.Response]:
+    def new_user_two_factor_hotp() -> str | werkzeug.Response:
         """
         After (re)setting a user's 2FA HOTP, allow the admin to verify the newly generated code.
 
@@ -340,7 +339,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/reset-2fa-hotp", methods=["POST"])
     @admin_required
-    def reset_two_factor_hotp() -> Union[str, werkzeug.Response]:
+    def reset_two_factor_hotp() -> str | werkzeug.Response:
         uid = request.form["uid"]
         user = Journalist.query.get(uid)
         otp_secret = request.form.get("otp_secret", None)
@@ -354,7 +353,7 @@ def make_blueprint() -> Blueprint:
 
     @view.route("/edit/<int:user_id>", methods=("GET", "POST"))
     @admin_required
-    def edit_user(user_id: int) -> Union[str, werkzeug.Response]:
+    def edit_user(user_id: int) -> str | werkzeug.Response:
         user = Journalist.query.get(user_id)
 
         if request.method == "POST":

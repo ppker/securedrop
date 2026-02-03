@@ -7,7 +7,8 @@ import sys
 
 __all__ = ["run"]
 
-from typing import Any, Callable, List, TextIO
+from collections.abc import Callable
+from typing import Any, TextIO
 
 
 def colorize(s: str, color: str, bold: bool = False) -> str:
@@ -46,7 +47,7 @@ def colorize(s: str, color: str, bold: bool = False) -> str:
 
 
 class DevServerProcess(subprocess.Popen):  # pragma: no cover
-    def __init__(self, label: str, cmd: List[str], color: str) -> None:
+    def __init__(self, label: str, cmd: list[str], color: str) -> None:
         self.label = label
         self.cmd = cmd
         self.color = color
@@ -81,7 +82,7 @@ class DevServerProcess(subprocess.Popen):  # pragma: no cover
 
 
 class DevServerProcessMonitor:  # pragma: no cover
-    def __init__(self, proc_funcs: List[Callable]) -> None:
+    def __init__(self, proc_funcs: list[Callable]) -> None:
         self.procs = []
         self.last_proc = None
         atexit.register(self.cleanup)

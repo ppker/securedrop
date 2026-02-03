@@ -32,8 +32,9 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 import prompt_toolkit
 import yaml
@@ -99,7 +100,7 @@ def openssh_version() -> int:
     return 0
 
 
-def ansible_command() -> List[str]:
+def ansible_command() -> list[str]:
     ansible_playbook_path = os.path.join(READONLY_CONFIG_PATH, "venv", "bin", "ansible-playbook")
 
     cmd = [ansible_playbook_path]
@@ -117,7 +118,7 @@ class JournalistAlertEmailException(Exception):
 
 
 # The type of each entry within SiteConfig.desc
-_T = TypeVar("_T", bound=Union[int, str, bool])
+_T = TypeVar("_T", bound=int | str | bool)
 
 # The function type used for the @update_check_required decorator; see
 # https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
@@ -140,7 +141,7 @@ _FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
 #             then that" branching of prompts.
 #
 # The mypy type description of the format follows.
-_DescEntryType = Tuple[str, _T, Type[_T], str, Optional[Validator], Optional[Callable], Callable]
+_DescEntryType = tuple[str, _T, type[_T], str, Validator | None, Callable | None, Callable]
 
 
 class SiteConfig:
@@ -188,7 +189,7 @@ class SiteConfig:
             return True
 
     @staticmethod
-    def split_list(text: str) -> List[str]:
+    def split_list(text: str) -> list[str]:
         """
         Splits a string containing a list of values separated by commas or whitespace.
         """
@@ -244,7 +245,7 @@ class SiteConfig:
             raise ValidationError(message="Must be an integer")
 
     class Locales:
-        def get_translations(self) -> Set[str]:
+        def get_translations(self) -> set[str]:
             translations = I18N_DEFAULT_LOCALES
             for dirname in os.listdir(TRANSLATIONS_PATH):
                 if dirname != "messages.pot":
@@ -252,7 +253,7 @@ class SiteConfig:
             return translations
 
     class ValidateLocales(Validator):
-        def __init__(self, supported: Set[str]) -> None:
+        def __init__(self, supported: set[str]) -> None:
             present = SiteConfig.Locales().get_translations()
             self.available = present & supported
 
@@ -317,7 +318,7 @@ class SiteConfig:
             supported_locales.update(set(i18n_conf["supported_locales"].keys()))
         locale_validator = SiteConfig.ValidateLocales(supported_locales)
 
-        self.desc: List[_DescEntryType] = [
+        self.desc: list[_DescEntryType] = [
             (
                 "ssh_users",
                 "sdadmin",
@@ -587,7 +588,7 @@ class SiteConfig:
         self.validate_journalist_alert_email()
         return True
 
-    def user_prompt_config(self) -> Dict[str, Any]:
+    def user_prompt_config(self) -> dict[str, Any]:
         self._config_in_progress = {}
         for desc in self.desc:
             (var, default, type, prompt, validator, transform, condition) = desc
@@ -597,7 +598,7 @@ class SiteConfig:
             self._config_in_progress[var] = self.user_prompt_config_one(desc, self.config.get(var))
         return self._config_in_progress
 
-    def user_prompt_config_one(self, desc: _DescEntryType, from_config: Optional[Any]) -> Any:
+    def user_prompt_config_one(self, desc: _DescEntryType, from_config: Any | None) -> Any:
         (var, default, type, prompt, validator, transform, condition) = desc
         if from_config is not None:
             default = from_config
@@ -612,7 +613,7 @@ class SiteConfig:
         return self.validated_input(prompt, default, validator, transform)
 
     def validated_input(
-        self, prompt: str, default: Any, validator: Validator, transform: Optional[Callable]
+        self, prompt: str, default: Any, validator: Validator, transform: Callable | None
     ) -> Any:
         if type(default) is bool:
             default = "yes" if default else "no"
@@ -694,7 +695,7 @@ class SiteConfig:
         with open(SITE_CONFIG_PATH, "w") as site_config_file:
             yaml.safe_dump(self.config, site_config_file, default_flow_style=False)
 
-    def clean_config(self, config: Dict) -> Dict:
+    def clean_config(self, config: dict) -> dict:
         """
         Cleans a loaded config without prompting.
 
@@ -734,7 +735,7 @@ class SiteConfig:
                     self._config_in_progress[var] = clean_config[var]
         return clean_config
 
-    def load(self, validate: bool = True) -> Dict:
+    def load(self, validate: bool = True) -> dict:
         """
         Loads the site configuration file.
 
@@ -862,7 +863,7 @@ def sdconfig(args: argparse.Namespace) -> int:
     return 0
 
 
-def generate_new_v3_keys() -> Tuple[str, str]:
+def generate_new_v3_keys() -> tuple[str, str]:
     """This function generate new keys for Tor v3 onion
     services and returns them as as tuple.
 
@@ -1087,7 +1088,7 @@ def reset_admin_access(args: argparse.Namespace) -> int:
     return subprocess.check_call(ansible_cmd, cwd=ANSIBLE_PATH)
 
 
-def parse_argv(argv: List[str]) -> argparse.Namespace:
+def parse_argv(argv: list[str]) -> argparse.Namespace:
     class ArgParseFormatterCombo(
         argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter
     ):
@@ -1172,7 +1173,7 @@ def parse_argv(argv: List[str]) -> argparse.Namespace:
     return args
 
 
-def main(argv: List[str]) -> None:
+def main(argv: list[str]) -> None:
     args = parse_argv(argv)
     setup_logger(args.v)
     if args.v:
