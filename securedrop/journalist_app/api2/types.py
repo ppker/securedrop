@@ -257,7 +257,7 @@ class BatchRequest:
 
         normalized_events: list[Event | Mapping[str, Any]] = []
         for e in self.events:
-            if isinstance(e, (Event, Mapping)):
+            if isinstance(e, Event | Mapping):
                 normalized_events.append(e)
             else:
                 raise TypeError("BatchRequest.events must contain Event or Mapping instances")

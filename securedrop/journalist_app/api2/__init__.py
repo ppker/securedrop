@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from typing import Optional
 
 from flask import Blueprint, abort, jsonify, request
 from journalist_app.api2.events import EventHandler

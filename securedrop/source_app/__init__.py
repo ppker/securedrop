@@ -1,7 +1,6 @@
 import os
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 import i18n
 import server_os

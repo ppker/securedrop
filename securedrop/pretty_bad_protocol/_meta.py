@@ -204,7 +204,7 @@ class GPGBase:
         try:
             assert self.binary, "Could not find binary %s" % binary
             assert isinstance(
-                verbose, (bool, str, int)
+                verbose, bool | str | int
             ), "'verbose' must be boolean, string, or 0 <= n <= 9"
             assert isinstance(use_agent, bool), "'use_agent' must be boolean"
             if self.options is not None:
@@ -840,7 +840,7 @@ class GPGBase:
         # https://github.com/isislovecruft/python-gnupg/issues/82
         if isinstance(passphrase, str):
             passphrase = passphrase if len(passphrase) > 0 else None
-        elif isinstance(passphrase, (bytes, bytearray)):
+        elif isinstance(passphrase, bytes | bytearray):
             passphrase = passphrase.decode() if len(passphrase) > 0 else None
         else:
             passphrase = None
@@ -1015,7 +1015,7 @@ class GPGBase:
                 f"GPG.encrypt() called for recipients '{recipients}' with type '{type(recipients)}'"
             )
 
-            if isinstance(recipients, (list, tuple)):
+            if isinstance(recipients, list | tuple):
                 for recp in recipients:
                     if isinstance(recp, str):
                         self._add_recipient_string(args, hidden_recipients, recp)
@@ -1045,7 +1045,7 @@ class GPGBase:
         return result
 
     def _add_recipient_string(self, args, hidden_recipients, recipient):  # type: ignore[no-untyped-def]
-        if isinstance(hidden_recipients, (list, tuple)):
+        if isinstance(hidden_recipients, list | tuple):
             if [s for s in hidden_recipients if recipient in str(s)]:
                 args.append("--hidden-recipient %s" % recipient)
             else:
