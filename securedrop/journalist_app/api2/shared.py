@@ -35,7 +35,8 @@ PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 # 2. `Reply` and `Submission` objects include `interaction_count`
 # 3. `BatchRequest` accepts `events` to process, with results returned in
 #    `BatchResponse.events`
-API_MINOR_VERSION = 3  # 2.x
+# 4. `/api/v1/token` provides sync hints
+API_MINOR_VERSION = 4  # 2.x
 
 
 def get_request_minor_version() -> int:
@@ -101,15 +102,20 @@ def get_index_dict(minor: int, source_prefix: str | None = None) -> dict:
     return index_dict
 
 
-def get_index_version() -> Version:
+def get_index_hints() -> dict:
     """
-    APIv1-facing interface for getting *only* the version of the current index,
+    APIv1-facing interface for getting *only* the hints of the current index,
     without negotiation of either the minor version or the source prefix.
     """
-
     minor = get_request_minor_version()
     index_dict = get_index_dict(minor)
-    return json_version(index_dict)
+
+    return {
+        "version": json_version(index_dict),
+        "sources": len(index_dict["sources"]),
+        "items": len(index_dict["items"]),
+        "journalists": len(index_dict["journalists"]),
+    }
 
 
 def save_reply(source: Source, data: dict) -> Reply:

@@ -155,6 +155,157 @@ def test_user_cannot_get_an_api_token_with_no_otp_field(journalist_app, test_jou
         assert response.json["message"] == "one_time_code field is missing"
 
 
+def test_valid_user_gets_hints_with_prefer_header(journalist_app, test_journo):
+    with journalist_app.test_client() as app:
+        valid_token = TOTP(test_journo["otp_secret"]).now()
+        headers = get_api_headers()
+        headers["Prefer"] = "securedrop=4"
+        response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": valid_token,
+                }
+            ),
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        hints = response.json["hints"]
+        # version is a 64-character BLAKE2s hex digest
+        assert len(hints["version"]) == 64
+        assert isinstance(hints["sources"], int)
+        assert isinstance(hints["items"], int)
+        assert isinstance(hints["journalists"], int)
+
+
+def test_hints_version_matches_index_etag(journalist_app, test_journo):
+    with journalist_app.test_client() as app:
+        valid_token = TOTP(test_journo["otp_secret"]).now()
+        headers = get_api_headers()
+        headers["Prefer"] = "securedrop=4"
+        token_response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": valid_token,
+                }
+            ),
+            headers=headers,
+        )
+
+        assert token_response.status_code == 200
+        hint_version = token_response.json["hints"]["version"]
+
+        index_headers = get_api_headers(token_response.json["token"])
+        index_headers["Prefer"] = "securedrop=4"
+        index_response = app.get(
+            url_for("api2.index"),
+            headers=index_headers,
+        )
+
+        assert index_response.status_code == 200
+        etag = index_response.get_etag()[0]
+        assert hint_version == etag
+
+
+def test_valid_user_gets_no_hints_without_prefer_header(journalist_app, test_journo):
+    with journalist_app.test_client() as app:
+        valid_token = TOTP(test_journo["otp_secret"]).now()
+        response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": valid_token,
+                }
+            ),
+            headers=get_api_headers(),
+        )
+
+        assert response.status_code == 200
+        assert "hints" not in response.json
+
+
+def test_failed_auth_wrong_password_with_prefer_header_does_not_query_index(
+    journalist_app, test_journo, mocker
+):
+    mock_get_index_hints = mocker.patch("journalist_app.api.get_index_hints")
+
+    with journalist_app.test_client() as app:
+        valid_token = TOTP(test_journo["otp_secret"]).now()
+        headers = get_api_headers()
+        headers["Prefer"] = "securedrop=4"
+        response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": "wrong password",
+                    "one_time_code": valid_token,
+                }
+            ),
+            headers=headers,
+        )
+
+        assert response.status_code == 403
+        assert "hints" not in response.json
+        mock_get_index_hints.assert_not_called()
+
+
+def test_failed_auth_wrong_2fa_with_prefer_header_does_not_query_index(
+    journalist_app, test_journo, mocker
+):
+    mock_get_index_hints = mocker.patch("journalist_app.api.get_index_hints")
+
+    with journalist_app.test_client() as app:
+        headers = get_api_headers()
+        headers["Prefer"] = "securedrop=4"
+        response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": "123456",
+                }
+            ),
+            headers=headers,
+        )
+
+        assert response.status_code == 403
+        assert "hints" not in response.json
+        mock_get_index_hints.assert_not_called()
+
+
+def test_failed_auth_invalid_user_with_prefer_header_does_not_query_index(journalist_app, mocker):
+    mock_get_index_hints = mocker.patch("journalist_app.api.get_index_hints")
+
+    with journalist_app.test_client() as app:
+        headers = get_api_headers()
+        headers["Prefer"] = "securedrop=4"
+        response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": "nonexistent_user",
+                    "passphrase": "any passphrase",
+                    "one_time_code": "123456",
+                }
+            ),
+            headers=headers,
+        )
+
+        assert response.status_code == 403
+        assert "hints" not in response.json
+        mock_get_index_hints.assert_not_called()
+
+
 def test_authorized_user_gets_all_sources(journalist_app, test_submissions, journalist_api_token):
     with journalist_app.test_client() as app:
         response = app.get(
