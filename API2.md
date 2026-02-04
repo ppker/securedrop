@@ -75,14 +75,14 @@ participant Client
 participant Server
 
 alt Global
-    Client -->> Server: GET /api/v2/index
+    Client ->> Server: GET /api/v2/index
 else Sharded by UUID prefix
-    Client -->> Server: GET /api/v2/index/<prefix>
+    Client ->> Server: GET /api/v2/index/<prefix>
 end
 
 Server ->> Client: ETag: abcdef<br>Index
 Note over Client: We want metadata for all new sources and items.
-Client -->> Server: POST /api/v2/data<br>BatchRequest
+Client ->> Server: POST /api/v2/data<br>BatchRequest
 Server ->> Client: BatchResponse
 ```
 
@@ -99,9 +99,9 @@ Note over Client: Global version abcdef
 Note over Client: Shard <prefix> version uvwxyz
 
 alt Global
-    Client -->> Server: GET /api/v2/index<br>If-None-Match: abcdef
+    Client ->> Server: GET /api/v2/index<br>If-None-Match: abcdef
 else Sharded by UUID prefix
-    Client -->> Server: GET /api/v2/index/<prefix><br>If-None-Match: uvwxyz
+    Client ->> Server: GET /api/v2/index/<prefix><br>If-None-Match: uvwxyz
 end
 
 alt Up to date
@@ -109,7 +109,7 @@ alt Up to date
 else Out of date
     Server ->> Client: ETag: abcdef<br>Index
     Note over Client: We want metadata for all new/changed sources and items.
-    Client -->> Server: POST /api/v2/data<br>BatchRequest
+    Client ->> Server: POST /api/v2/data<br>BatchRequest
     Server ->> Client: BatchResponse
 end
 ```
@@ -127,7 +127,7 @@ Note over Client: Global version abcdef
 Note over Server: Global version abcdef
 
 Client ->> Client: reply_sent {id: X, uuid: Y, source: Z, ...}
-Client -->> Server: POST /api/v2/data<br>BatchRequest
+Client ->> Server: POST /api/v2/data<br>BatchRequest
 alt Already processed:
 Server ->> Server: look up status of event {id: X}
 Note over Server: Return status of event {id: X},<br>in addition to anything else requested.
