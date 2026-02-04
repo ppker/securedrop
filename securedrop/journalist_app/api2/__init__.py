@@ -2,48 +2,26 @@ from dataclasses import asdict
 
 from flask import Blueprint, abort, jsonify, request
 from journalist_app.api2.events import EventHandler
-from journalist_app.api2.shared import json_version
+from journalist_app.api2.shared import (
+    get_index_dict,
+    get_request_minor_version,
+    json_version,
+)
 from journalist_app.api2.types import (
     BatchRequest,
     BatchResponse,
     Event,
-    Index,
 )
 from journalist_app.sessions import session
 from models import EagerQuery, Journalist, Reply, Source, Submission, eager_query
 from redis import Redis
 from sdconfig import SecureDropConfig
-from sqlalchemy.inspection import inspect
 from sqlalchemy.orm.exc import MultipleResultsFound
 from werkzeug.wrappers.response import Response
 
 blp = Blueprint("api2", __name__, url_prefix="/api/v2")
 
 EVENTS_MAX = 50
-PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
-
-
-# Magic numbers to avoid having to define an `IntEnum` somewhere that can be
-# imported from `securedrop.models`:
-#
-# 0. Initial implementation
-# 1. `Index` and `BatchResponse` include `journalists`
-# 2. `Reply` and `Submission` objects include `interaction_count`
-# 3. `BatchRequest` accepts `events` to process, with results returned in
-#    `BatchResponse.events`
-API_MINOR_VERSION = 3  # 2.x
-
-
-def get_request_minor_version() -> int:
-    try:
-        prefer = request.headers.get("Prefer", f"securedrop={API_MINOR_VERSION}")
-        minor_version = int(prefer.split("=")[1])
-        if 0 <= minor_version <= API_MINOR_VERSION:
-            return minor_version
-        else:
-            return API_MINOR_VERSION
-    except (IndexError, ValueError):
-        return API_MINOR_VERSION
 
 
 @blp.get("/index")
@@ -62,35 +40,8 @@ def index(source_prefix: str | None = None) -> Response:
     the prefix and is always returned.)
     """
     minor = get_request_minor_version()
-    index = Index()
 
-    source_query: EagerQuery = eager_query("Source")
-    if source_prefix is not None:
-        if len(source_prefix) >= PREFIX_MAX_LEN:
-            abort(
-                422,
-                f"malformed request; source prefix must be shorter than {PREFIX_MAX_LEN} "
-                f"characters",
-            )
-
-        source_query = source_query.filter(Source.uuid.startswith(source_prefix))
-
-    for source in source_query.all():
-        index.sources[source.uuid] = json_version(source.to_api_v2(minor))
-        for item in source.collection:
-            index.items[item.uuid] = json_version(item.to_api_v2(minor))
-
-    journalist_query: EagerQuery = eager_query("Journalist")
-    for journalist in journalist_query.all():
-        index.journalists[journalist.uuid] = json_version(journalist.to_api_v2(minor))
-
-    # We want to enforce the *current* shape of `Index`, so we should wait until
-    # we have the dictionary representation to delete top-level keys unsupported
-    # by the current minor version.
-    index_dict = asdict(index)
-    if minor < 1:
-        del index_dict["journalists"]
-
+    index_dict = get_index_dict(minor, source_prefix)
     version = json_version(index_dict)
     response = jsonify(index_dict)
 
