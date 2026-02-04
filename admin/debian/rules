@@ -12,7 +12,7 @@ override_dh_auto_install:
 # Set up virtualenv and install dependencies
 	/usr/bin/python3 -m venv ./debian/securedrop-admin/usr/share/securedrop-admin/venv
 	./debian/securedrop-admin/usr/share/securedrop-admin/venv/bin/pip install \
-		$(PIP_BOOTSTRAP_ARGS)  pip==25.0
+		$(PIP_BOOTSTRAP_ARGS)  pip==26.0
 
 	./debian/securedrop-admin/usr/share/securedrop-admin/venv/bin/pip install $(PIP_ARGS) \
 		-r ./requirements.txt
