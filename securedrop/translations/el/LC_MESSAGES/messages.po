@@ -926,8 +926,8 @@ msgstr "Ο Περιηγητής Tor θα επανεκκινηθεί, με το �
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>Προτείνεται να χρησιμοποιείτε τον Tor Browser για να επισκέπτεστε το SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Μάθετε πως να τον εγκαταστήσετε</a>, ή αγνοήστε αυτή την προειδοποίηση για να συνεχίσετε."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Είναι προτιμότερο να χρησιμοποιήσετε την έκδοση του Tor Browser για υπολογιστές, καθώς το Orfox δεν παρέχει το ίδιο επίπεδο ασφάλειας και ανωνυμίας όπως η έκδοση για υπολογιστές.</strong><a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Μάθετε πως να τον εγκαταστήσετε</a>, ή αγνοήστε αυτήν την προειδοποίηση για να συνεχίσετε."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "Λογότυπο της/του {}"
@@ -1136,6 +1136,9 @@ msgstr "<strong>Σημαντικό:</strong> Αν επιθυμείτε να δι
 
 msgid "Back to submission page"
 msgstr "Πίσω στη σελίδα υποβολών"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Είναι προτιμότερο να χρησιμοποιήσετε την έκδοση του Tor Browser για υπολογιστές, καθώς το Orfox δεν παρέχει το ίδιο επίπεδο ασφάλειας και ανωνυμίας όπως η έκδοση για υπολογιστές.</strong><a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Μάθετε πως να τον εγκαταστήσετε</a>, ή αγνοήστε αυτήν την προειδοποίηση για να συνεχίσετε."
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>Προσοχή:</strong>&nbsp;&nbsp;Το λειτουργικό σύστημα των διακομιστών SecureDrop σας έφτασε στο τέλος της υποστήριξής του. Για να ενεργοποιηθεί ξανά η Διεπαφή Πηγής και να μείνετε ασφαλείς απαιτείται χειροκίνητη ενημέρωση. Επικοινωνήστε με τον διαχειριστή σας. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Μάθετε περισσότερα</a>"
