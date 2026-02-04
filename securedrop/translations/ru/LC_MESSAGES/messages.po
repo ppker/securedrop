@@ -937,8 +937,8 @@ msgstr ""
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>Рекомендуется использовать Tor Browser для доступа к SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Узнайте, как его установить</a>, или проигнорируйте для продолжения."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Рекомендуется использовать настольную версию Tor Browser, чтобы получить доступ к SecureDrop, так как Orfox не предоставляет тот же уровень безопасности и анонимности, как настольная версия. </strong><a class=\"recommend-tor\" aria-label=\"Узнайте, как установить Tor Browser\" href=\"{tor_browser_url}\" >Узнайте, как её установить</a>, или проигнорируйте это уведомление, чтобы продолжить."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "логотип {}"
@@ -1147,6 +1147,9 @@ msgstr "<strong>Внимание:</strong> Если вы хотите сохра
 
 msgid "Back to submission page"
 msgstr "Вернуться на страницу отправки"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Рекомендуется использовать настольную версию Tor Browser, чтобы получить доступ к SecureDrop, так как Orfox не предоставляет тот же уровень безопасности и анонимности, как настольная версия. </strong><a class=\"recommend-tor\" aria-label=\"Узнайте, как установить Tor Browser\" href=\"{tor_browser_url}\" >Узнайте, как её установить</a>, или проигнорируйте это уведомление, чтобы продолжить."
 
 #~ msgid "Click <b>Change</b> to open Security Level preferences"
 #~ msgstr "Нажмите <b>Изменить</b>, чтобы открыть настройки уровня безопасности"

@@ -916,8 +916,8 @@ msgstr "Tor Browser 將重新啟動並設定安全性等級為 <b>最安全</b>�
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>高度建議用 Tor 瀏覽器來訪問 SecureDrop :</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\"> 學習如何安裝 Tor</a>，或忽略這則警告繼續操作。"
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>建議您使用桌面版的 Tor 瀏覽器來存取 SecureDrop，因為 Orfox 無法提供與桌面版 Tor 同等級的安全性與匿名性。</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >了解如何安裝 Tor</a>，或忽略此警告以繼續。"
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "{} 圖示"
@@ -1126,6 +1126,9 @@ msgstr "<strong>重要：</strong>如果您希望保持匿名，<strong>請勿</
 
 msgid "Back to submission page"
 msgstr "返回提交文件頁面"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>建議您使用桌面版的 Tor 瀏覽器來存取 SecureDrop，因為 Orfox 無法提供與桌面版 Tor 同等級的安全性與匿名性。</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >了解如何安裝 Tor</a>，或忽略此警告以繼續。"
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>重要：</strong>&nbsp;&nbsp;您的 SecureDrop 伺服器作業系統版本已終止支援。為確保安全性，若要重新啟用線人介面，您必須執行手動更新。請聯繫您的系統管理員。 <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">了解更多</a>"

@@ -937,8 +937,8 @@ msgstr "Tor preglednik će se ponovo pokrenuti s postavljanom razine sigurnosti 
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>Preporučuje se korištenje Tor preglednika za pristup SecureDrop-u:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Saznajte kako ga instalirati</a> ili zanemarite ovo upozorenje i nastavite."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Predlažemo da koristite dekstop verziju Tor Browser-a za pristup na SecureDrop, jer Orfox ne daje istu razinu sigurnosti i anonimnosti kao desktop verzija.</strong><a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Naučite kako instalirati</a>, ili ignorirajte ovo upozorenje kako bi nastavili."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "{} logo"
@@ -1147,6 +1147,9 @@ msgstr "<strong>Važno:</strong> Ako želite ostati anonimni, <strong>nemojte</s
 
 msgid "Back to submission page"
 msgstr "Natrag na stranicu predaje"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Predlažemo da koristite dekstop verziju Tor Browser-a za pristup na SecureDrop, jer Orfox ne daje istu razinu sigurnosti i anonimnosti kao desktop verzija.</strong><a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Naučite kako instalirati</a>, ili ignorirajte ovo upozorenje kako bi nastavili."
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>Kritično:</strong>&nbsp;&nbsp;Operativni sustav Vašeg SecureDrop poslužitelja je došao do kraja podrške. Potrebno je ručno ažuriranje kako bi se omogućilo sučelje za izvore i kako bi ostali sigurni. Molimo kontaktirajte svog administratora.<a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Saznaj više</a>"

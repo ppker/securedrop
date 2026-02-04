@@ -4,7 +4,7 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
 #
 msgid ""
-msgstr "Project-Id-Version: SecureDrop 0.5-rc4\nReport-Msgid-Bugs-To: securedrop@freedom.press\nPO-Revision-Date: 2025-10-16 06:39+0000\nLast-Translator: Adam Rak <kitynska@gmail.com>\nLanguage-Team: Polish <https://weblate.securedrop.org/projects/securedrop/securedrop/pl/>\nLanguage: pl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\nX-Generator: Weblate 5.13.1\nGenerated-By: Babel 2.4.0\n"
+msgstr "Project-Id-Version: SecureDrop 0.5-rc4\nReport-Msgid-Bugs-To: securedrop@freedom.press\nPO-Revision-Date: 2026-01-29 06:46+0000\nLast-Translator: Adam Rak <kitynska@gmail.com>\nLanguage-Team: Polish <https://weblate.securedrop.org/projects/securedrop/securedrop/pl/>\nLanguage: pl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\nX-Generator: Weblate 5.15.2\nGenerated-By: Babel 2.4.0\n"
 
 msgid "Name too long"
 msgstr "Zbyt długa nazwa"
@@ -925,8 +925,8 @@ msgstr "Przeglądarka Tor Browser zostanie ponownie uruchomiona, a jej poziom be
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>Zaleca się korzystanie z Tor Browser w celu uzyskania dostępu do SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Dowiedz się, jak ją zainstalować</a> lub zignoruj to ostrzeżenie, aby kontynuować."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Zaleca się użycie wersji komputerowej Tor Browser, aby uzyskać dostęp do SecureDrop, ponieważ Orfox nie zapewnia takiego samego poziomu bezpieczeństwa i anonimowości jak wersja komputerowa.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Dowiedz się, jak ją zainstalować </a> lub zignoruj to ostrzeżenie, aby kontynuować."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr "<strong>Zaleca się korzystanie z wersji Tor Browser przeznaczonej na komputery stacjonarne w celu uzyskania dostępu do SecureDrop, ponieważ Tor Browser dla systemu Android nie zapewnia takiego samego poziomu bezpieczeństwa i anonimowości, jak wersja na komputery stacjonarne.</strong><a class=\"recommend-tor\" aria-label=\"Dowiedz się, jak zainstalować Tor Browser\" href=\"{tor_browser_url}\" >Dowiedz się, jak ją zainstalować</a> lub zignoruj to ostrzeżenie, aby kontynuować."
 
 msgid "{} logo"
 msgstr "Logo {}"
@@ -1135,6 +1135,9 @@ msgstr "<strong> Ważne: </strong> jeśli chcesz pozostać anonimowy, <strong> n
 
 msgid "Back to submission page"
 msgstr "Powrót do strony zgłoszenia"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Zaleca się użycie wersji komputerowej Tor Browser, aby uzyskać dostęp do SecureDrop, ponieważ Orfox nie zapewnia takiego samego poziomu bezpieczeństwa i anonimowości jak wersja komputerowa.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Dowiedz się, jak ją zainstalować </a> lub zignoruj to ostrzeżenie, aby kontynuować."
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>Krytyczne:</strong>&nbsp;&nbsp;System operacyjny używany przez serwery SecureDrop osiągnął koniec swojego cyklu życia. Wymagana jest ręczna aktualizacja, aby ponownie włączyć interfejs źródła i zachować bezpieczeństwo. Skontaktuj się z administratorem. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Dowiedz się więcej</a>"

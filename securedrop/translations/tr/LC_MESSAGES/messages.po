@@ -926,8 +926,8 @@ msgstr "Tor Tarayıcı, güvenlik seviyesi <b>En Güvenli</b> olarak ayarlanmı�
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>SecureDrop uygulamasına erişmek için Tor Browser kullanmanız önerilir:</strong><a class=\"recommend-tor\" href=\"{tor_browser_url}\">Nasıl kuracağınızı öğrenin</a> ya da bu uyarıyı görmezden gelerek devam edin."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>SecureDrop'a erişmek için Tor Tarayıcı'nın masaüstü sürümünü kullanmanızı öneriyoruz, çünkü Orfox masaüstü sürümle aynı güvenlik ve anonimlik düzeyini sağlamıyor.</strong> <a class=\"recommend-tor\" aria-label=\"Tor Tarayıcıyı nasıl kuracağınızı öğrenin\" href=\"{tor_browser_url}\" >Nasıl kuracağınızı öğrenin</a>, veya bu uyarıyı yok saymak için devam edin."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "{} logosu"
@@ -1137,6 +1137,9 @@ msgstr "<strong>Önemli:</strong> Anonim kalmak istiyorsanız, dosyanın GPG tar
 
 msgid "Back to submission page"
 msgstr "Gönderi sayfasına geri dön"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>SecureDrop'a erişmek için Tor Tarayıcı'nın masaüstü sürümünü kullanmanızı öneriyoruz, çünkü Orfox masaüstü sürümle aynı güvenlik ve anonimlik düzeyini sağlamıyor.</strong> <a class=\"recommend-tor\" aria-label=\"Tor Tarayıcıyı nasıl kuracağınızı öğrenin\" href=\"{tor_browser_url}\" >Nasıl kuracağınızı öğrenin</a>, veya bu uyarıyı yok saymak için devam edin."
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>Kritik:</strong>&nbsp;&nbsp;SecureDrop sunucularınızda kullanılan işletim sistemi kullanım ömrünün sonuna gelmiştir. Kaynak Arayüzünü yeniden etkinleştirmek ve güvenliği sağlamak için manuel güncelleme yapılması gerekmektedir. Lütfen yöneticinize başvurun. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Daha Fazlasını Öğrenin</a>"

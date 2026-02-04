@@ -4,7 +4,19 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
 #
 msgid ""
-msgstr "Project-Id-Version: SecureDrop 0.5-rc4\nReport-Msgid-Bugs-To: securedrop@freedom.press\nPO-Revision-Date: 2025-11-21 12:06+0000\nLast-Translator: John Smith <ecron_89@hotmail.com>\nLanguage-Team: Catalan <https://weblate.securedrop.org/projects/securedrop/securedrop/ca/>\nLanguage: ca\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=2; plural=n != 1;\nX-Generator: Weblate 5.13.3\nGenerated-By: Babel 2.4.0\n"
+msgstr ""
+"Project-Id-Version: SecureDrop 0.5-rc4\n"
+"Report-Msgid-Bugs-To: securedrop@freedom.press\n"
+"PO-Revision-Date: 2025-11-21 12:06+0000\n"
+"Last-Translator: John Smith <ecron_89@hotmail.com>\n"
+"Language-Team: Catalan <https://weblate.securedrop.org/projects/securedrop/securedrop/ca/>\n"
+"Language: ca\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.13.3\n"
+"Generated-By: Babel 2.4.0\n"
 
 msgid "Name too long"
 msgstr "El nom és massa llarg"
@@ -914,8 +926,8 @@ msgstr "El Navegador Tor es reiniciarà, amb el seu nivell de seguretat establer
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>És recomanable l'ús del navegador Tor per accedir al SecureDrop:</strong><a class=\"recommend-tor\" href=\"{tor_browser_url}\">Apreneu com instal·lar-lo</a> o ignoreu aquest avís per a continuar."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Es recomana que utilitzeu la versió d'escriptori del Navegador Tor per accedir al SecureDrop, ja que Orfox no ofereix el mateix nivell de seguretat i anonimat que la versió d'escriptori.</strong> <a class=\"recommend-tor\" aria-label=\"Més informació sobre com instal·lar el Navegador Tor\" href=\"{tor_browser_url}\" >Més informació sobre com instal·lar-lo</a>, o ignoreu aquest avís per continuar."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "Logotip del {}"
@@ -1124,6 +1136,9 @@ msgstr "<strong>Important:</strong> si voleu romandre en l'anonimat, <strong>no<
 
 msgid "Back to submission page"
 msgstr "Torna a la pàgina d'enviaments"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Es recomana que utilitzeu la versió d'escriptori del Navegador Tor per accedir al SecureDrop, ja que Orfox no ofereix el mateix nivell de seguretat i anonimat que la versió d'escriptori.</strong> <a class=\"recommend-tor\" aria-label=\"Més informació sobre com instal·lar el Navegador Tor\" href=\"{tor_browser_url}\" >Més informació sobre com instal·lar-lo</a>, o ignoreu aquest avís per continuar."
 
 #~ msgid "Click <b>Change</b> to open Security Level preferences"
 #~ msgstr "Feu clic a <b>Canvia</b> per obrir les opcions del nivell de seguretat"

@@ -922,8 +922,8 @@ msgstr "Tor Browser wird mit der Sicherheitsstufe <b>Am sichersten</b> neu start
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>Es wird empfohlen, für den Zugriff auf SecureDrop den Tor-Browser zu verwenden:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Erfahren Sie, wie Sie ihn installieren</a> oder ignorieren Sie diese Warnung, um fortzufahren."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Es wird empfohlen, die Desktop-Version des Tor-Browsers für den Zugang zu SecureDrop zu verwenden, da Orfox nicht das gleiche Maß an Sicherheit und Anonymität bietet wie die Desktop-Version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Erfahre, wie man es installiert</a>, oder ignoriere diese Warnung, um fortzufahren."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "{} Logo"
@@ -1132,6 +1132,9 @@ msgstr "<strong>Wichtig:</strong> Verwenden Sie <strong>nicht</strong> GPG, um d
 
 msgid "Back to submission page"
 msgstr "Zurück zur Einreichungsseite"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Es wird empfohlen, die Desktop-Version des Tor-Browsers für den Zugang zu SecureDrop zu verwenden, da Orfox nicht das gleiche Maß an Sicherheit und Anonymität bietet wie die Desktop-Version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Erfahre, wie man es installiert</a>, oder ignoriere diese Warnung, um fortzufahren."
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>Kritisch:</strong>&nbsp;&nbsp;Das von deinen SecureDrop-Servern verwendete Betriebssystem hat das Ende seines Lebenszyklus erreicht. Ein manuelles Update ist erforderlich, um die Quellcode-Schnittstelle wieder zu aktivieren und sicher zu bleiben. Bitte kontaktiere deinen Administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Mehr erfahren</a>"

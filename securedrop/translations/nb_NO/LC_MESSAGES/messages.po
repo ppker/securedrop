@@ -927,8 +927,8 @@ msgstr "Tor-nettleseren vil ta en omstart, med sikkerhetsnivået satt til <b>Try
 msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Learn how to install it</a>, or ignore this warning to continue."
 msgstr "<strong>Det anbefales å bruke Tor-nettleseren for å nå SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Lær hvordan du installerer den</a>, eller se bort fra denne advarselen for å fortsette uten."
 
-msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr "<strong>Det anbefales å bruke datamaskin-versjonen av Tor-nettleseren for å koble seg til SecureDrop, fordi Orfox ikke gir det samme nivået innen sikkerhet og anonymitet som datamaskin-versjonen.</strong> <a class=\"recommend-tor\" aria-label=\"Lær hvordan du installerer Tor-nettleseren\" href=\"{tor_browser_url}\" >Lær hvordan du installerer den</a>, eller ignorer denne advarselen for å fortsette."
+msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+msgstr ""
 
 msgid "{} logo"
 msgstr "{} logo"
@@ -1137,6 +1137,9 @@ msgstr "<strong>Viktig:</strong> Om du ønsker å være helt anonym, <strong>ikk
 
 msgid "Back to submission page"
 msgstr "Tilbake til innsendelsesside"
+
+#~ msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Orfox does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
+#~ msgstr "<strong>Det anbefales å bruke datamaskin-versjonen av Tor-nettleseren for å koble seg til SecureDrop, fordi Orfox ikke gir det samme nivået innen sikkerhet og anonymitet som datamaskin-versjonen.</strong> <a class=\"recommend-tor\" aria-label=\"Lær hvordan du installerer Tor-nettleseren\" href=\"{tor_browser_url}\" >Lær hvordan du installerer den</a>, eller ignorer denne advarselen for å fortsette."
 
 #~ msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Learn More</a>"
 #~ msgstr "<strong>Kritisk:</strong>&nbsp;&nbsp;Operativsystemet på SecureDrop-serverne deres går nå ut på dato. En manuell oppdatering er nødvendig for å på nytt aktivere brukergrensesnittet for kilder, og fortsatt være sikker. Kontakt administratoren for SecureDrop i din organisasjon. <a href=\"https://securedrop.org/focal-eol\" rel=\"noreferrer\">Ler mer</a>"
