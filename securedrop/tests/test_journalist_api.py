@@ -178,7 +178,6 @@ def test_valid_user_gets_hints_with_prefer_header(journalist_app, test_journo):
         assert len(hints["version"]) == 64
         assert isinstance(hints["sources"], int)
         assert isinstance(hints["items"], int)
-        assert isinstance(hints["journalists"], int)
 
 
 def test_hints_version_matches_index_etag(journalist_app, test_journo):

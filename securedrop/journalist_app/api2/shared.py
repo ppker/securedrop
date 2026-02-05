@@ -119,7 +119,6 @@ def get_index_hints() -> dict:
         "version": json_version(index_dict),
         "sources": len(index_dict["sources"]),
         "items": len(index_dict["items"]),
-        "journalists": len(index_dict["journalists"]),
     }
 
 

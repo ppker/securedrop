@@ -107,34 +107,33 @@ end
 #### Sharding metadata
 
 On login, the server returns _hints_ to help the client choose whether and how
-to shard metadata for sources, items, and journalists:
+to shard metadata for sources and their items:
 
 ```json
 {
   "version": "abcdef",
   "sources": 100,
-  "items": 200,
-  "journalists": 3
+  "items": 200
 }
 ```
 
 A _shard_ is specified by a comma-separated list of UUID prefixes, so that the
 client can choose both the breadth and the depth of the shard:
 
-| Shard | Matches                                                                  |
-| ----- | ------------------------------------------------------------------------ |
-| `a`   | All sources, items, and journalists with UUIDs beginning with `a`        |
-| `ab`  | All sources, items, and journalists with UUIDs beginning with `ab`       |
-| `a,b` | All sources, items, and journalists with UUIDs beginning with `a` or `b` |
+| Shard | Matches                                                            |
+| ----- | ------------------------------------------------------------------ |
+| `a`   | All sources (and their items) with UUIDs beginning with `a`        |
+| `ab`  | All sources (and their items) with UUIDs beginning with `ab`       |
+| `a,b` | All sources (and their items) with UUIDs beginning with `a` or `b` |
 
 Putting it all together, the client MAY make sharding decisions such as:
 
-| Client's version | `version` | `sources` | `items` | `journalists` | Client's next step                                                                | Records synced     |
-| ---------------- | --------- | --------- | ------- | ------------- | --------------------------------------------------------------------------------- | ------------------ |
-| `abcdef`         | `abcdef`  | 100       | 200     | 3             | None; already in sync                                                             | 0                  |
-| `ghijkl`         | `abcdef`  | 100       | 200     | 3             | Global sync; no sharding necessary                                                | 303                |
-| `ghijkl`         | `abcdef`  | 100       | 1000    | 3             | Sync over 4 shards:<br>`["0,1,2,3", "4,5,6,7", "8,9,a,b", "c,d,e,f"]`             | ~275 records/shard |
-| `ghijkl`         | `abcdef`  | 100       | 2000    | 3             | Sync over 8 shards:<br>`["0,1", "2,3", "4,5", "6,7", "8,9", "a,b", "c,d", "e,f"]` | ~262 records/shard |
+| Client's version | `version` | `sources` | `items` | Client's next step                                                                | Records synced     |
+| ---------------- | --------- | --------- | ------- | --------------------------------------------------------------------------------- | ------------------ |
+| `abcdef`         | `abcdef`  | 100       | 200     | None; already in sync                                                             | 0                  |
+| `ghijkl`         | `abcdef`  | 100       | 200     | Global sync; no sharding necessary                                                | 300                |
+| `ghijkl`         | `abcdef`  | 100       | 1000    | Sync over 4 shards:<br>`["0,1,2,3", "4,5,6,7", "8,9,a,b", "c,d,e,f"]`             | ~275 records/shard |
+| `ghijkl`         | `abcdef`  | 100       | 2000    | Sync over 8 shards:<br>`["0,1", "2,3", "4,5", "6,7", "8,9", "a,b", "c,d", "e,f"]` | ~262 records/shard |
 
 The client SHOULD ensure that the set of shards it requests covers either (a)
 the entire UUID namespace or (b) the portion of the UUID namespace of interest.
