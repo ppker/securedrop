@@ -25,23 +25,27 @@ EVENTS_MAX = 50
 
 
 @blp.get("/index")
-@blp.get("/index/<string:source_prefix>")
-def index(source_prefix: str | None = None) -> Response:
+@blp.get("/index/<string:shard_spec>")
+def index(shard_spec: str | None = None) -> Response:
     """
     By default, return the ETag-versioned ``Index`` of all metadata unless the
     client provides the ETag of the current index.
 
-    Given a ``source_prefix``, return the sub-index of source metadata for all
-    sources whose UUIDs begin with that prefix, plus all non-source metadata,
-    unless the client provides the ETag of the current sub-index for that
-    prefix.  The client MAY choose an arbitrary prefix with each request: e.g.,
-    a series of requests with the prefixes ``{0...f}`` will effectively shard
-    the source index into 16 shards.  (Non-source metadata is not filtered by
-    the prefix and is always returned.)
+    Given a ``shard_spec`` of one or more comma-separated shards (UUID
+    prefixes), return the sub-index of source metadata for all sources whose
+    UUIDs begin with any of those prefixes, plus all non-source metadata, unless
+    the client provides the ETag of the current sub-index for that set of
+    shards.  The client MAY choose an arbitrary set of shards with each request:
+    e.g., a series of requests with the shards ``{0...f}`` will effectively
+    shard the source index into 16 shards.  (Non-source metadata is not filtered
+    by shard and is always returned.)
     """
     minor = get_request_minor_version()
+    shards = None
+    if shard_spec is not None:
+        shards = [shard for shard in shard_spec.split(",") if shard]
 
-    index_dict = get_index_dict(minor, source_prefix)
+    index_dict = get_index_dict(minor, shards)
     version = json_version(index_dict)
     response = jsonify(index_dict)
 
@@ -57,7 +61,7 @@ def data() -> Response:
     """
     Return the ``BatchResponse`` requested in the ``BatchRequest``.  The
     client MAY choose an arbitrary list of objects with each request, e.g. from
-    a shard retrieved from ``/index/<source_prefix>``.
+    a shard retrieved from ``/index/<shard_spec>``.
 
     The client MAY include a list of ``Event``s for the server to process over
     arbitrary sources and items.  Ordering is guaranteed within a given

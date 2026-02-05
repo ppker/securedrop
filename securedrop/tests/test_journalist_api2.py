@@ -101,7 +101,7 @@ def test_api2_not_available_when_disabled(
     ("endpoint", "kwargs"),
     [
         ("api2.index", {}),
-        ("api2.index", {"source_prefix": "foo"}),
+        ("api2.index", {"shard_spec": "foo"}),
         # while this should be a POST request, the 403 will kick in first
         ("api2.data", {}),
     ],
@@ -167,63 +167,153 @@ def test_index(journalist_app, test_files, journalist_api_token, app_storage):
         assert response2.calculate_content_length() == 0
 
 
-def test_index_with_source_prefix(journalist_app, test_files, journalist_api_token):
+def test_index_with_shard(journalist_app, test_files, journalist_api_token):
     """
-    Verify GET /index/<source_prefix> response and HTTP 304 behavior
+    Verify GET /index/<shard_spec> with a single shard prefix: matching,
+    non-matching, deeper prefixes, ETag/304, and that journalists are always
+    included.
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
+        headers = get_api_headers(journalist_api_token)
+
+        # Single-character prefix matching the source
         with assert_query_count(2):
             response = app.get(
-                url_for("api2.index", source_prefix=uuid[0]),
-                headers=get_api_headers(journalist_api_token),
+                url_for("api2.index", shard_spec=uuid[0]),
+                headers=headers,
             )
-
-        # Verify the source is in the response
         assert response.status_code == 200
         assert uuid in response.json["sources"]
-        # test_files generates 2 submissions and 1 reply, so 3 items total
         assert len(response.json["items"]) == 3
 
+        # ETag / 304 behavior
         with assert_query_count(2):
             response2 = app.get(
-                url_for("api2.index", source_prefix=uuid[0]),
-                headers={
-                    **get_api_headers(journalist_api_token),
-                    "If-None-Match": response.headers["ETag"],
-                },
+                url_for("api2.index", shard_spec=uuid[0]),
+                headers={**headers, "If-None-Match": response.headers["ETag"]},
             )
-
-        # With the etag, verify we get an empty 304
         assert response2.status_code == 304
         assert response2.calculate_content_length() == 0
 
-        # Make a response with an invalid source_prefix ("x")
+        # Two-character prefix matching the source
         response3 = app.get(
-            url_for("api2.index", source_prefix="x"),
-            headers=get_api_headers(journalist_api_token),
+            url_for("api2.index", shard_spec=uuid[:2]),
+            headers=headers,
         )
-        # HTTP 200, but zero sources
         assert response3.status_code == 200
-        assert response3.json["sources"] == {}
-        assert response3.json["items"] == {}
+        assert uuid in response3.json["sources"]
+
+        # Two-character prefix that does NOT match
+        different_prefix = "aa" if not uuid.startswith("aa") else "bb"
+        response4 = app.get(
+            url_for("api2.index", shard_spec=different_prefix),
+            headers=headers,
+        )
+        assert response4.status_code == 200
+        assert uuid not in response4.json["sources"]
+
+        # Non-hex ("x") or empty prefix matches no sources but journalists are still present
+        response5 = app.get(
+            url_for("api2.index", shard_spec="x,,"),
+            headers=headers,
+        )
+        assert response5.status_code == 200
+        assert response5.json["sources"] == {}
+        assert response5.json["items"] == {}
+        assert len(response5.json["journalists"]) >= 1
 
 
-def test_index_with_invalid_source_prefix(journalist_app, test_files, journalist_api_token):
+def test_index_with_comma_separated_shards(
+    journalist_app, test_files, journalist_api_token, app_storage
+):
     """
-    Verify that a too-long source_prefix is rejected.
+    Verify that a comma-separated shard_spec (e.g. "a,b") matches sources whose
+    UUIDs begin with any of the listed prefixes.
+    """
+    with journalist_app.app_context():
+        source2, _ = init_source(app_storage)
+        submit(app_storage, source2, 1)
+        source2_uuid = source2.uuid
+
+    with journalist_app.test_client() as app:
+        uuid = test_files["source"].uuid
+        headers = get_api_headers(journalist_api_token)
+
+        shard_spec = f"{uuid[0]},{source2_uuid[0]}"
+        response = app.get(
+            url_for("api2.index", shard_spec=shard_spec),
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert uuid in response.json["sources"]
+        assert source2_uuid in response.json["sources"]
+        assert len(response.json["journalists"]) >= 1
+
+
+def test_index_sharding_disjoint_union(
+    journalist_app, test_files, journalist_api_token, app_storage
+):
+    """
+    Verify that two disjoint shards covering the full hex namespace combine to
+    equal the global index and share no sources between them.
+    """
+    with journalist_app.app_context():
+        for _ in range(3):
+            s, _ = init_source(app_storage)
+            submit(app_storage, s, 1)
+
+    with journalist_app.test_client() as app:
+        headers = get_api_headers(journalist_api_token)
+
+        global_response = app.get(url_for("api2.index"), headers=headers)
+        assert global_response.status_code == 200
+
+        shard_a = ",".join("01234567")
+        shard_b = ",".join("89abcdef")
+
+        resp_a = app.get(url_for("api2.index", shard_spec=shard_a), headers=headers)
+        resp_b = app.get(url_for("api2.index", shard_spec=shard_b), headers=headers)
+        assert resp_a.status_code == 200
+        assert resp_b.status_code == 200
+
+        # Union of both shards equals the global index
+        combined_sources = {**resp_a.json["sources"], **resp_b.json["sources"]}
+        assert combined_sources == global_response.json["sources"]
+
+        # Shards are disjoint
+        overlap = set(resp_a.json["sources"].keys()) & set(resp_b.json["sources"].keys())
+        assert overlap == set()
+
+
+def test_index_with_invalid_shard(journalist_app, test_files, journalist_api_token):
+    """
+    Verify that a too-long shard prefix is rejected with HTTP 422, whether it
+    appears alone or inside a comma-separated list.
     """
     with journalist_app.test_client() as app:
         uuid = test_files["source"].uuid
         too_long = uuid[0] * 100
+        headers = get_api_headers(journalist_api_token)
+
+        # Single too-long shard
         with assert_query_count(0):
             response = app.get(
-                url_for("api2.index", source_prefix=too_long),
-                headers=get_api_headers(journalist_api_token),
+                url_for("api2.index", shard_spec=too_long),
+                headers=headers,
             )
-
         assert response.status_code == 422
-        assert "malformed request; source prefix must be shorter than" in response.get_data(
+        assert "malformed request; each shard must be shorter than" in response.get_data(
+            as_text=True
+        )
+
+        # Too-long shard inside a comma-separated list
+        response2 = app.get(
+            url_for("api2.index", shard_spec=f"a,{too_long}"),
+            headers=headers,
+        )
+        assert response2.status_code == 422
+        assert "malformed request; each shard must be shorter than" in response2.get_data(
             as_text=True
         )
 

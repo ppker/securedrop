@@ -21,6 +21,7 @@ from models import (
     Source,
     eager_query,
 )
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.inspection import inspect
 from store import Storage
@@ -35,7 +36,8 @@ PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 # 2. `Reply` and `Submission` objects include `interaction_count`
 # 3. `BatchRequest` accepts `events` to process, with results returned in
 #    `BatchResponse.events`
-# 4. `/api/v1/token` provides sync hints
+# 4. `/api/v1/token` provides sync hints for client-specified sharding of
+#    `Index`
 API_MINOR_VERSION = 4  # 2.x
 
 
@@ -65,23 +67,26 @@ def json_version(d: Mapping) -> Version:
     return Version(hashlib.blake2s(b).hexdigest())
 
 
-def get_index_dict(minor: int, source_prefix: str | None = None) -> dict:
+def get_index_dict(minor: int, shards: list[str] | None = None) -> dict:
     """
-    APIv2-facing interface for getting the index for the specified source prefix
-    and minor version.
+    APIv2-facing interface for getting the index for the specified minor version
+    and (if specified) shards.
     """
     index = Index()
 
     source_query: EagerQuery = eager_query("Source")
-    if source_prefix is not None:
-        if len(source_prefix) >= PREFIX_MAX_LEN:
-            abort(
-                422,
-                f"malformed request; source prefix must be shorter than {PREFIX_MAX_LEN} "
-                f"characters",
-            )
+    if shards is not None:
+        for shard in shards:
+            if len(shard) >= PREFIX_MAX_LEN:
+                abort(
+                    422,
+                    f"malformed request; each shard must be shorter than {PREFIX_MAX_LEN} "
+                    f"characters",
+                )
 
-        source_query = source_query.filter(Source.uuid.startswith(source_prefix))
+        source_query = source_query.filter(
+            or_(*(Source.uuid.startswith(shard) for shard in shards))
+        )
 
     for source in source_query.all():
         index.sources[source.uuid] = json_version(source.to_api_v2(minor))
@@ -105,7 +110,7 @@ def get_index_dict(minor: int, source_prefix: str | None = None) -> dict:
 def get_index_hints() -> dict:
     """
     APIv1-facing interface for getting *only* the hints of the current index,
-    without negotiation of either the minor version or the source prefix.
+    without negotiation of either the minor version or sharding.
     """
     minor = get_request_minor_version()
     index_dict = get_index_dict(minor)
