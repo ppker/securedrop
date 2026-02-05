@@ -52,6 +52,11 @@ storage in order to:
 
 ## Overview
 
+> [!NOTE]
+> The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
+> RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as
+> described in [RFC 2119].
+
 The request/response schemas referred to in these sequence diagrams are defined
 as mypy types in `securedrop.journalist_app.api2.types`.
 
@@ -74,17 +79,69 @@ sequenceDiagram
 participant Client
 participant Server
 
+Client ->> Server: POST /api/v1/token
+Server ->> Client: token, hints
+
+Note over Client: Calculate shards based on hints.
+
 alt Global
+    Note over Server: Global version abcdef
     Client ->> Server: GET /api/v2/index
-else Sharded by UUID prefix
-    Client ->> Server: GET /api/v2/index/<prefix>
+    Server ->> Client: ETag: abcdef<br>Index
+else Sharded by sets of UUID prefixes
+    loop for shard in shards:
+        Note over Server: Shard <shard> @ version uvwxyz
+        Client ->> Server: GET /api/v2/index/<shard>
+        Server ->> Client: ETag: uvwxyz<br>Index
+    end
 end
 
-Server ->> Client: ETag: abcdef<br>Index
-Note over Client: We want metadata for all new sources and items.
-Client ->> Server: POST /api/v2/data<br>BatchRequest
-Server ->> Client: BatchResponse
+Note over Client: We want metadata for all new sources and items.<br>Calculate batches based on total size.
+
+loop for batch in batches:
+    Client ->> Server: POST /api/v2/data<br>BatchRequest
+    Server ->> Client: BatchResponse
+end
 ```
+
+#### Sharding metadata
+
+On login, the server returns _hints_ to help the client choose whether and how
+to shard metadata for sources, items, and journalists:
+
+```json
+{
+  "version": "abcdef",
+  "sources": 100,
+  "items": 200,
+  "journalists": 3
+}
+```
+
+A _shard_ is specified by a comma-separated list of UUID prefixes, so that the
+client can choose both the breadth and the depth of the shard:
+
+| Shard | Matches                                                                  |
+| ----- | ------------------------------------------------------------------------ |
+| `a`   | All sources, items, and journalists with UUIDs beginning with `a`        |
+| `ab`  | All sources, items, and journalists with UUIDs beginning with `ab`       |
+| `a,b` | All sources, items, and journalists with UUIDs beginning with `a` or `b` |
+
+Putting it all together, the client MAY make sharding decisions such as:
+
+| Client's version | `version` | `sources` | `items` | `journalists` | Client's next step                                                                | Records synced     |
+| ---------------- | --------- | --------- | ------- | ------------- | --------------------------------------------------------------------------------- | ------------------ |
+| `abcdef`         | `abcdef`  | 100       | 200     | 3             | None; already in sync                                                             | 0                  |
+| `ghijkl`         | `abcdef`  | 100       | 200     | 3             | Global sync; no sharding necessary                                                | 303                |
+| `ghijkl`         | `abcdef`  | 100       | 1000    | 3             | Sync over 4 shards:<br>`["0,1,2,3", "4,5,6,7", "8,9,a,b", "c,d,e,f"]`             | ~275 records/shard |
+| `ghijkl`         | `abcdef`  | 100       | 2000    | 3             | Sync over 8 shards:<br>`["0,1", "2,3", "4,5", "6,7", "8,9", "a,b", "c,d", "e,f"]` | ~262 records/shard |
+
+The client SHOULD ensure that the set of shards it requests covers either (a)
+the entire UUID namespace or (b) the portion of the UUID namespace of interest.
+
+#### Batching data
+
+_TK_
 
 ### Incremental synchronization
 
@@ -96,12 +153,12 @@ participant Client
 participant Server
 
 Note over Client: Global version abcdef
-Note over Client: Shard <prefix> version uvwxyz
+Note over Client: Shard <shard> @ version uvwxyz
 
 alt Global
     Client ->> Server: GET /api/v2/index<br>If-None-Match: abcdef
-else Sharded by UUID prefix
-    Client ->> Server: GET /api/v2/index/<prefix><br>If-None-Match: uvwxyz
+else Sharded by sets of UUID prefixes
+    Client ->> Server: GET /api/v2/index/<shard><br>If-None-Match: uvwxyz
 end
 
 alt Up to date
@@ -261,3 +318,4 @@ library like [`@sapphire/snowflake`]. To avoid precision-loss problems:
   testing equality.
 
 [`@sapphire/snowflake`]: https://www.npmjs.com/package/@sapphire/snowflake
+[RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
