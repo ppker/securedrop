@@ -141,7 +141,11 @@ the entire UUID namespace or (b) the portion of the UUID namespace of interest.
 
 #### Batching data
 
-_TK_
+As described in ["Incremental Synchronization"](#incremental-synchronization),
+the client MAY request arbitrary batches of data at any time. During initial
+synchronization, the client MAY choose (for example) to send a separate
+`BatchRequest` for each metadata shard, in order to fetch only the records whose
+metadata was returned in that shard.
 
 ### Incremental synchronization
 
