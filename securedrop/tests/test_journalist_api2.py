@@ -224,7 +224,7 @@ def test_index_with_shard(journalist_app, test_files, journalist_api_token):
         assert len(response5.json["journalists"]) >= 1
 
 
-def test_index_with_comma_separated_shards(
+def test_index_with_comma_separated_prefixes(
     journalist_app, test_files, journalist_api_token, app_storage
 ):
     """
@@ -269,11 +269,11 @@ def test_index_sharding_disjoint_union(
         global_response = app.get(url_for("api2.index"), headers=headers)
         assert global_response.status_code == 200
 
-        shard_a = ",".join("01234567")
-        shard_b = ",".join("89abcdef")
+        shard_spec_a = ",".join("01234567")
+        shard_spec_b = ",".join("89abcdef")
 
-        resp_a = app.get(url_for("api2.index", shard_spec=shard_a), headers=headers)
-        resp_b = app.get(url_for("api2.index", shard_spec=shard_b), headers=headers)
+        resp_a = app.get(url_for("api2.index", shard_spec=shard_spec_a), headers=headers)
+        resp_b = app.get(url_for("api2.index", shard_spec=shard_spec_b), headers=headers)
         assert resp_a.status_code == 200
         assert resp_b.status_code == 200
 
@@ -286,9 +286,9 @@ def test_index_sharding_disjoint_union(
         assert overlap == set()
 
 
-def test_index_with_invalid_shard(journalist_app, test_files, journalist_api_token):
+def test_index_with_invalid_prefix(journalist_app, test_files, journalist_api_token):
     """
-    Verify that a too-long shard prefix is rejected with HTTP 422, whether it
+    Verify that a too-long prefix is rejected with HTTP 422, whether it
     appears alone or inside a comma-separated list.
     """
     with journalist_app.test_client() as app:
@@ -296,24 +296,24 @@ def test_index_with_invalid_shard(journalist_app, test_files, journalist_api_tok
         too_long = uuid[0] * 100
         headers = get_api_headers(journalist_api_token)
 
-        # Single too-long shard
+        # Single too-long prefix
         with assert_query_count(0):
             response = app.get(
                 url_for("api2.index", shard_spec=too_long),
                 headers=headers,
             )
         assert response.status_code == 422
-        assert "malformed request; each shard must be shorter than" in response.get_data(
+        assert "malformed request; each prefix must be shorter than" in response.get_data(
             as_text=True
         )
 
-        # Too-long shard inside a comma-separated list
+        # Too-long prefix inside a comma-separated list
         response2 = app.get(
             url_for("api2.index", shard_spec=f"a,{too_long}"),
             headers=headers,
         )
         assert response2.status_code == 422
-        assert "malformed request; each shard must be shorter than" in response2.get_data(
+        assert "malformed request; each prefix must be shorter than" in response2.get_data(
             as_text=True
         )
 

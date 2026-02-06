@@ -90,8 +90,8 @@ alt Global
     Server ->> Client: ETag: abcdef<br>Index
 else Sharded by sets of UUID prefixes
     loop for shard in shards:
-        Note over Server: Shard <shard> @ version uvwxyz
-        Client ->> Server: GET /api/v2/index/<shard>
+        Note over Server: Shard <shard_spec> @ version uvwxyz
+        Client ->> Server: GET /api/v2/index/<shard_spec>
         Server ->> Client: ETag: uvwxyz<br>Index
     end
 end
@@ -117,8 +117,9 @@ to shard metadata for sources and their items:
 }
 ```
 
-A _shard_ is specified by a comma-separated list of UUID prefixes, so that the
-client can choose both the breadth and the depth of the shard:
+A _shard_ is specified by _shard spec_ consisting of a comma-separated list of
+UUID _prefixes_, so that the client can choose both the breadth and the depth of
+the shard:
 
 | Shard | Matches                                                            |
 | ----- | ------------------------------------------------------------------ |
@@ -156,12 +157,12 @@ participant Client
 participant Server
 
 Note over Client: Global version abcdef
-Note over Client: Shard <shard> @ version uvwxyz
+Note over Client: Shard <shard_spec> @ version uvwxyz
 
 alt Global
     Client ->> Server: GET /api/v2/index<br>If-None-Match: abcdef
 else Sharded by sets of UUID prefixes
-    Client ->> Server: GET /api/v2/index/<shard><br>If-None-Match: uvwxyz
+    Client ->> Server: GET /api/v2/index/<shard_spec><br>If-None-Match: uvwxyz
 end
 
 alt Up to date

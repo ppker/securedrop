@@ -78,25 +78,25 @@ def json_version(d: Mapping) -> Version:
     return Version(hashlib.blake2s(b).hexdigest())
 
 
-def get_index_dict(minor: int, shards: list[str] | None = None) -> dict:
+def get_index_dict(minor: int, prefixes: list[str] | None = None) -> dict:
     """
     APIv2-facing interface for getting the index for the specified minor version
-    and (if specified) shards.
+    and (if specified) prefixes.
     """
     index = Index()
 
     source_query: EagerQuery = eager_query("Source")
-    if shards is not None:
-        for shard in shards:
-            if len(shard) >= PREFIX_MAX_LEN:
+    if prefixes:
+        for prefix in prefixes:
+            if len(prefix) >= PREFIX_MAX_LEN:
                 abort(
                     422,
-                    f"malformed request; each shard must be shorter than {PREFIX_MAX_LEN} "
+                    f"malformed request; each prefix must be shorter than {PREFIX_MAX_LEN} "
                     f"characters",
                 )
 
         source_query = source_query.filter(
-            or_(*(Source.uuid.startswith(shard) for shard in shards))
+            or_(*(Source.uuid.startswith(prefix) for prefix in prefixes))
         )
 
     for source in source_query.all():

@@ -31,21 +31,21 @@ def index(shard_spec: str | None = None) -> Response:
     By default, return the ETag-versioned ``Index`` of all metadata unless the
     client provides the ETag of the current index.
 
-    Given a ``shard_spec`` of one or more comma-separated shards (UUID
-    prefixes), return the sub-index of source metadata for all sources whose
+    Given a ``shard_spec`` for a shard consisting of one or more comma-separated
+    UUID prefixes, return the sub-index of source metadata for all sources whose
     UUIDs begin with any of those prefixes, plus all non-source metadata, unless
-    the client provides the ETag of the current sub-index for that set of
-    shards.  The client MAY choose an arbitrary set of shards with each request:
-    e.g., a series of requests with the shards ``{0...f}`` will effectively
-    shard the source index into 16 shards.  (Non-source metadata is not filtered
-    by shard and is always returned.)
+    the client provides the ETag of the current sub-index for that shard.  The
+    client MAY choose an arbitrary ``shard_spec`` with each request: e.g., a
+    series of requests for the shards ``{0...f}`` will effectively shard the
+    source index into 16 shards.  (Non-source metadata is not filtered by shard
+    and is always returned.)
     """
     minor = get_request_minor_version()
-    shards = None
+    shard = None
     if shard_spec is not None:
-        shards = [shard for shard in shard_spec.split(",") if shard]
+        shard = [prefix for prefix in shard_spec.split(",") if prefix]
 
-    index_dict = get_index_dict(minor, shards)
+    index_dict = get_index_dict(minor, shard)
     version = json_version(index_dict)
     response = jsonify(index_dict)
 
