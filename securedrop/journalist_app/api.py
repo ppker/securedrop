@@ -7,7 +7,7 @@ import werkzeug
 from db import db
 from flask import Blueprint, abort, jsonify, request
 from journalist_app import utils
-from journalist_app.api2.shared import get_index_hints, save_reply
+from journalist_app.api2.shared import get_index_hints, get_request_minor_version, save_reply
 from journalist_app.sessions import session
 from models import (
     InvalidUsernameException,
@@ -98,7 +98,7 @@ def make_blueprint() -> Blueprint:
                 "journalist_last_name": journalist.last_name,
             }
 
-            if "Prefer" in request.headers:
+            if get_request_minor_version(strict=True) >= 4:
                 response_dict["hints"] = get_index_hints()
 
             response = jsonify(response_dict)

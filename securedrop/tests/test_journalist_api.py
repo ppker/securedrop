@@ -231,6 +231,27 @@ def test_valid_user_gets_no_hints_without_prefer_header(journalist_app, test_jou
         assert "hints" not in response.json
 
 
+def test_valid_user_gets_no_hints_without_compatible_prefer_header(journalist_app, test_journo):
+    with journalist_app.test_client() as app:
+        valid_token = TOTP(test_journo["otp_secret"]).now()
+        headers = get_api_headers()
+        headers["Prefer"] = "securedrop=3"
+        response = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": valid_token,
+                }
+            ),
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        assert "hints" not in response.json
+
+
 def test_failed_auth_wrong_password_with_prefer_header_does_not_query_index(
     journalist_app, test_journo, mocker
 ):

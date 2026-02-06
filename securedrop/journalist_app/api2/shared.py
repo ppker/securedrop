@@ -41,7 +41,18 @@ PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 API_MINOR_VERSION = 4  # 2.x
 
 
-def get_request_minor_version() -> int:
+def get_request_minor_version(strict: bool = False) -> int:
+    """
+    By default, returns the value of x in the header ``Prefer: securedrop=x`` if
+    it is present and within the range ``[0, API_MINOR_VERSION]``; otherwise
+    returns ``API_MINOR_VERSION``.
+
+    In ``strict`` mode, returns -1 if this header is missing, indicating a
+    pre-v2 client that cannot negotiate minor-version compatibility.
+    """
+    if strict and "Prefer" not in request.headers:
+        return -1
+
     try:
         prefer = request.headers.get("Prefer", f"securedrop={API_MINOR_VERSION}")
         minor_version = int(prefer.split("=")[1])
@@ -112,7 +123,7 @@ def get_index_hints() -> dict:
     APIv1-facing interface for getting *only* the hints of the current index,
     without negotiation of either the minor version or sharding.
     """
-    minor = get_request_minor_version()
+    minor = API_MINOR_VERSION
     index_dict = get_index_dict(minor)
 
     return {
