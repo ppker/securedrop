@@ -56,7 +56,7 @@ EventStatus = tuple[EventStatusCode, str | None]
 
 @dataclass
 class Index:
-    # Source metadata, optionally filtered by `source_prefix`:
+    # Source metadata, optionally filtered by shard spec:
     sources: dict[SourceUUID, Version] = field(default_factory=dict)
     items: dict[ItemUUID, Version] = field(default_factory=dict)
 

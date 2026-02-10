@@ -6,20 +6,62 @@ This module contains helper functions factored out of the v1 Journalist API
 import hashlib
 import os
 from collections.abc import Mapping
+from dataclasses import asdict
 from uuid import UUID
 
 from db import db
-from flask import json
-from journalist_app.api2.types import Version
+from flask import abort, json, request
+from journalist_app.api2.types import Index, Version
 from journalist_app.sessions import session
 from models import (
+    EagerQuery,
     InvalidUUID,
     Reply,
     SeenReply,
     Source,
+    eager_query,
 )
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.inspection import inspect
 from store import Storage
+
+PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
+
+# Magic numbers to avoid having to define an `IntEnum` somewhere that can be
+# imported from `securedrop.models`:
+#
+# 0. Initial implementation
+# 1. `Index` and `BatchResponse` include `journalists`
+# 2. `Reply` and `Submission` objects include `interaction_count`
+# 3. `BatchRequest` accepts `events` to process, with results returned in
+#    `BatchResponse.events`
+# 4. `/api/v1/token` provides sync hints for client-specified sharding of
+#    `Index`
+API_MINOR_VERSION = 4  # 2.x
+
+
+def get_request_minor_version(strict: bool = False) -> int:
+    """
+    By default, returns the value of x in the header ``Prefer: securedrop=x`` if
+    it is present and within the range ``[0, API_MINOR_VERSION]``; otherwise
+    returns ``API_MINOR_VERSION``.
+
+    In ``strict`` mode, returns -1 if this header is missing, indicating a
+    pre-v2 client that cannot negotiate minor-version compatibility.
+    """
+    if strict and "Prefer" not in request.headers:
+        return -1
+
+    try:
+        prefer = request.headers.get("Prefer", f"securedrop={API_MINOR_VERSION}")
+        minor_version = int(prefer.split("=")[1])
+        if 0 <= minor_version <= API_MINOR_VERSION:
+            return minor_version
+        else:
+            return API_MINOR_VERSION
+    except (IndexError, ValueError):
+        return API_MINOR_VERSION
 
 
 def json_version(d: Mapping) -> Version:
@@ -34,6 +76,61 @@ def json_version(d: Mapping) -> Version:
     s = json.dumps(d, separators=[",", ":"], sort_keys=True)
     b = s.encode("utf-8")
     return Version(hashlib.blake2s(b).hexdigest())
+
+
+def get_index_dict(minor: int, prefixes: list[str] | None = None) -> dict:
+    """
+    APIv2-facing interface for getting the index for the specified minor version
+    and (if specified) prefixes.
+    """
+    index = Index()
+
+    source_query: EagerQuery = eager_query("Source")
+    if prefixes:
+        for prefix in prefixes:
+            if len(prefix) >= PREFIX_MAX_LEN:
+                abort(
+                    422,
+                    f"malformed request; each prefix must be shorter than {PREFIX_MAX_LEN} "
+                    f"characters",
+                )
+
+        source_query = source_query.filter(
+            or_(*(Source.uuid.startswith(prefix) for prefix in prefixes))
+        )
+
+    for source in source_query.all():
+        index.sources[source.uuid] = json_version(source.to_api_v2(minor))
+        for item in source.collection:
+            index.items[item.uuid] = json_version(item.to_api_v2(minor))
+
+    journalist_query: EagerQuery = eager_query("Journalist")
+    for journalist in journalist_query.all():
+        index.journalists[journalist.uuid] = json_version(journalist.to_api_v2(minor))
+
+    # We want to enforce the *current* shape of `Index`, so we should wait until
+    # we have the dictionary representation to delete top-level keys unsupported
+    # by the current minor version.
+    index_dict = asdict(index)
+    if minor < 1:
+        del index_dict["journalists"]
+
+    return index_dict
+
+
+def get_index_hints() -> dict:
+    """
+    APIv1-facing interface for getting *only* the hints of the current index,
+    without negotiation of either the minor version or sharding.
+    """
+    minor = API_MINOR_VERSION
+    index_dict = get_index_dict(minor)
+
+    return {
+        "version": json_version(index_dict),
+        "sources": len(index_dict["sources"]),
+        "items": len(index_dict["items"]),
+    }
 
 
 def save_reply(source: Source, data: dict) -> Reply:

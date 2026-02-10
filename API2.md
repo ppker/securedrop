@@ -52,6 +52,11 @@ storage in order to:
 
 ## Overview
 
+> [!NOTE]
+> The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
+> RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as
+> described in [RFC 2119].
+
 The request/response schemas referred to in these sequence diagrams are defined
 as mypy types in `securedrop.journalist_app.api2.types`.
 
@@ -74,17 +79,73 @@ sequenceDiagram
 participant Client
 participant Server
 
+Client ->> Server: POST /api/v1/token
+Server ->> Client: token, hints
+
+Note over Client: Calculate shards based on hints.
+
 alt Global
-    Client -->> Server: GET /api/v2/index
-else Sharded by UUID prefix
-    Client -->> Server: GET /api/v2/index/<prefix>
+    Note over Server: Global version abcdef
+    Client ->> Server: GET /api/v2/index
+    Server ->> Client: ETag: abcdef<br>Index
+else Sharded by sets of UUID prefixes
+    loop for shard in shards:
+        Note over Server: Shard <shard_spec> @ version uvwxyz
+        Client ->> Server: GET /api/v2/index/<shard_spec>
+        Server ->> Client: ETag: uvwxyz<br>Index
+    end
 end
 
-Server ->> Client: ETag: abcdef<br>Index
-Note over Client: We want metadata for all new sources and items.
-Client -->> Server: POST /api/v2/metadata<br>MetadataRequest
-Server ->> Client: MetadataResponse
+Note over Client: We want metadata for all new sources and items.<br>Calculate batches based on total size.
+
+loop for batch in batches:
+    Client ->> Server: POST /api/v2/data<br>BatchRequest
+    Server ->> Client: BatchResponse
+end
 ```
+
+#### Sharding metadata
+
+On login, the server returns _hints_ to help the client choose whether and how
+to shard metadata for sources and their items:
+
+```json
+{
+  "version": "abcdef",
+  "sources": 100,
+  "items": 200
+}
+```
+
+A _shard_ is specified by _shard spec_ consisting of a comma-separated list of
+UUID _prefixes_, so that the client can choose both the breadth and the depth of
+the shard:
+
+| Shard | Matches                                                            |
+| ----- | ------------------------------------------------------------------ |
+| `a`   | All sources (and their items) with UUIDs beginning with `a`        |
+| `ab`  | All sources (and their items) with UUIDs beginning with `ab`       |
+| `a,b` | All sources (and their items) with UUIDs beginning with `a` or `b` |
+
+Putting it all together, the client MAY make sharding decisions such as:
+
+| Client's version | `version` | `sources` | `items` | Client's next step                                                                | Records synced     |
+| ---------------- | --------- | --------- | ------- | --------------------------------------------------------------------------------- | ------------------ |
+| `abcdef`         | `abcdef`  | 100       | 200     | None; already in sync                                                             | 0                  |
+| `ghijkl`         | `abcdef`  | 100       | 200     | Global sync; no sharding necessary                                                | 300                |
+| `ghijkl`         | `abcdef`  | 100       | 1000    | Sync over 4 shards:<br>`["0,1,2,3", "4,5,6,7", "8,9,a,b", "c,d,e,f"]`             | ~275 records/shard |
+| `ghijkl`         | `abcdef`  | 100       | 2000    | Sync over 8 shards:<br>`["0,1", "2,3", "4,5", "6,7", "8,9", "a,b", "c,d", "e,f"]` | ~262 records/shard |
+
+The client SHOULD ensure that the set of shards it requests covers either (a)
+the entire UUID namespace or (b) the portion of the UUID namespace of interest.
+
+#### Batching data
+
+As described in ["Incremental Synchronization"](#incremental-synchronization),
+the client MAY request arbitrary batches of data at any time. During initial
+synchronization, the client MAY choose (for example) to send a separate
+`BatchRequest` for each metadata shard, in order to fetch only the records whose
+metadata was returned in that shard.
 
 ### Incremental synchronization
 
@@ -96,12 +157,12 @@ participant Client
 participant Server
 
 Note over Client: Global version abcdef
-Note over Client: Shard <prefix> version uvwxyz
+Note over Client: Shard <shard_spec> @ version uvwxyz
 
 alt Global
-    Client -->> Server: GET /api/v2/index<br>If-None-Match: abcdef
-else Sharded by UUID prefix
-    Client -->> Server: GET /api/v2/index/<prefix><br>If-None-Match: uvwxyz
+    Client ->> Server: GET /api/v2/index<br>If-None-Match: abcdef
+else Sharded by sets of UUID prefixes
+    Client ->> Server: GET /api/v2/index/<shard_spec><br>If-None-Match: uvwxyz
 end
 
 alt Up to date
@@ -109,8 +170,8 @@ alt Up to date
 else Out of date
     Server ->> Client: ETag: abcdef<br>Index
     Note over Client: We want metadata for all new/changed sources and items.
-    Client -->> Server: POST /api/v2/metadata<br>MetadataRequest
-    Server ->> Client: MetadataResponse
+    Client ->> Server: POST /api/v2/data<br>BatchRequest
+    Server ->> Client: BatchResponse
 end
 ```
 
@@ -127,7 +188,7 @@ Note over Client: Global version abcdef
 Note over Server: Global version abcdef
 
 Client ->> Client: reply_sent {id: X, uuid: Y, source: Z, ...}
-Client -->> Server: POST /api/v2/metadata<br>BatchRequest
+Client ->> Server: POST /api/v2/data<br>BatchRequest
 alt Already processed:
 Server ->> Server: look up status of event {id: X}
 Note over Server: Return status of event {id: X},<br>in addition to anything else requested.
@@ -261,3 +322,4 @@ library like [`@sapphire/snowflake`]. To avoid precision-loss problems:
   testing equality.
 
 [`@sapphire/snowflake`]: https://www.npmjs.com/package/@sapphire/snowflake
+[RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
