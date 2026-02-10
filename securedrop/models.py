@@ -560,10 +560,6 @@ class Journalist(db.Model):
     last_access = Column(DateTime)
     passphrase_hash = Column(String(256))
 
-    login_attempts = relationship(
-        "JournalistLoginAttempt", backref="journalist", cascade="all, delete"
-    )
-
     MIN_USERNAME_LEN = 3
     MIN_NAME_LEN = 0
     MAX_NAME_LEN = 100
@@ -797,9 +793,10 @@ class Journalist(db.Model):
     _MAX_LOGIN_ATTEMPTS_PER_PERIOD = 5
 
     @classmethod
-    def throttle_login(cls, user: "Journalist") -> None:
+    def throttle_login(cls, username: str) -> None:
+        username = username[:255]
         # Record the login attempt...
-        login_attempt = JournalistLoginAttempt(user)
+        login_attempt = JournalistLoginAttempt(username)
         db.session.add(login_attempt)
         db.session.commit()
 
@@ -808,7 +805,7 @@ class Journalist(db.Model):
             seconds=cls._LOGIN_ATTEMPT_PERIOD
         )
         attempts_within_period = (
-            JournalistLoginAttempt.query.filter(JournalistLoginAttempt.journalist_id == user.id)
+            JournalistLoginAttempt.query.filter(JournalistLoginAttempt.username == username)
             .filter(JournalistLoginAttempt.timestamp > login_attempt_period)
             .all()
         )
@@ -825,6 +822,9 @@ class Journalist(db.Model):
         password: str | None,
         token: str | None,
     ) -> "Journalist":
+        # Login hardening measures
+        cls.throttle_login(username)
+
         try:
             user = Journalist.query.filter_by(username=username).one()
         except NoResultFound:
@@ -832,9 +832,6 @@ class Journalist(db.Model):
 
         if user.username in Journalist.INVALID_USERNAMES:
             raise InvalidUsernameException(gettext("Invalid username"))
-
-        # Login hardening measures
-        cls.throttle_login(user)
 
         sanitized_token = user.verify_2fa_token(token)
 
@@ -944,7 +941,9 @@ class Journalist(db.Model):
                 reply.journalist_id = deleted.id
                 db.session.add(reply)
 
-        # For the rest of the associated data we rely on cascading deletions
+        # Flush reassignments so relationship backrefs are in sync
+        # before the delete processes remaining cascades
+        db.session.flush()
         db.session.delete(self)
 
 
@@ -994,10 +993,10 @@ class JournalistLoginAttempt(db.Model):
     __tablename__ = "journalist_login_attempt"
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=True)
-    journalist_id = Column(Integer, ForeignKey("journalists.id"), nullable=False)
+    username = Column(String(255), nullable=False)
 
-    def __init__(self, journalist: Journalist) -> None:
-        self.journalist = journalist
+    def __init__(self, username: str) -> None:
+        self.username = username
 
 
 class InstanceConfig(db.Model):

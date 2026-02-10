@@ -264,6 +264,52 @@ def test_login_throttle(config, journalist_app, test_journo, locale):
 
 @flaky(rerun_filter=utils.flaky_filter_xfail)
 @pytest.mark.parametrize("locale", get_test_locales())
+def test_login_throttle_invalid_username(config, journalist_app, locale):
+    """Login attempts with invalid usernames should be throttled too."""
+    with journalist_app.test_client() as app:
+        with InstrumentedApp(app) as ins:
+            for _ in range(Journalist._MAX_LOGIN_ATTEMPTS_PER_PERIOD):
+                resp = app.post(
+                    url_for("main.login"),
+                    data=dict(
+                        username="invalid_username_that_does_not_exist",
+                        password="invalid",
+                        token="invalid",
+                    ),
+                )
+                assert resp.status_code == 200
+                text = resp.data.decode("utf-8")
+                assert "Login failed" in text
+
+            resp = app.post(
+                url_for("main.login", l=locale),
+                data=dict(
+                    username="invalid_username_that_does_not_exist",
+                    password="invalid",
+                    token="invalid",
+                ),
+            )
+            assert page_language(resp.data) == language_tag(locale)
+            msgids = [
+                "Login failed.",
+                "Please wait at least {num} second before logging in again.",
+            ]
+            with xfail_untranslated_messages(config, locale, msgids):
+                ins.assert_message_flashed(
+                    "{} {}".format(
+                        gettext(msgids[0]),
+                        ngettext(
+                            msgids[1],
+                            "Please wait at least {num} seconds before logging in again.",
+                            Journalist._LOGIN_ATTEMPT_PERIOD,
+                        ).format(num=Journalist._LOGIN_ATTEMPT_PERIOD),
+                    ),
+                    "error",
+                )
+
+
+@flaky(rerun_filter=utils.flaky_filter_xfail)
+@pytest.mark.parametrize("locale", get_test_locales())
 def test_login_throttle_is_not_global(config, journalist_app, test_journo, test_admin, locale):
     """The login throttling should be per-user, not global. Global login
     throttling can prevent all users logging into the application."""
@@ -4004,7 +4050,7 @@ def test_journalist_deletion(journalist_app, app_storage):
     # Create a journalist that's seen two replies and has a login attempt
     source, _ = utils.db_helper.init_source(app_storage)
     journalist, _ = utils.db_helper.init_journalist()
-    db.session.add(JournalistLoginAttempt(journalist))
+    db.session.add(JournalistLoginAttempt(journalist.username))
     replies = utils.db_helper.reply(app_storage, journalist, source, 2)
     # Create a second journalist that's seen those replies
     journalist2, _ = utils.db_helper.init_journalist()
@@ -4023,8 +4069,8 @@ def test_journalist_deletion(journalist_app, app_storage):
     deleted = Journalist.get_deleted()
     assert len(Reply.query.filter_by(journalist_id=deleted.id).all()) == 2
     assert len(SeenReply.query.filter_by(journalist_id=deleted.id).all()) == 2
-    # And there are no login attempts
-    assert JournalistLoginAttempt.query.all() == []
+    # Login attempts are tracked by username, not by FK, so they persist
+    assert len(JournalistLoginAttempt.query.all()) == 1
 
 
 def test_user_sees_os_warning_if_server_past_eol(config, journalist_app, test_journo):
