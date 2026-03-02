@@ -63,7 +63,7 @@ jobs:
         run: |
           apt-get update && apt-get install --yes diffoscope-minimal xz-utils \
             --no-install-recommends
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: "${{ matrix.ubuntu_version }}-*"
       - name: diffoscope
