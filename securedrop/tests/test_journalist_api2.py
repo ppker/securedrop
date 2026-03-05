@@ -1302,3 +1302,103 @@ def test_api2_source_conversation_truncated(
         )
         assert res2.status_code == 200
         assert res2.json["events"][event.id][0] == 208
+
+
+def test_api2_source_conversation_seen(
+    journalist_app,
+    journalist_api_token,
+    test_files,
+):
+    """
+    Test processing of the "source_conversation_seen" event.
+    Items with interaction_count <= upper_bound must be marked as seen.
+    Items with interaction_count > upper_bound must remain unseen.
+    """
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+
+        assert len(test_files["submissions"]) >= 1
+        assert len(test_files["replies"]) >= 1
+
+        # Fetch index to get current versions
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+
+        # Build a map of item_uuid -> interaction_count
+        item_uuids = [item.uuid for item in (test_files["submissions"] + test_files["replies"])]
+
+        batch_resp = app.post(
+            url_for("api2.data"),
+            json={"items": item_uuids},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert batch_resp.status_code == 200
+        data = batch_resp.json
+
+        initial_counts = {
+            item_uuid: item["interaction_count"] for item_uuid, item in data["items"].items()
+        }
+
+        # Choose a bound that marks some but not all items as seen
+        sorted_counts = sorted(initial_counts.values())
+        upper_bound = sorted_counts[len(sorted_counts) // 2]
+
+        source_version = index.json["sources"][source.uuid]
+
+        event = Event(
+            id="888001",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.SOURCE_CONVERSATION_SEEN,
+            data={"upper_bound": upper_bound},
+        )
+
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.status_code == 200
+        assert response.json["events"][event.id] == [200, None]
+
+        # Items within bound must be marked seen; items outside must not be
+        for item_uuid, count in initial_counts.items():
+            submission = Submission.query.filter(Submission.uuid == item_uuid).one_or_none()
+            reply = Reply.query.filter(Reply.uuid == item_uuid).one_or_none()
+
+            if count <= upper_bound:
+                assert item_uuid in response.json["items"]
+                if submission is not None:
+                    assert submission.seen is True
+                else:
+                    assert len(reply.seen_replies) > 0
+            elif submission is not None:
+                assert submission.seen is False
+            else:
+                assert len(reply.seen_replies) == 0
+
+        # Resubmission must yield "Already Reported" (208)
+        res2 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert res2.status_code == 200
+        assert res2.json["events"][event.id][0] == 208
+
+        # Non-existent source must yield Gone (410)
+        gone_event = Event(
+            id="888002",
+            target=SourceTarget(source_uuid=str(uuid4()), version=source_version),
+            type=EventType.SOURCE_CONVERSATION_SEEN,
+            data={"upper_bound": upper_bound},
+        )
+        res3 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(gone_event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert res3.status_code == 200
+        assert res3.json["events"][gone_event.id][0] == 410

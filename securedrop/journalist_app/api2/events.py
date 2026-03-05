@@ -74,6 +74,7 @@ class EventHandler:
                 EventType.SOURCE_STARRED: self.handle_source_starred,
                 EventType.SOURCE_UNSTARRED: self.handle_source_unstarred,
                 EventType.SOURCE_CONVERSATION_TRUNCATED: self.handle_source_conversation_truncated,
+                EventType.SOURCE_CONVERSATION_SEEN: self.handle_source_conversation_seen,
             }[event.type]
         except KeyError:
             return EventResult(
@@ -279,6 +280,41 @@ class EventHandler:
             status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
             items={item_uuid: None for item_uuid in deleted},
+        )
+
+    @staticmethod
+    def handle_source_conversation_seen(event: Event, minor: int) -> EventResult:
+        """
+        A `source_conversation_seen` event involves marking as seen items
+        in the source's collection with interaction counts less than or equal to
+        the specified upper bound.
+        """
+
+        try:
+            source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
+        except NoResultFound:
+            return EventResult(
+                event_id=event.id,
+                status=(
+                    EventStatusCode.Gone,
+                    None,
+                ),
+            )
+
+        user = session.get_user()
+        seen: list[ItemUUID] = []
+        for item in source.collection:
+            if item.interaction_count <= event.data.upper_bound:
+                utils.mark_seen([item], user)
+                seen.append(item.uuid)
+                db.session.refresh(item)
+
+        db.session.refresh(source)
+        return EventResult(
+            event_id=event.id,
+            status=(EventStatusCode.OK, None),
+            sources={source.uuid: source},
+            items={item_uuid: None for item_uuid in seen},
         )
 
     @staticmethod
