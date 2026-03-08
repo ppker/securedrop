@@ -49,14 +49,18 @@ See our [contribution page](CONTRIBUTING.md).
 
 ## Developer Quickstart
 
-To run SecureDrop locally, ensure you have Docker installed and:
+To run SecureDrop locally, ensure you have Docker installed before proceeding any further.
+
+* Follow [this](https://docs.docker.com/engine/install/) official documentation to install **Docker Engine** for Linux (CentOS/Debian/Fedora/RHEL/Ubuntu);
+* Should you be using Windows, Mac, or you prefer to have **Docker Desktop** on Linux: [here](https://docs.docker.com/get-started/get-docker/) is the documentation to set it up.
+
+Once you have Docker up and running, run:
 
 ```
 make dev
 ```
 
 This will start the source interface on `127.0.0.1:8080` and the journalist interface on `127.0.0.1:8081`. The credentials to login are printed in the Terminal. To login to the journalist interface, you must also [generate a two-factor code](https://developers.securedrop.org/en/latest/setup_development.html#credentials).
-
 
 To provision a Python 3 virtual environment for development:
 
