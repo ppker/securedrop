@@ -33,7 +33,7 @@ class EventType(StrEnum):
     SOURCE_CONVERSATION_TRUNCATED = auto()
     SOURCE_STARRED = auto()
     SOURCE_UNSTARRED = auto()
-    SOURCE_SEEN = auto()
+    SOURCE_CONVERSATION_SEEN = auto()
 
 
 class EventStatusCode(IntEnum):
@@ -172,7 +172,7 @@ EVENT_TYPES = {
     EventType.SOURCE_CONVERSATION_TRUNCATED: (SourceTarget, SourceConversationTruncatedData),
     EventType.SOURCE_STARRED: (SourceTarget, None),
     EventType.SOURCE_UNSTARRED: (SourceTarget, None),
-    EventType.SOURCE_SEEN: (SourceTarget, SourceConversationSeenData),
+    EventType.SOURCE_CONVERSATION_SEEN: (SourceTarget, SourceConversationSeenData),
 }
 
 

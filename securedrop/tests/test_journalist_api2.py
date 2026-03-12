@@ -1370,6 +1370,7 @@ def test_api2_source_conversation_seen(
 
             if count <= upper_bound:
                 assert item_uuid in response.json["items"]
+                assert response.json["items"][item_uuid] is not None
                 if submission is not None:
                     assert submission.seen is True
                 else:

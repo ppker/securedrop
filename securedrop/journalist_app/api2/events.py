@@ -302,19 +302,20 @@ class EventHandler:
             )
 
         user = session.get_user()
-        seen: list[ItemUUID] = []
-        for item in source.collection:
-            if item.interaction_count <= event.data.upper_bound:
-                utils.mark_seen([item], user)
-                seen.append(item.uuid)
-                db.session.refresh(item)
+        seen_items = [
+            item for item in source.collection if item.interaction_count <= event.data.upper_bound
+        ]
 
-        db.session.refresh(source)
+        if seen_items:
+            utils.mark_seen(seen_items, user)
+            for item in seen_items:
+                db.session.refresh(item)
+            db.session.refresh(source)
         return EventResult(
             event_id=event.id,
             status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
-            items={item_uuid: None for item_uuid in seen},
+            items={item.uuid: item.uuid for item in seen_items},
         )
 
     @staticmethod
