@@ -33,6 +33,7 @@ class EventType(StrEnum):
     SOURCE_CONVERSATION_TRUNCATED = auto()
     SOURCE_STARRED = auto()
     SOURCE_UNSTARRED = auto()
+    SOURCE_CONVERSATION_SEEN = auto()
 
 
 class EventStatusCode(IntEnum):
@@ -151,6 +152,17 @@ class SourceConversationTruncatedData(EventData):
             raise ValueError("upper_bound must be non-negative")
 
 
+@dataclass(frozen=True)
+class SourceConversationSeenData(EventData):
+    # An upper bound of n means "mark as seen items with interaction counts (sparsely)
+    # up to and including n".
+    upper_bound: int
+
+    def __post_init__(self) -> None:
+        if self.upper_bound < 0:
+            raise ValueError("upper_bound must be non-negative")
+
+
 EVENT_TYPES = {
     EventType.REPLY_SENT: (SourceTarget, ReplySentData),
     EventType.ITEM_DELETED: (ItemTarget, None),
@@ -160,6 +172,7 @@ EVENT_TYPES = {
     EventType.SOURCE_CONVERSATION_TRUNCATED: (SourceTarget, SourceConversationTruncatedData),
     EventType.SOURCE_STARRED: (SourceTarget, None),
     EventType.SOURCE_UNSTARRED: (SourceTarget, None),
+    EventType.SOURCE_CONVERSATION_SEEN: (SourceTarget, SourceConversationSeenData),
 }
 
 
