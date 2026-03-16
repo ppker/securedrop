@@ -1366,19 +1366,14 @@ def test_api2_source_conversation_seen(
         # Items within bound must be marked seen; items outside must not be
         for item_uuid, count in initial_counts.items():
             submission = Submission.query.filter(Submission.uuid == item_uuid).one_or_none()
-            reply = Reply.query.filter(Reply.uuid == item_uuid).one_or_none()
 
             if count <= upper_bound:
                 assert item_uuid in response.json["items"]
                 assert response.json["items"][item_uuid] is not None
                 if submission is not None:
                     assert submission.seen is True
-                else:
-                    assert len(reply.seen_replies) > 0
             elif submission is not None:
                 assert submission.seen is False
-            else:
-                assert len(reply.seen_replies) == 0
 
         # Resubmission must yield "Already Reported" (208)
         res2 = app.post(

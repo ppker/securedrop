@@ -315,7 +315,7 @@ class EventHandler:
             event_id=event.id,
             status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
-            items={item.uuid: item.uuid for item in seen_items},
+            items={item.uuid: item for item in seen_items},
         )
 
     @staticmethod
