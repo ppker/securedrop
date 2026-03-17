@@ -61,7 +61,6 @@ class SecureDropConfigFactory:
         SUPPORTED_LOCALES: list[str] | None = None,
         DEFAULT_LOCALE: str = "en_US",
         TRANSLATION_DIRS: Path = DEFAULT_SECUREDROP_ROOT / "translations",
-        V2_API_ENABLED: bool = True,
     ) -> SecureDropConfig:
         """Create a securedrop config suitable for the unit tests.
 
@@ -98,7 +97,6 @@ class SecureDropConfigFactory:
             JOURNALIST_TEMPLATES_DIR=DEFAULT_SECUREDROP_ROOT / "journalist_templates",
             DEFAULT_LOCALE=DEFAULT_LOCALE,
             REDIS_PASSWORD=REDIS_PASSWORD,
-            V2_API_ENABLED=V2_API_ENABLED,
         )
 
         # Delete any previous/existing DB and initialize a new one
