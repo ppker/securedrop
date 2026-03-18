@@ -148,8 +148,7 @@ def create_app(config: SecureDropConfig) -> Flask:
     api_blueprint = api.make_blueprint()
     app.register_blueprint(api_blueprint, url_prefix="/api/v1")
     csrf.exempt(api_blueprint)
-    if config.V2_API_ENABLED:
-        app.register_blueprint(api2.blp, url_prefix="/api/v2")
-        csrf.exempt(api2.blp)
+    app.register_blueprint(api2.blp, url_prefix="/api/v2")
+    csrf.exempt(api2.blp)
 
     return app

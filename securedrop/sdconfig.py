@@ -72,8 +72,6 @@ class SecureDropConfig:
 
     REDIS_PASSWORD: str
 
-    V2_API_ENABLED: bool
-
     env: str = "prod"
 
     @property
@@ -127,8 +125,6 @@ def _parse_config_from_file(config_module_name: str) -> SecureDropConfig:
         raise RuntimeError("REDIS_PASSWORD must be set in config.py")
 
     env = getattr(config_from_local_file, "env", "prod")
-
-    final_v2_api_enabled = getattr(config_from_local_file, "V2_API_ENABLED", False)
 
     try:
         final_securedrop_root = Path(config_from_local_file.SECUREDROP_ROOT)
@@ -225,5 +221,4 @@ def _parse_config_from_file(config_module_name: str) -> SecureDropConfig:
         SESSION_EXPIRATION_MINUTES=final_sess_expiration_mins,
         RQ_WORKER_NAME=final_worker_name,
         REDIS_PASSWORD=final_redis_password,
-        V2_API_ENABLED=final_v2_api_enabled,
     )
