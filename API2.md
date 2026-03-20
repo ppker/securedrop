@@ -30,8 +30,8 @@ v2 Journalist API borrows ideas from distributed systems and content-addressable
 storage in order to:
 
 1. Support the Journalist API's "occasionally connected" clients: actions should
-   be possible while in offline mode, responsive even over flaky Tor connections,
-   etc.
+   be possible while in offline mode, responsive and idempotent even over flaky Tor
+   connections, etc.
 
 2. Provide a single write-read loop in every synchronization round trip, at an
    interval of the client's choosing.
@@ -41,14 +41,6 @@ storage in order to:
 
 4. Hash a canonical representation of an endpoint's entire state (all sources,
    all items, etc.) to version it deterministically.
-
-### Non-goals
-
-5. The mechanisms specified here for synchronization, idempotence, etc. are for
-   _performance_, _reliability_, and _integrity_. They assume that these endpoints
-   are authenticated and restricted to SecureDrop journalists and administrators.
-   These mechanisms are not (in themselves) for security, to mitigate
-   denial-of-service attacks, etc.
 
 ## Overview
 
@@ -272,23 +264,31 @@ state "Report error" as ErrorBranch {
 
 ```
 
-**Notes:**
+Broadly speaking, each event will terminate in one of the following states:
 
-1. A client that submits a successful event $E$ will receive HTTP `200 OK` for
-   $E$ and SHOULD apply the event locally as confirmed based on the returned data
-   (`sources`, `items`, etc.).
+1.  **Success:** A client that submits a successful event $E$ will receive HTTP
+    `200 OK` for $E$ and SHOULD apply the event locally as confirmed based on
+    the returned data (`sources`, `items`, etc.).
 
-2. A client that subsequently resubmits $E$ will receive only a cached HTTP `208
-Already Reported` and SHOULD apply the event locally as confirmed. The server
-   will not return data in this case, but the client SHOULD already know the
-   results of the operation once confirmed.
+2.  **Idempotence:** A client that subsequently resubmits $E' = E$ will receive
+    only HTTP `208 Already Reported` and SHOULD apply the event locally as
+    confirmed. The server will not return data in this case, but the client
+    SHOULD already know the results of the operation once confirmed.
+    - Uniquely among the properties of this API, **event idempotence is a
+      security property as well as a performance enhancement.** The server MUST
+      preserve this property for all types of events with defined handlers.
 
-3. A client that submits a failed event $E'$ will receive an individual error
-   code for $E'$. The client MAY resubmit $E'$ immediately, since idempotence is
-   not enforced for error states.
+> [!CAUTION]
+> This is aspirational pending [#7788].
 
-4. A client that submits more than `securedrop.journalist_app.api2.EVENTS_MAX`
-   events will receive HTTP `429 Too Many Requests`.
+3.  **Failure:** A client that submits a failed event $E'$ will receive an
+    individual error code for $E'$. The client MAY resubmit $E'$ immediately, since
+    idempotence is not enforced for error states.
+
+4.  **Overload:** If a client submits more than
+    `securedrop.journalist_app.api2.EVENTS_MAX` events, the server will skip
+    processing them, and the client will receive HTTP `429 Too Many Requests`
+    for the entire `BatchRequest`.
 
 #### Consistency
 
@@ -330,5 +330,6 @@ library like [`@sapphire/snowflake`]. To avoid precision-loss problems:
 - The server MAY convert IDs it receives to integers, but only for sorting and
   testing equality.
 
+[#7788]: https://github.com/freedomofpress/securedrop/issues/7788
 [`@sapphire/snowflake`]: https://www.npmjs.com/package/@sapphire/snowflake
 [RFC 2119]: https://datatracker.ietf.org/doc/html/rfc2119
