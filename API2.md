@@ -68,7 +68,7 @@ Prefer: securedrop=x
 ```
 
 —where `x` is one of the values documented in
-`securedrop.journalist_app.api2.API_MINOR_VERSION`.
+`securedrop.journalist_app.api2.shared.API_MINOR_VERSION`.
 
 ### Initial synchronization
 
@@ -105,6 +105,8 @@ end
 ```
 
 #### Sharding metadata
+
+<!-- TODO: #7772 -->
 
 On login, the server returns _hints_ to help the client choose whether and how
 to shard metadata for sources and their items:
@@ -214,8 +216,8 @@ stateDiagram-v2
 direction TB
 
 [*] --> CacheLookup : process(event)
-CacheLookup: status = redis.get(event.id)
 
+CacheLookup: status = redis.get(event.id)
 CacheLookup --> IdempotentBranch : status in {102 Processing, 200 OK}
 CacheLookup --> StartBranch : status == None
 
@@ -247,23 +249,27 @@ Handler --> BadRequest
 Handler --> NotFound
 Handler --> Conflict
 Handler --> Gone
+Handler --> InternalServerError
 Handler --> NotImplemented
 state "Report error" as ErrorBranch {
     BadRequest : 400 BadRequest
     NotFound : 404 NotFound
     Conflict : 409 Conflict
     Gone : 410 Gone
+    InternalServerError : 500 InternalServerError
     NotImplemented : 501 NotImplemented
 
     BadRequest --> ClearCache
     NotFound --> ClearCache
     Conflict --> ClearCache
     Gone --> ClearCache
+    InternalServerError --> ClearCache
     NotImplemented --> ClearCache
 
     ClearCache : redis.delete(event.id)
     ClearCache --> [*] : return error
 }
+
 ```
 
 **Notes:**
@@ -280,6 +286,9 @@ Already Reported` and SHOULD apply the event locally as confirmed. The server
 3. A client that submits a failed event $E'$ will receive an individual error
    code for $E'$. The client MAY resubmit $E'$ immediately, since idempotence is
    not enforced for error states.
+
+4. A client that submits more than `securedrop.journalist_app.api2.EVENTS_MAX`
+   events will receive HTTP `429 Too Many Requests`.
 
 #### Consistency
 
