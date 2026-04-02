@@ -63,7 +63,7 @@ ssh_gce "OS_VERSION=\"${OS_VERSION}\" make build-debs-ossec-notest"
 # build and install securedrop-admin tools and add staging config
 ssh_gce "OS_VERSION=\"trixie\" make build-debs-admin-notest"
 ssh_gce "mkdir -p /home/sdci/.config/securedrop-admin"
-ssh_gce "sudo apt install -y ./build/trixie/securedrop-admin_*+trixie_amd64.deb"
+ssh_gce "sudo apt-get update && sudo apt-get install -y ./build/trixie/securedrop-admin_*+trixie_amd64.deb"
 ssh_gce "cp ~/securedrop-source/install_files/ansible-base/roles/ossec/files/test_admin_key.pub /home/sdci/.config/securedrop-admin/"
 ssh_gce "cp ~/securedrop-source/install_files/ansible-base/roles/app/files/test_journalist_key.pub /home/sdci/.config/securedrop-admin/"
 
