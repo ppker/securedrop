@@ -4,20 +4,7 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
 #
 msgid ""
-msgstr ""
-"Project-Id-Version: SecureDrop 0.3.12\n"
-"Report-Msgid-Bugs-To: securedrop@freedom.press\n"
-"POT-Creation-Date: 2017-09-02 07:28+0000\n"
-"PO-Revision-Date: 2025-07-02 11:37+0000\n"
-"Last-Translator: Øyvind Bye Skille <oyvind@byeskille.net>\n"
-"Language-Team: Norwegian Bokmål <https://weblate.securedrop.org/projects/securedrop/securedrop/nb_NO/>\n"
-"Language: nb_NO\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.11.1\n"
-"Generated-By: Babel 2.4.0\n"
+msgstr "Project-Id-Version: SecureDrop 0.3.12\nReport-Msgid-Bugs-To: securedrop@freedom.press\nPOT-Creation-Date: 2017-09-02 07:28+0000\nPO-Revision-Date: 2026-04-15 21:39+0000\nLast-Translator: Øyvind Bye Skille <oyvind@byeskille.net>\nLanguage-Team: Norwegian Bokmål <https://weblate.securedrop.org/projects/securedrop/securedrop/nb_NO/>\nLanguage: nb_NO\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=2; plural=n != 1;\nX-Generator: Weblate 5.16.2\nGenerated-By: Babel 2.4.0\n"
 
 msgid "Name too long"
 msgstr "Navnet er for langt"
@@ -423,7 +410,7 @@ msgid "Can't scan the barcode? You can manually pair FreeOTP with this account b
 msgstr "Kan du ikke skanne strekkoden? Du kan koble FreeOTP til denne kontoen manuelt ved å skrive inn følgende tofaktorhemmelighet i FreeOTP:"
 
 msgid "<strong>Critical:</strong>&nbsp;&nbsp;The operating system used by your SecureDrop servers has reached its end-of-life. A manual update is required to re-enable the Source Interface and remain safe. Please contact your administrator. <a href=\"https://securedrop.org/noble-eol\" rel=\"noreferrer\">Learn More</a>"
-msgstr ""
+msgstr "<strong>Kritisk:</strong>&nbsp;&nbsp;Operativsystemet på dine SecureDrop-servere har nådd slutten av sin levetid. En manuell oppgradering kreves for å igjen skru på kilde-grensesnittet og fortsatt opprettholde sikkerheten. Vennligst kontakt din administrator. <a href=\"https://securedrop.org/noble-eol\" rel=\"noreferrer\">Lær mer</a>"
 
 msgid "Navigation"
 msgstr "Navigasjon"
@@ -928,7 +915,7 @@ msgid "<strong>It is recommended to use Tor Browser to access SecureDrop:</stron
 msgstr "<strong>Det anbefales å bruke Tor-nettleseren for å nå SecureDrop:</strong> <a class=\"recommend-tor\" href=\"{tor_browser_url}\">Lær hvordan du installerer den</a>, eller se bort fra denne advarselen for å fortsette uten."
 
 msgid "<strong>It is recommended you use the desktop version of Tor Browser to access SecureDrop, as Tor Browser for Android does not provide the same level of security and anonymity as the desktop version.</strong> <a class=\"recommend-tor\" aria-label=\"Learn how to install Tor Browser\" href=\"{tor_browser_url}\" >Learn how to install it</a>, or ignore this warning to continue."
-msgstr ""
+msgstr "<strong>Det er anbefalt å bruke desktop-versjonen av Tor-nettleseren for å bruke SecureDrop, siden Tor-nettleseren for Android ikke gir det samme nivået av sikkerhet og anonymitet som desktop-versjonen.</strong> <a class=\"recommend-tor\" aria-label=\"Lær hvordan du installerer Tor-nettleseren\" href=\"{tor_browser_url}\" >Lær hvordan installere</a>, eller ignorer denne advarselen for å fortsette."
 
 msgid "{} logo"
 msgstr "{} logo"
