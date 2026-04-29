@@ -106,7 +106,7 @@ def default_journalist_count() -> str:
 
 
 def default_source_count() -> str:
-    return os.environ.get("NUM_SOURCES", "3")
+    return os.environ.get("NUM_SOURCES", "ALL")
 
 
 def set_source_count(s: str) -> int:
