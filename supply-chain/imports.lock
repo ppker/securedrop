@@ -162,15 +162,15 @@ user-login = "cuviper"
 user-name = "Josh Stone"
 
 [[publisher.openssl]]
-version = "0.10.72"
-when = "2025-04-04"
+version = "0.10.78"
+when = "2026-04-19"
 user-id = 163
 user-login = "alex"
 user-name = "Alex Gaynor"
 
 [[publisher.openssl-sys]]
-version = "0.9.107"
-when = "2025-04-04"
+version = "0.9.114"
+when = "2026-04-19"
 user-id = 163
 user-login = "alex"
 user-name = "Alex Gaynor"
@@ -727,8 +727,8 @@ who = "Lukasz Anforowicz <lukasza@chromium.org>"
 criteria = "safe-to-deploy"
 version = "1.0.35"
 notes = """
-Grepped for \"unsafe\", \"crypt\", \"cipher\", \"fs\", \"net\" - there were no hits
-(except for benign \"net\" hit in tests and \"fs\" hit in README.md)
+Grepped for "unsafe", "crypt", "cipher", "fs", "net" - there were no hits
+(except for benign "net" hit in tests and "fs" hit in README.md)
 """
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
@@ -852,7 +852,7 @@ aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_p
 who = "Lukasz Anforowicz <lukasza@chromium.org>"
 criteria = "safe-to-deploy"
 version = "1.0.197"
-notes = "Grepped for \"unsafe\", \"crypt\", \"cipher\", \"fs\", \"net\" - there were no hits"
+notes = 'Grepped for "unsafe", "crypt", "cipher", "fs", "net" - there were no hits'
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.serde_derive]]
@@ -871,7 +871,7 @@ aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_p
 who = "Lukasz Anforowicz <lukasza@chromium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.202 -> 1.0.203"
-notes = "Grepped for \"unsafe\", \"crypt\", \"cipher\", \"fs\", \"net\" - there were no hits"
+notes = 'Grepped for "unsafe", "crypt", "cipher", "fs", "net" - there were no hits'
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.serde_derive]]
@@ -1394,7 +1394,7 @@ aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-ch
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"
 criteria = "safe-to-deploy"
 version = "0.1.2"
-notes = "This crate is zero-copy version of \"From\". This has no unsafe code and uses no ambient capabilities."
+notes = 'This crate is zero-copy version of "From". This has no unsafe code and uses no ambient capabilities.'
 aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
 
 [[audits.mozilla.audits.zerofrom]]

@@ -1,5 +1,6 @@
 
 # cargo-vet config file
+
 default-criteria = "safe-to-run"
 
 [cargo-vet]
