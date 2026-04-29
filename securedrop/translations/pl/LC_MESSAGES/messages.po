@@ -4,7 +4,7 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
 #
 msgid ""
-msgstr "Project-Id-Version: SecureDrop 0.5-rc4\nReport-Msgid-Bugs-To: securedrop@freedom.press\nPO-Revision-Date: 2026-01-29 06:46+0000\nLast-Translator: Adam Rak <kitynska@gmail.com>\nLanguage-Team: Polish <https://weblate.securedrop.org/projects/securedrop/securedrop/pl/>\nLanguage: pl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\nX-Generator: Weblate 5.15.2\nGenerated-By: Babel 2.4.0\n"
+msgstr "Project-Id-Version: SecureDrop 0.5-rc4\nReport-Msgid-Bugs-To: securedrop@freedom.press\nPO-Revision-Date: 2026-04-15 21:40+0000\nLast-Translator: Adam Rak <kitynska@gmail.com>\nLanguage-Team: Polish <https://weblate.securedrop.org/projects/securedrop/securedrop/pl/>\nLanguage: pl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\nX-Generator: Weblate 5.16.2\nGenerated-By: Babel 2.4.0\n"
 
 msgid "Name too long"
 msgstr "Zbyt długa nazwa"
@@ -662,10 +662,10 @@ msgid "Reset Two-Factor Authentication"
 msgstr "Zresetuj uwierzytelnienie dwuskładnikowe"
 
 msgid "If a user's two-factor authentication credentials have been lost or compromised, you can reset them here. <em>If you do this, make sure the user is present and ready to set up their device with the new two-factor credentials. Otherwise, they will be locked out of their account.</em>"
-msgstr "Jeśli dane weryfikujące uwierzytelniania dwuskładnikowego użytkownika zostały utracone lub naruszone, możesz je zresetować tutaj. <em> Jeśli to zrobisz, upewnij się, że użytkownik jest obecny i gotowy do skonfigurowania urządzenia z nowymi, dwuetapowymi danymi uwierzytelniającymi. W przeciwnym razie utraci dostęp do swojego konta.</em>"
+msgstr "Jeśli dane weryfikujące uwierzytelniania dwuskładnikowego użytkownika zostały utracone lub naruszone, możesz je zresetować tutaj. <em>Jeśli to zrobisz, upewnij się, że użytkownik jest obecny i gotowy do skonfigurowania urządzenia z nowymi, dwuetapowymi danymi uwierzytelniającymi. W przeciwnym razie utraci dostęp do swojego konta.</em>"
 
 msgid "If your two-factor authentication credentials have been lost or compromised, or you got a new device, you can reset your credentials here. <em>If you do this, make sure you are ready to set up your new device, otherwise you will be locked out of your account.</em>"
-msgstr "Jeśli Twoje dane weryfikujące uwierzytelnianie dwuskładnikowe zostały utracone lub naruszone, możesz je zresetować tutaj. <em> Jeśli to zrobisz, upewnij się, że jesteś gotowy do skonfigurowania nowego urządzenia. W przeciwnym razie utracisz dostęp do swojego konta.</em>"
+msgstr "Jeśli Twoje dane weryfikujące uwierzytelnianie dwuskładnikowe zostały utracone lub naruszone, możesz je zresetować tutaj. <em>Jeśli to zrobisz, upewnij się, że jesteś gotowy do skonfigurowania nowego urządzenia. W przeciwnym razie utracisz dostęp do swojego konta.</em>"
 
 msgid "To reset two-factor authentication for mobile apps such as FreeOTP, choose the first option. For security keys like the YubiKey, choose the second one."
 msgstr "Aby zresetować uwierzytelnianie dwuskładnikowe w aplikacjach mobilnych takich jak FreeOTP, wybierz pierwszą opcję. W przypadku kluczy bezpieczeństwa, takich jak Yubikey, wybierz drugi."
@@ -917,7 +917,7 @@ msgid "Click <b>Change…</b> and select <b>Safest</b>"
 msgstr "Kliknij <b>Zmień…</b> i wybierz <b>Najbezpieczniejsze</b>"
 
 msgid "Click <b>Save and restart.</b>"
-msgstr "Kliknij <b>Zapisz i zrestartuj</b>."
+msgstr "Kliknij <b>Zapisz i zrestartuj.</b>"
 
 msgid "Tor Browser will restart, with its security level set to <b>Safest</b>. After the restart, come back to this site."
 msgstr "Przeglądarka Tor Browser zostanie ponownie uruchomiona, a jej poziom bezpieczeństwa zostanie ustawiony na <b>Najbezpieczniejszy</b>. Po ponownym uruchomieniu wróć na tę stronę."
@@ -989,10 +989,10 @@ msgid "You can submit any kind of file, a message, or both."
 msgstr "Możesz przesłać dowolny plik, wiadomość lub jedno i drugie."
 
 msgid "If you are already familiar with GPG, you can optionally encrypt your files and messages with our <a href=\"{url}\" class=\"text-link\">public key</a> before submission. Files are encrypted as they are received by SecureDrop."
-msgstr "Jeśli korzystasz już z GPG, możesz opcjonalnie zaszyfrować pliki i wiadomości za pomocą naszego <a href=\"{url}\" class=\"text-link\"> klucza publicznego </a> przed zgłoszeniem. Pliki są szyfrowane w trakcie odbioru przez SecureDrop."
+msgstr "Jeśli korzystasz już z GPG, możesz opcjonalnie zaszyfrować pliki i wiadomości za pomocą naszego <a href=\"{url}\" class=\"text-link\">klucza publicznego</a> przed zgłoszeniem. Pliki są szyfrowane w trakcie odbioru przez SecureDrop."
 
 msgid "If you are already familiar with GPG, you can optionally encrypt your messages with our <a href=\"{url}\" class=\"text-link\">public key</a> before submission."
-msgstr "Jeśli znasz już GPG, możesz opcjonalnie zaszyfrować swoje wiadomości za pomocą naszego<a href=\"{url}\" class=\"text-link\">klucza publicznego</a> przed zgłoszeniem."
+msgstr "Jeśli znasz już GPG, możesz opcjonalnie zaszyfrować swoje wiadomości za pomocą naszego <a href=\"{url}\" class=\"text-link\">klucza publicznego</a> przed zgłoszeniem."
 
 msgid "<a href=\"{url}\" class=\"text-link\">Learn more</a>."
 msgstr "<a href=\"{url}\" class=\"text-link\">Dowiedz się więcej</a>."
@@ -1076,7 +1076,7 @@ msgid "If you are not using Tor Browser, you <strong>may not be anonymous</stron
 msgstr "Jeśli nie korzystasz z Tor Browser, możesz <strong>nie być anonimowym</strong>."
 
 msgid "If you want to submit information to SecureDrop, we <strong>strongly advise you</strong> to install Tor Browser and use it to access our site safely and anonymously."
-msgstr "Jeśli chcesz przesłać informacje do SecureDrop, <strong> silnie zalecamy </strong> zainstalowanie Tor Browser i używanie go aby uzyskać bezpiecznego i anonimowego dostępu do naszej strony."
+msgstr "Jeśli chcesz przesłać informacje do SecureDrop, <strong>silnie zalecamy</strong> zainstalowanie Tor Browser i używanie go aby uzyskać bezpiecznego i anonimowego dostępu do naszej strony."
 
 msgid "Copy and paste the following address into your browser and follow the instructions to download and install Tor Browser:"
 msgstr "Skopiuj i wklej następujący adres do przeglądarki i postępuj zgodnie z instrukcjami, aby pobrać i zainstalować przeglądarkę Tor Browser:"
@@ -1116,7 +1116,7 @@ msgid "Import it into your GPG keyring."
 msgstr "Zaimportuj go do swojej bazy kluczy GPG."
 
 msgid "If you are using <a href=\"{url}\">Tails</a>, you can double-click the <code>.asc</code> file you just downloaded and it will be automatically imported to your keyring."
-msgstr "Jeśli korzystasz z <a href=\"{url}\">Tails</a>, możesz kliknąć dwukrotnie pobrany plik <code>.asc </code>, który zostanie automatycznie zaimportowany do Twojego breloku."
+msgstr "Jeśli korzystasz z <a href=\"{url}\">Tails</a>, możesz kliknąć dwukrotnie pobrany plik <code>.asc</code>, który zostanie automatycznie zaimportowany do Twojego breloku."
 
 msgid "If you are using macOS or Linux, open the terminal. You can import the key with:<p><code>gpg --import /path/to/{submission_key_fpr_filename}</code></p>"
 msgstr "Jeśli używasz systemu macOS lub Linux, otwórz terminal. Możesz zaimportować klucz za pomocą:<p><code>gpg --import /ścieżka/do/{submission_key_fpr_filename}</code></p>"
@@ -1131,7 +1131,7 @@ msgid "Upload your encrypted submission. It will have the same filename as the u
 msgstr "Prześlij swoje zaszyfrowane zgłoszenie. Będzie miało taką samą nazwę pliku jak plik niezaszyfrowany z rozszerzeniem .gpg na końcu (np. <code>notatka_wewnętrzna.pdf.gpg</code>)"
 
 msgid "<strong>Important:</strong> If you wish to remain anonymous, <strong>do not</strong> use GPG to sign the encrypted file (with the <code>--sign</code> or <code>-s</code> flag) as this will reveal your GPG identity to us."
-msgstr "<strong> Ważne: </strong> jeśli chcesz pozostać anonimowy, <strong> nie </strong> korzystaj z GPG do podpisania zaszyfrowanego pliku (oznaczeniem <code> --sign </code> lub <code> -s </code>), ponieważ ujawni nam to Twoją tożsamość GPG."
+msgstr "<strong>Ważne:</strong> jeśli chcesz pozostać anonimowy, <strong>nie</strong> korzystaj z GPG do podpisania zaszyfrowanego pliku (oznaczeniem <code>--sign</code> lub <code>-s</code>), ponieważ ujawni nam to Twoją tożsamość GPG."
 
 msgid "Back to submission page"
 msgstr "Powrót do strony zgłoszenia"
