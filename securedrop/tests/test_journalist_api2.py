@@ -789,63 +789,6 @@ def test_api2_source_unstarred(
         assert SourceStar.query.filter(SourceStar.source_id == source_id).one().starred is False
 
 
-def test_api2_item_seen(
-    journalist_app,
-    journalist_api_token,
-    test_files,
-):
-    """Test processing of the "item_seen" event."""
-    with journalist_app.test_client() as app:
-        source = test_files["source"]
-        source_uuid = source.uuid
-
-        # Verify we have test data
-        assert len(test_files["submissions"]) >= 1
-        submission = test_files["submissions"][0]
-        submission_uuid = submission.uuid
-
-        # Fetch the current index
-        index = app.get(
-            url_for("api2.index"),
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert index.status_code == 200
-        item_version = index.json["items"][submission_uuid]
-
-        # Mark the submission as seen
-        event = Event(
-            id="123456",
-            target=ItemTarget(item_uuid=submission_uuid, version=item_version),
-            type=EventType.ITEM_SEEN,
-        )
-        response = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.json["events"][event.id] == [200, None]
-        assert source_uuid in response.json["sources"]
-        assert submission_uuid in response.json["items"]
-
-        # Verify the submission is marked as seen in the database
-        updated_submission = Submission.query.filter(Submission.uuid == submission_uuid).one()
-        assert updated_submission.downloaded is True
-
-        # Try to mark seen an item that doesn't exist
-        no_such_item_event = Event(
-            id="234567",
-            target=ItemTarget(item_uuid=str(uuid.uuid4()), version=item_version),
-            type=EventType.ITEM_SEEN,
-        )
-        response = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(no_such_item_event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.json["events"][no_such_item_event.id][0] == 404
-        assert "could not find item" in response.json["events"][no_such_item_event.id][1]
-
-
 def test_api2_idempotence_period(journalist_app):
     """
     `IDEMPOTENCE_PERIOD` MUST be greater than or equal to
@@ -991,7 +934,7 @@ def test_api_minor_versions(journalist_app, journalist_api_token, test_files, mi
         if minor >= 3:
             event = {
                 "id": "123456",
-                "type": "item_seen",
+                "type": "item_deleted",
                 "target": {
                     "item_uuid": test_files["submissions"][0].uuid,
                     "version": data["items"][test_files["submissions"][0].uuid],
