@@ -38,6 +38,9 @@ PREFIX_MAX_LEN = inspect(Source).columns["uuid"].type.length
 #    `BatchResponse.events`
 # 4. `/api/v1/token` provides sync hints for client-specified sharding of
 #    `Index`
+#
+# When you add a new version here, make sure to add it to
+# `tests.test_journalist_api2.test_api_minor_versions()` too.
 API_MINOR_VERSION = 4  # 2.x
 
 

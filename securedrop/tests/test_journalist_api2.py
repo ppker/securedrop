@@ -891,7 +891,7 @@ def test_api2_reply_sent_then_requested_item_is_deduped(
         assert response.json["items"][new_reply_uuid] is not None
 
 
-@pytest.mark.parametrize("minor", [0, 1, 2, 3])
+@pytest.mark.parametrize("minor", [0, 1, 2, 3, 4])
 def test_api_minor_versions(journalist_app, journalist_api_token, test_files, minor):
     """
     Verify that the API response shape changes according to the documented
@@ -948,6 +948,11 @@ def test_api_minor_versions(journalist_app, journalist_api_token, test_files, mi
 
         else:
             assert "events" not in resp.json
+
+        # 4. `/api/v1/token` provides sync hints for client-specified sharding of
+        #    `Index`: see `tests.journalist_api`, especially:
+        #       - `test_valid_user_gets_hints_with_prefer_header()`
+        #       - `test_valid_user_gets_no_hints_without_prefer_header()`
 
 
 def test_api2_source_conversation_truncated(
