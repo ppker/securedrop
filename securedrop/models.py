@@ -190,9 +190,6 @@ class Source(db.Model):
             last_updated = datetime.datetime.now(tz=datetime.UTC)
 
         starred = bool(self.star and self.star.starred)
-        collection = {}
-        for item in self.collection:
-            collection[item.uuid] = item.to_api_v2(minor)
 
         return {
             "uuid": self.uuid,
