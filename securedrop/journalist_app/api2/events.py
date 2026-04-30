@@ -183,11 +183,12 @@ class EventHandler:
                 ),
             )
 
-        # Mark as deleted all the items in the source's collection
-        deleted_items = {item.uuid: None for item in source.collection}
-
         try:
-            utils.delete_collection(source.filesystem_id)
+            # Deletion via `col_delete()` is asynchronous, but if it's initiated
+            # successfully we should report back to the client that all of the
+            # deleted source's items have also been deleted.
+            deleted_items = {item.uuid: None for item in source.collection}
+            utils.col_delete([source.filesystem_id])
             return EventResult(
                 event_id=event.id,
                 status=(EventStatusCode.OK, None),
