@@ -10,6 +10,7 @@ from db import db
 from encryption import EncryptionManager
 from flask import abort, current_app, flash, redirect, send_file, url_for
 from flask_babel import gettext, ngettext
+from journalist_app.api2.shared import mark_source_deleted
 from journalist_app.sessions import session
 from markupsafe import Markup, escape
 from models import (
@@ -318,10 +319,7 @@ def col_delete(cols_selected: list[str]) -> werkzeug.Response:
     if len(cols_selected) < 1:
         flash(gettext("No collections selected for deletion."), "error")
     else:
-        now = datetime.now(UTC)
-        sources = Source.query.filter(Source.filesystem_id.in_(cols_selected))
-        sources.update({Source.deleted_at: now}, synchronize_session="fetch")
-        db.session.commit()
+        mark_source_deleted(cols_selected)
 
         num = len(cols_selected)
 
