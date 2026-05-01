@@ -702,84 +702,6 @@ def test_api2_source_deleted(
         assert "does-not-exist" not in response.json["sources"]
 
 
-def test_api2_source_conversation_deleted(
-    journalist_app,
-    journalist_api_token,
-    test_files,
-):
-    """Test processing of the "source_conversation_deleted" event."""
-    with journalist_app.test_client() as app:
-        source = test_files["source"]
-        source_uuid = source.uuid
-
-        # Verify source has submissions and replies
-        assert len(test_files["submissions"]) > 0
-        assert len(test_files["replies"]) > 0
-
-        # Try to delete conversation with wrong version
-        # (intentionally not fetching the correct version)
-        event = Event(
-            id="498567",
-            target=SourceTarget(source_uuid=source_uuid, version="a" * VERSION_LEN),
-            type=EventType.SOURCE_CONVERSATION_DELETED,
-        )
-        response = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.json["events"][event.id][0] == 409
-        assert "outdated source" in response.json["events"][event.id][1]
-
-        # Verify submissions and replies were NOT deleted
-        for submission in test_files["submissions"]:
-            assert (
-                Submission.query.filter(Submission.uuid == submission.uuid).one_or_none()
-                is not None
-            )
-        for reply in test_files["replies"]:
-            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is not None
-
-        # Collect UUIDs of all items in the collection before deletion
-        expected_item_uuids = {item.uuid for item in test_files["submissions"]}
-        expected_item_uuids.update({item.uuid for item in test_files["replies"]})
-
-        # Fetch the current index
-        index = app.get(
-            url_for("api2.index"),
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert index.status_code == 200
-        source_version = index.json["sources"][source_uuid]
-
-        # Delete the conversation
-        event = Event(
-            id="298374",
-            target=SourceTarget(source_uuid=source_uuid, version=source_version),
-            type=EventType.SOURCE_CONVERSATION_DELETED,
-        )
-        response = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.json["events"][event.id] == [200, None]
-        # Source should still exist, so not None
-        assert response.json["sources"][source_uuid] is not None
-
-        # Verify all items in the collection are returned as deleted
-        for item_uuid in expected_item_uuids:
-            assert item_uuid in response.json["items"]
-            assert response.json["items"][item_uuid] is None
-
-        # Verify source still exists but submissions/replies are deleted from database
-        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is not None
-        for submission in test_files["submissions"]:
-            assert Submission.query.filter(Submission.uuid == submission.uuid).one_or_none() is None
-        for reply in test_files["replies"]:
-            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is None
-
-
 def test_api2_source_starred(
     journalist_app,
     journalist_api_token,
@@ -867,63 +789,6 @@ def test_api2_source_unstarred(
         assert SourceStar.query.filter(SourceStar.source_id == source_id).one().starred is False
 
 
-def test_api2_item_seen(
-    journalist_app,
-    journalist_api_token,
-    test_files,
-):
-    """Test processing of the "item_seen" event."""
-    with journalist_app.test_client() as app:
-        source = test_files["source"]
-        source_uuid = source.uuid
-
-        # Verify we have test data
-        assert len(test_files["submissions"]) >= 1
-        submission = test_files["submissions"][0]
-        submission_uuid = submission.uuid
-
-        # Fetch the current index
-        index = app.get(
-            url_for("api2.index"),
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert index.status_code == 200
-        item_version = index.json["items"][submission_uuid]
-
-        # Mark the submission as seen
-        event = Event(
-            id="123456",
-            target=ItemTarget(item_uuid=submission_uuid, version=item_version),
-            type=EventType.ITEM_SEEN,
-        )
-        response = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.json["events"][event.id] == [200, None]
-        assert source_uuid in response.json["sources"]
-        assert submission_uuid in response.json["items"]
-
-        # Verify the submission is marked as seen in the database
-        updated_submission = Submission.query.filter(Submission.uuid == submission_uuid).one()
-        assert updated_submission.downloaded is True
-
-        # Try to mark seen an item that doesn't exist
-        no_such_item_event = Event(
-            id="234567",
-            target=ItemTarget(item_uuid=str(uuid.uuid4()), version=item_version),
-            type=EventType.ITEM_SEEN,
-        )
-        response = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(no_such_item_event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert response.json["events"][no_such_item_event.id][0] == 404
-        assert "could not find item" in response.json["events"][no_such_item_event.id][1]
-
-
 def test_api2_idempotence_period(journalist_app):
     """
     `IDEMPOTENCE_PERIOD` MUST be greater than or equal to
@@ -977,90 +842,6 @@ def test_api2_event_ordering(journalist_app, journalist_api_token, test_files):
         assert resp.json["events"]["3419026047977394171"][0] == 410
 
 
-def test_api2_source_conversation_deleted_resubmission(
-    journalist_app,
-    journalist_api_token,
-    test_files,
-):
-    """
-    A rejected event (409) MUST be handled (200) if corrected and resubmitted.
-    An accepted (i.e., corrected) event MUST be acknowledged (208) if
-    resubmitted.
-    """
-    with journalist_app.test_client() as app:
-        source = test_files["source"]
-        source_uuid = source.uuid
-
-        # 1. Submit with the wrong version --> Conflict (409).
-        event = Event(
-            id="600100",
-            target=SourceTarget(source_uuid=source_uuid, version="a" * VERSION_LEN),
-            type=EventType.SOURCE_CONVERSATION_DELETED,
-        )
-        res1 = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert res1.status_code == 200
-        assert res1.json["events"][event.id][0] == 409
-
-        # Confirm that nothing has been deleted.
-        for submission in test_files["submissions"]:
-            assert (
-                Submission.query.filter(Submission.uuid == submission.uuid).one_or_none()
-                is not None
-            )
-        for reply in test_files["replies"]:
-            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is not None
-
-        expected_item_uuids = {item.uuid for item in test_files["submissions"]}
-        expected_item_uuids.update({item.uuid for item in test_files["replies"]})
-
-        # 2. Resubmit the same event with the correct version --> OK (200).
-        index = app.get(
-            url_for("api2.index"),
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert index.status_code == 200
-        correct_version = index.json["sources"][source_uuid]
-
-        corrected_event = Event(
-            id=event.id,
-            target=SourceTarget(source_uuid=source_uuid, version=correct_version),
-            type=event.type,
-        )
-        res2 = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(corrected_event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert res2.status_code == 200
-        assert res2.json["events"][corrected_event.id] == [200, None]
-
-        # Confirm that items are returned as deleted.
-        assert res2.json["sources"][source_uuid] is not None
-        for item_uuid in expected_item_uuids:
-            assert item_uuid in res2.json["items"]
-            assert res2.json["items"][item_uuid] is None
-
-        # Confirm that items have actually been deleted.
-        for submission in test_files["submissions"]:
-            assert Submission.query.filter(Submission.uuid == submission.uuid).one_or_none() is None
-        for reply in test_files["replies"]:
-            assert Reply.query.filter(Reply.uuid == reply.uuid).one_or_none() is None
-        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is not None
-
-        # 3. Resubmit the same event again --> Already Reported (208).
-        res3 = app.post(
-            url_for("api2.data"),
-            json={"events": [asdict(corrected_event)]},
-            headers=get_api_headers(journalist_api_token),
-        )
-        assert res3.status_code == 200
-        assert res3.json["events"][corrected_event.id][0] == 208
-
-
 def test_api2_reply_sent_then_requested_item_is_deduped(
     journalist_app,
     journalist_api_token,
@@ -1110,7 +891,7 @@ def test_api2_reply_sent_then_requested_item_is_deduped(
         assert response.json["items"][new_reply_uuid] is not None
 
 
-@pytest.mark.parametrize("minor", [0, 1, 2, 3])
+@pytest.mark.parametrize("minor", [0, 1, 2, 3, 4])
 def test_api_minor_versions(journalist_app, journalist_api_token, test_files, minor):
     """
     Verify that the API response shape changes according to the documented
@@ -1153,7 +934,7 @@ def test_api_minor_versions(journalist_app, journalist_api_token, test_files, mi
         if minor >= 3:
             event = {
                 "id": "123456",
-                "type": "item_seen",
+                "type": "item_deleted",
                 "target": {
                     "item_uuid": test_files["submissions"][0].uuid,
                     "version": data["items"][test_files["submissions"][0].uuid],
@@ -1167,6 +948,11 @@ def test_api_minor_versions(journalist_app, journalist_api_token, test_files, mi
 
         else:
             assert "events" not in resp.json
+
+        # 4. `/api/v1/token` provides sync hints for client-specified sharding of
+        #    `Index`: see `tests.journalist_api`, especially:
+        #       - `test_valid_user_gets_hints_with_prefer_header()`
+        #       - `test_valid_user_gets_no_hints_without_prefer_header()`
 
 
 def test_api2_source_conversation_truncated(

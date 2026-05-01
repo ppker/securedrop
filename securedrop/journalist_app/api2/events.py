@@ -67,10 +67,8 @@ class EventHandler:
 
             handler = {
                 EventType.ITEM_DELETED: self.handle_item_deleted,
-                EventType.ITEM_SEEN: self.handle_item_seen,
                 EventType.REPLY_SENT: self.handle_reply_sent,
                 EventType.SOURCE_DELETED: self.handle_source_deleted,
-                EventType.SOURCE_CONVERSATION_DELETED: self.handle_source_conversation_deleted,
                 EventType.SOURCE_STARRED: self.handle_source_starred,
                 EventType.SOURCE_UNSTARRED: self.handle_source_unstarred,
                 EventType.SOURCE_CONVERSATION_TRUNCATED: self.handle_source_conversation_truncated,
@@ -201,51 +199,12 @@ class EventHandler:
             )
 
     @staticmethod
-    def handle_source_conversation_deleted(event: Event, minor: int) -> EventResult:
-        try:
-            source = Source.query.filter(Source.uuid == event.target.source_uuid).one()
-        except NoResultFound:
-            return EventResult(
-                event_id=event.id,
-                status=(
-                    EventStatusCode.Gone,
-                    None,
-                ),
-            )
-
-        current_version = json_version(source.to_api_v2(minor))
-        if event.target.version != current_version:
-            return EventResult(
-                event_id=event.id,
-                status=(
-                    EventStatusCode.Conflict,
-                    f"outdated source: expected {current_version}, got {event.target.version}",
-                ),
-            )
-
-        # Mark as deleted all the items in the source's collection
-        deleted_items = {item.uuid: None for item in source.collection}
-
-        # NB. Does not raise exceptions from `utils.delete_file_object()`.
-        utils.delete_source_files(source.filesystem_id)
-        db.session.refresh(source)
-
-        return EventResult(
-            event_id=event.id,
-            status=(EventStatusCode.OK, None),
-            sources={source.uuid: source},
-            items=deleted_items,
-        )
-
-    @staticmethod
     def handle_source_conversation_truncated(event: Event, minor: int) -> EventResult:
         """
         A `source_conversation_truncated` event involves deleting all the items
         in the source's collection with interaction counts less than or equal to
         the specified upper bound, assumed to be the last item known to the
-        client.  This achieves the same consistency as a
-        `source_conversation_deleted` event without requiring its strict
-        versioning.
+        client.
         """
 
         try:
@@ -362,30 +321,6 @@ class EventHandler:
             event_id=event.id,
             status=(EventStatusCode.OK, None),
             sources={source.uuid: source},
-        )
-
-    @staticmethod
-    def handle_item_seen(event: Event, minor: int) -> EventResult:
-        item = find_item(event.target.item_uuid)
-        if item is None:
-            return EventResult(
-                event_id=event.id,
-                status=(EventStatusCode.NotFound, f"could not find item: {event.target.item_uuid}"),
-            )
-
-        # Mark it as seen
-        utils.mark_seen([item], session.get_user())
-
-        # Refresh and return
-        source = item.source
-        db.session.refresh(source)
-        db.session.refresh(item)
-
-        return EventResult(
-            event_id=event.id,
-            status=(EventStatusCode.OK, None),
-            sources={source.uuid: source},
-            items={item.uuid: item},
         )
 
 

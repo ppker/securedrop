@@ -27,9 +27,7 @@ EventID = NewType("EventID", str)  # int, but opaque on the wire
 class EventType(StrEnum):
     REPLY_SENT = auto()
     ITEM_DELETED = auto()
-    ITEM_SEEN = auto()
     SOURCE_DELETED = auto()
-    SOURCE_CONVERSATION_DELETED = auto()
     SOURCE_CONVERSATION_TRUNCATED = auto()
     SOURCE_STARRED = auto()
     SOURCE_UNSTARRED = auto()
@@ -166,9 +164,7 @@ class SourceConversationSeenData(EventData):
 EVENT_TYPES = {
     EventType.REPLY_SENT: (SourceTarget, ReplySentData),
     EventType.ITEM_DELETED: (ItemTarget, None),
-    EventType.ITEM_SEEN: (ItemTarget, None),
     EventType.SOURCE_DELETED: (SourceTarget, None),
-    EventType.SOURCE_CONVERSATION_DELETED: (SourceTarget, None),
     EventType.SOURCE_CONVERSATION_TRUNCATED: (SourceTarget, SourceConversationTruncatedData),
     EventType.SOURCE_STARRED: (SourceTarget, None),
     EventType.SOURCE_UNSTARRED: (SourceTarget, None),
