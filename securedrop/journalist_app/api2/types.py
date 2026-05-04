@@ -25,6 +25,10 @@ EventID = NewType("EventID", str)  # int, but opaque on the wire
 
 
 class EventType(StrEnum):
+    """
+    This enum MUST be kept in sync with the Inbox's `PendingEventType` enum.
+    """
+
     REPLY_SENT = auto()
     ITEM_DELETED = auto()
     SOURCE_DELETED = auto()
