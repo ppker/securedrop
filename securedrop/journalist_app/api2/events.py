@@ -2,7 +2,7 @@ from dataclasses import asdict
 
 from db import db
 from journalist_app import utils
-from journalist_app.api2.shared import json_version, save_reply
+from journalist_app.api2.shared import json_version, mark_source_deleted, save_reply
 from journalist_app.api2.types import (
     Event,
     EventResult,
@@ -181,11 +181,12 @@ class EventHandler:
                 ),
             )
 
-        # Mark as deleted all the items in the source's collection
-        deleted_items = {item.uuid: None for item in source.collection}
-
         try:
-            utils.delete_collection(source.filesystem_id)
+            # Deletion via `mark_source_deleted()` is asynchronous, but if it's
+            # initiated successfully we should report back to the client that
+            # all of the deleted source's items have also been deleted.
+            deleted_items = {item.uuid: None for item in source.collection}
+            mark_source_deleted([source.filesystem_id])
             return EventResult(
                 event_id=event.id,
                 status=(EventStatusCode.OK, None),

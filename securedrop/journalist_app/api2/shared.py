@@ -7,6 +7,7 @@ import hashlib
 import os
 from collections.abc import Mapping
 from dataclasses import asdict
+from datetime import UTC, datetime
 from uuid import UUID
 
 from db import db
@@ -169,3 +170,10 @@ def save_reply(source: Source, data: dict) -> Reply:
         raise e
 
     return reply
+
+
+def mark_source_deleted(cols_selected: list[str]) -> None:
+    now = datetime.now(UTC)
+    sources = Source.query.filter(Source.filesystem_id.in_(cols_selected))
+    sources.update({Source.deleted_at: now}, synchronize_session="fetch")
+    db.session.commit()

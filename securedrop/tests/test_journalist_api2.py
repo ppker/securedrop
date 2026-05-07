@@ -5,6 +5,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import journalist_app as journalist_app_module
 import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
@@ -684,8 +685,40 @@ def test_api2_source_deleted(
             assert item_uuid in response.json["items"]
             assert response.json["items"][item_uuid] is None
 
-        # Verify source is deleted from database
-        assert Source.query.filter(Source.uuid == source_uuid).one_or_none() is None
+        # Verify source is pending deletion:
+        source = Source.query.filter(Source.uuid == source_uuid).one_or_none()
+        assert source.deleted_at is not None
+
+        # Verify source is gone from the index:
+        index = app.get(
+            url_for("api2.index"),
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert index.status_code == 200
+        assert source_uuid not in index.json["sources"]
+
+        # Verify source can't be fetched:
+        data = app.post(
+            url_for("api2.data"),
+            json={"sources": [source_uuid]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert data.status_code == 200
+        assert source_uuid not in data.json["sources"]
+
+        # Verify source's items can't be fetched:
+        data = app.post(
+            url_for("api2.data"),
+            json={"items": [list(expected_item_uuids)[0]]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert data.status_code == 200
+        assert list(expected_item_uuids)[0] not in data.json["items"]
+
+        # Verify source pending deletion is deleted:
+        journalist_app_module.utils.purge_deleted_sources()
+        source = Source.query.filter(Source.uuid == source_uuid).one_or_none()
+        assert source is None
 
         # Try to delete a source that doesn't exist
         nonexistent_event = Event(

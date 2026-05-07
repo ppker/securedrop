@@ -55,9 +55,17 @@ def eager_query(model: str) -> EagerQuery | Query:
     except AttributeError:
         query = cls.query
 
-    # Filter out pending and deleted sources
+    # Filter out pending and deleted sources and their items
     if model == "Source":
         query = query.filter_by(pending=False, deleted_at=None)
+    elif model in ["Reply", "Submission"]:
+        query = query.filter(
+            cls.source.has(
+                # Pending should be impossible here; kept for consistency:
+                pending=False,
+                deleted_at=None,
+            )
+        )
 
     return query
 
