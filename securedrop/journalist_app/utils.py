@@ -108,16 +108,11 @@ def validate_user(
                 "Your 2FA details are invalid" " - please contact an administrator to reset them."
             )
         else:
-            try:
-                user = Journalist.query.filter_by(username=username).one()
-                if user.is_totp:
-                    login_flashed_msg += " "
-                    login_flashed_msg += gettext(
-                        "Please wait for a new code from your two-factor mobile"
-                        " app or security key before trying again."
-                    )
-            except Exception:
-                pass
+            login_flashed_msg += " "
+            login_flashed_msg += gettext(
+                "Please check your credentials. If you are using a two-factor mobile"
+                " app or security key, wait for a new code before trying again."
+            )
 
         flash(login_flashed_msg, "error")
         return None

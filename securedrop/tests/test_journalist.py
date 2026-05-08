@@ -1708,8 +1708,8 @@ def test_deleted_user_cannot_login(config, journalist_app, locale):
             msgids = [
                 "Login failed.",
                 (
-                    "Please wait for a new code from your two-factor mobile"
-                    " app or security key before trying again."
+                    "Please check your credentials. If you are using a two-factor mobile"
+                    " app or security key, wait for a new code before trying again."
                 ),
             ]
             with xfail_untranslated_messages(config, locale, msgids):
@@ -2689,8 +2689,8 @@ def test_incorrect_current_password_change(config, journalist_app, test_journo, 
             msgids = [
                 "Incorrect password or two-factor code.",
                 (
-                    "Please wait for a new code from your two-factor mobile"
-                    " app or security key before trying again."
+                    "Please check your credentials. If you are using a two-factor mobile"
+                    " app or security key, wait for a new code before trying again."
                 ),
             ]
             with xfail_untranslated_messages(config, locale, msgids):
