@@ -1,0 +1,19 @@
+rules:
+  - id: session-interface-mutation-outside-init
+    patterns:
+      - pattern: self.$ATTR = $VAL
+      - pattern-inside: |
+          class SessionInterface(...):
+              ...
+      - pattern-not-inside: |
+          def __init__(self, ...):
+              ...
+    message: >
+      SessionInterface.$ATTR is mutated outside of __init__.
+      SessionInterface should be immutable after construction; use local
+      variables for per-request state instead.
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - "**/journalist_app/sessions.py"
