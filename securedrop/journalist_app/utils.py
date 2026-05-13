@@ -558,13 +558,16 @@ def col_download_all(cols_selected: list[str]) -> werkzeug.Response:
 def serve_file_with_etag(db_obj: Reply | Submission) -> flask.Response:
     file_path = Storage.get_default().path(db_obj.source.filesystem_id, db_obj.filename)
     add_range_headers = not current_app.config["USE_X_SENDFILE"]
-    response = send_file(
-        file_path,
-        mimetype="application/pgp-encrypted",
-        as_attachment=True,
-        etag=False,
-        conditional=add_range_headers,
-    )  # Disable Flask default ETag
+    try:
+        response = send_file(
+            file_path,
+            mimetype="application/pgp-encrypted",
+            as_attachment=True,
+            etag=False,
+            conditional=add_range_headers,
+        )  # Disable Flask default ETag
+    except FileNotFoundError:
+        abort(404)
 
     if not db_obj.checksum:
         add_checksum_for_file(db.session, db_obj, file_path)
