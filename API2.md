@@ -275,11 +275,8 @@ Broadly speaking, each event will terminate in one of the following states:
     confirmed. The server will not return data in this case, but the client
     SHOULD already know the results of the operation once confirmed.
     - Uniquely among the properties of this API, **event idempotence is a
-      security property as well as a performance enhancement.** The server MUST
+      correctness property as well as a performance enhancement.** The server MUST
       preserve this property for all types of events with defined handlers.
-
-> [!CAUTION]
-> This is aspirational pending [#7788].
 
 3.  **Failure:** A client that submits a failed event $E'$ will receive an
     individual error code for $E'$. The client MAY resubmit $E'$ immediately, since
