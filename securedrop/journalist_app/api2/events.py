@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from db import db
+from flask import current_app
 from journalist_app import utils
 from journalist_app.api2.shared import json_version, mark_source_deleted, save_reply
 from journalist_app.api2.types import (
@@ -59,7 +60,7 @@ class EventHandler:
         """The per-event entry-point for handling a single event."""
 
         try:
-            if self.has_progress(event):
+            if self.is_duplicate(event):
                 return EventResult(
                     event_id=event.id,
                     status=(EventStatusCode.AlreadyReported, None),
@@ -83,35 +84,40 @@ class EventHandler:
                 ),
             )
 
-        self.mark_progress(event)  # prevent races
-        result = handler(event, minor)
-        self.mark_progress(event, result.status[0])  # enforce idempotence
+        try:
+            result = handler(event, minor)
+
+        # Catch anything not handled by the handler:
+        except Exception:
+            current_app.logger.error(f"unhandled exception in handler for {event}", exc_info=True)
+            result = EventResult(
+                event.id, (EventStatusCode.InternalServerError, "failed to process event")
+            )
+
+        self.record_status(event, result.status[0])
         return result
 
     def idempotence_key(self, event: Event) -> str:
         return f"{REDIS_EVENT_PREFIX}/{self._session.user.uuid}/{event.id}"
 
-    def has_progress(self, event: Event) -> EventStatusCode:
-        return self._redis.get(self.idempotence_key(event))
+    def is_duplicate(self, event: Event) -> bool:
+        """Returns `True` if this event is already registered (i.e., a replay)."""
+        return (
+            self._redis.set(
+                self.idempotence_key(event),
+                EventStatusCode.Processing,
+                ex=IDEMPOTENCE_PERIOD,
+                nx=True,
+            )
+            is None
+        )
 
-    def mark_progress(
-        self, event: Event, status: EventStatusCode = EventStatusCode.Processing
-    ) -> None:
-        """
-        If `status` is a non-error code, mark it as the progress of `event`, to
-        be returned later as "Already Reported".
-
-        If `status` is an error code, clear it, since `event` MAY be resubmitted
-        later.
-        """
+    def record_status(self, event: Event, status: EventStatusCode) -> None:
+        """Record the event's final status for idempotence, or clear on error to permit retry."""
         if status >= EventStatusCode.BadRequest:
             self._redis.delete(self.idempotence_key(event))
         else:
-            self._redis.set(
-                self.idempotence_key(event),
-                status,
-                ex=IDEMPOTENCE_PERIOD,
-            )
+            self._redis.set(self.idempotence_key(event), status, ex=IDEMPOTENCE_PERIOD)
 
     @staticmethod
     def handle_item_deleted(event: Event, minor: int) -> EventResult:

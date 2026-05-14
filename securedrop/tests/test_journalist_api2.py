@@ -858,22 +858,22 @@ def test_api2_atomic_idempotence(redis):
 
     barrier = threading.Barrier(2)
     handler_call_count = [0]
-    original_get = redis.get
+    original_set = redis.set
 
-    def slow_get(key):
-        result = original_get(key)
-        if not result:
-            # Widen the possible TOCTOU window: hold both threads here until
-            # both have seen the key absent, then release together.
+    def slow_set(*args, **kwargs):
+        if kwargs.get("nx"):
+            # Widen the possible TOCTOU window: hold both threads at the SETNX
+            # gate until both are about to set the not-yet-existing key, then
+            # release together so atomicity is what enforces the invariant.
             barrier.wait(timeout=5)
-        return result
+        return original_set(*args, **kwargs)
 
     def counting_handler(ev, minor):
         handler_call_count[0] += 1
         return EventResult(event_id=ev.id, status=(EventStatusCode.OK, None))
 
     with (
-        patch.object(redis, "get", slow_get),
+        patch.object(redis, "set", slow_set),
         patch.object(EventHandler, "handle_source_starred", staticmethod(counting_handler)),
     ):
         threads = [
@@ -888,8 +888,9 @@ def test_api2_atomic_idempotence(redis):
         for t in threads:
             t.join(timeout=10)
 
-    # Should be 1: a correct implementation lets only one thread past the check.
-    # Fails with count == 2 when has_progress() uses GET (non-atomic check-then-act).
+    # Should be 1: a correct implementation relies on atomic SETNX to let only
+    # one thread past the check. Fails with count == 2 if mark_progress() drops
+    # the NX flag or claim_progress() reverts to a non-atomic check-then-act.
     assert handler_call_count[0] == 1
 
 
