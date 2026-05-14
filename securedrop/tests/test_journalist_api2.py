@@ -1,8 +1,10 @@
+import threading
 import uuid
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict
 from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import journalist_app as journalist_app_module
@@ -10,19 +12,28 @@ import pytest
 from flask import url_for
 from flask_sqlalchemy import get_debug_queries
 from journalist_app import api2
+from journalist_app.api2.events import EventHandler
 from journalist_app.api2.shared import json_version
 from journalist_app.api2.types import (
     VERSION_LEN,
     Event,
+    EventResult,
+    EventStatusCode,
     EventType,
     ItemTarget,
     SourceTarget,
 )
 from models import Reply, Source, SourceStar, Submission, db
+from redis import Redis
 from sqlalchemy.orm.exc import MultipleResultsFound
 from tests.utils import ascii_armor, decrypt_as_journalist
 from tests.utils.api_helper import get_api_headers
 from tests.utils.db_helper import init_source, submit
+
+
+@pytest.fixture
+def redis(config):
+    return Redis(decode_responses=True, **config.REDIS_KWARGS)
 
 
 def filtered_queries():
@@ -830,6 +841,56 @@ def test_api2_idempotence_period(journalist_app):
     """
 
     assert journalist_app.config["SESSION_LIFETIME"] <= api2.events.IDEMPOTENCE_PERIOD
+
+
+def test_api2_atomic_idempotence(redis):
+    """
+    Check that identical events received simultaneously are still only accepted
+    once.
+    """
+
+    session = MagicMock()
+    session.user.uuid = str(uuid4())
+
+    event = MagicMock()
+    event.id = str(uuid4())
+    event.type = EventType.SOURCE_STARRED
+
+    barrier = threading.Barrier(2)
+    handler_call_count = [0]
+    original_get = redis.get
+
+    def slow_get(key):
+        result = original_get(key)
+        if not result:
+            # Widen the possible TOCTOU window: hold both threads here until
+            # both have seen the key absent, then release together.
+            barrier.wait(timeout=5)
+        return result
+
+    def counting_handler(ev, minor):
+        handler_call_count[0] += 1
+        return EventResult(event_id=ev.id, status=(EventStatusCode.OK, None))
+
+    with (
+        patch.object(redis, "get", slow_get),
+        patch.object(EventHandler, "handle_source_starred", staticmethod(counting_handler)),
+    ):
+        threads = [
+            threading.Thread(
+                target=EventHandler(session=session, redis=redis).process,
+                args=(event, 1),
+            )
+            for _ in range(2)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+    # Should be 1: a correct implementation lets only one thread past the check.
+    # Fails with count == 2 when has_progress() uses GET (non-atomic check-then-act).
+    assert handler_call_count[0] == 1
 
 
 def test_api2_event_ordering(journalist_app, journalist_api_token, test_files):
