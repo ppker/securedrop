@@ -152,7 +152,7 @@ def add_journalist(
         journalist.pw_hash = journalist._scrypt_hash(test_password, salt)
 
     db.session.add(journalist)
-    attempt = JournalistLoginAttempt(journalist)
+    attempt = JournalistLoginAttempt(journalist.username)
     attempt.timestamp = random_datetime(nullable=True)
     db.session.add(attempt)
     db.session.commit()

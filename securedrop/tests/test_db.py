@@ -64,9 +64,9 @@ def test_throttle_login(journalist_app, test_journo):
     with journalist_app.app_context():
         journalist = test_journo["journalist"]
         for _ in range(Journalist._MAX_LOGIN_ATTEMPTS_PER_PERIOD):
-            Journalist.throttle_login(journalist)
+            Journalist.throttle_login(journalist.username)
         with pytest.raises(LoginThrottledException):
-            Journalist.throttle_login(journalist)
+            Journalist.throttle_login(journalist.username)
 
 
 def test_submission_string_representation(journalist_app, test_source, app_storage):
