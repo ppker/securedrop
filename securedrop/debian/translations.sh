@@ -6,9 +6,9 @@ set -ex
 # beyond what the system version provides, see #6317.
 python3 -m venv /tmp/securedrop-app-code-i18n-ve
 /tmp/securedrop-app-code-i18n-ve/bin/pip3 install -r \
-<(echo "pip==26.0 \
---hash=sha256:3ce220a0a17915972fbf1ab451baae1521c4539e778b28127efa79b974aff0fa \
---hash=sha256:98436feffb9e31bc9339cf369fd55d3331b1580b6a6f1173bacacddcf9c34754")
+<(echo "pip==26.1.1 \
+    --hash=sha256:99cb1c2899893b075ff56e4ed0af55669a955b49ad7fb8d8603ecdaf4ed653fb \
+    --hash=sha256:d36762751d156a4ee895de8af39aa0abeeeb577f93a2eca6ab62467bbf0f8a78")
 
 source /etc/os-release
 

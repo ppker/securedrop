@@ -270,9 +270,9 @@ markupsafe==2.1.2 \
 mod-wsgi==4.9.4 \
     --hash=sha256:8e762662ea5b01afc386bbcfbaa079748eb6203ab1d6d3a3dac9237f5666cfc9
     # via -r requirements/requirements.in
-pip==26.0 \
-    --hash=sha256:3ce220a0a17915972fbf1ab451baae1521c4539e778b28127efa79b974aff0fa \
-    --hash=sha256:98436feffb9e31bc9339cf369fd55d3331b1580b6a6f1173bacacddcf9c34754
+pip==26.1.1 \
+    --hash=sha256:99cb1c2899893b075ff56e4ed0af55669a955b49ad7fb8d8603ecdaf4ed653fb \
+    --hash=sha256:d36762751d156a4ee895de8af39aa0abeeeb577f93a2eca6ab62467bbf0f8a78
     # via -r requirements/base-requirements.in
 psutil==7.0.0 \
     --hash=sha256:101d71dc322e3cffd7cea0650b09b3d08b8e7c4109dd6809fe452dfd00e58b25 \
