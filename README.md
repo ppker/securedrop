@@ -55,6 +55,7 @@ To run SecureDrop locally, ensure you have Docker installed before proceeding an
 
 * Follow the [official Docker Engine documentation](https://docs.docker.com/engine/install/) to install **Docker Engine**.
 
+> [!TIP]
 > It's also possible to use _Docker Desktop_ on Linux, if you want to. Follow the steps to install [Docker Desktop for Linux](https://docs.docker.com/desktop/setup/install/linux/) then.
 
 ### Windows/MacOS
