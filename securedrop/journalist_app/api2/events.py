@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from db import db
+from flask import current_app
 from journalist_app import utils
 from journalist_app.api2.shared import json_version, mark_source_deleted, save_reply
 from journalist_app.api2.types import (
@@ -35,13 +36,17 @@ class EventHandler:
        `journalist_api2.types.EVENT_DATA_TYPES`;
 
     3. define the handler as a static method `handle_thing_done(event: Event)`
-       in this class
+       in this class; and
 
     4. explicitly register `{"thing_done": self.handle_thing_done}` inside
       `EventHandler.process()`.
 
     This is belt-and-suspenders for ensuring that only the intended methods are
     exposed as callable event handlers.
+
+    To preserve transaction separation between events, handlers MUST return with
+    a clean SQLAlchemy session: in other words, having either successfully
+    committed or rolled back all of their changes.
     """
 
     def __init__(self, session: Session, redis: Redis) -> None:
@@ -59,7 +64,7 @@ class EventHandler:
         """The per-event entry-point for handling a single event."""
 
         try:
-            if self.has_progress(event):
+            if self.is_duplicate(event):
                 return EventResult(
                     event_id=event.id,
                     status=(EventStatusCode.AlreadyReported, None),
@@ -83,35 +88,45 @@ class EventHandler:
                 ),
             )
 
-        self.mark_progress(event)  # prevent races
-        result = handler(event, minor)
-        self.mark_progress(event, result.status[0])  # enforce idempotence
+        try:
+            result = handler(event, minor)
+
+            # Enforce "handlers MUST return with a clean SQLAlchemy session" above:
+            if db.session.dirty or db.session.new or db.session.deleted:
+                raise RuntimeError(f"{handler} returned with a pending database transaction")
+
+        # Catch anything not handled by the handler:
+        except Exception:
+            current_app.logger.error(f"unhandled exception in handler for {event}", exc_info=True)
+            db.session.rollback()
+            result = EventResult(
+                event.id, (EventStatusCode.InternalServerError, "failed to process event")
+            )
+
+        self.record_status(event, result.status[0])
         return result
 
     def idempotence_key(self, event: Event) -> str:
         return f"{REDIS_EVENT_PREFIX}/{self._session.user.uuid}/{event.id}"
 
-    def has_progress(self, event: Event) -> EventStatusCode:
-        return self._redis.get(self.idempotence_key(event))
+    def is_duplicate(self, event: Event) -> bool:
+        """Returns `True` if this event is already registered (i.e., a replay)."""
+        return (
+            self._redis.set(
+                self.idempotence_key(event),
+                EventStatusCode.Processing,
+                ex=IDEMPOTENCE_PERIOD,
+                nx=True,
+            )
+            is None
+        )
 
-    def mark_progress(
-        self, event: Event, status: EventStatusCode = EventStatusCode.Processing
-    ) -> None:
-        """
-        If `status` is a non-error code, mark it as the progress of `event`, to
-        be returned later as "Already Reported".
-
-        If `status` is an error code, clear it, since `event` MAY be resubmitted
-        later.
-        """
+    def record_status(self, event: Event, status: EventStatusCode) -> None:
+        """Record the event's final status for idempotence, or clear on error to permit retry."""
         if status >= EventStatusCode.BadRequest:
             self._redis.delete(self.idempotence_key(event))
         else:
-            self._redis.set(
-                self.idempotence_key(event),
-                status,
-                ex=IDEMPOTENCE_PERIOD,
-            )
+            self._redis.set(self.idempotence_key(event), status, ex=IDEMPOTENCE_PERIOD)
 
     @staticmethod
     def handle_item_deleted(event: Event, minor: int) -> EventResult:
