@@ -571,6 +571,85 @@ def test_api2_reply_sent(
         assert reply2["uuid"] not in response.json["items"]
 
 
+def test_api2_reply_sent_unencrypted(journalist_app, journalist_api_token, test_files):
+    """handle_reply_sent returns 400 BadRequest if the reply is not PGP-encrypted."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        index = app.get(url_for("api2.index"), headers=get_api_headers(journalist_api_token))
+        source_version = index.json["sources"][source.uuid]
+
+        event = Event(
+            id="400001",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.REPLY_SENT,
+            data={"uuid": str(uuid.uuid4()), "reply": "not a pgp message"},
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][event.id][0] == 400
+
+
+def test_api2_reply_sent_duplicate_uuid(journalist_app, journalist_api_token, test_files):
+    """handle_reply_sent returns 409 Conflict if save_reply() would commit a duplicate UUID."""
+    with journalist_app.test_client() as app:
+        source = test_files["source"]
+        reply = test_files["replies"][0]
+
+        reply_ct = app.get(
+            url_for("api.download_reply", source_uuid=source.uuid, reply_uuid=reply.uuid),
+            headers=get_api_headers(journalist_api_token),
+        ).data
+
+        index = app.get(url_for("api2.index"), headers=get_api_headers(journalist_api_token))
+        source_version = index.json["sources"][source.uuid]
+
+        shared_uuid = str(uuid.uuid4())
+        event1 = Event(
+            id="409001",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.REPLY_SENT,
+            data={"uuid": shared_uuid, "reply": ascii_armor(reply_ct)},
+        )
+        response1 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event1)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response1.json["events"]["409001"] == [200, None]
+
+        # A different event that tries to commit the same reply UUID:
+        event2 = Event(
+            id="409002",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.REPLY_SENT,
+            data={"uuid": shared_uuid, "reply": ascii_armor(reply_ct)},
+        )
+        response2 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event2)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response2.json["events"]["409002"][0] == 409
+
+        # A different event that tries to use a submission's UUID as the reply UUID:
+        submission = test_files["submissions"][0]
+        event3 = Event(
+            id="409003",
+            target=SourceTarget(source_uuid=source.uuid, version=source_version),
+            type=EventType.REPLY_SENT,
+            data={"uuid": submission.uuid, "reply": ascii_armor(reply_ct)},
+        )
+        response3 = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(event3)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response3.json["events"]["409003"][0] == 409
+
+
 def test_api2_item_deleted(
     journalist_app,
     journalist_api_token,
