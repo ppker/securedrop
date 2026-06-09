@@ -1,3 +1,4 @@
+import os
 import threading
 import uuid
 from contextlib import contextmanager
@@ -655,6 +656,7 @@ def test_api2_item_deleted(
     journalist_api_token,
     test_files,
     test_journo,
+    app_storage,
 ):
     """Test processing of the "item_deleted" event."""
     with journalist_app.test_client() as app:
@@ -701,7 +703,7 @@ def test_api2_item_deleted(
         assert response.json["items"][event.target.item_uuid] is None
         assert Reply.query.filter(Reply.uuid == event.target.item_uuid).one_or_none() is None
 
-        # Try to delete something that doesn't exist:
+        # Try to delete something that doesn't exist (database-level idempotence):
         nonexistent_event = Event(
             id="345678",
             target=ItemTarget(item_uuid=str(uuid.uuid4()), version=reply_version),
@@ -714,6 +716,23 @@ def test_api2_item_deleted(
         )
         assert response.json["events"][nonexistent_event.id] == [410, None]
         assert nonexistent_event.target.item_uuid not in response.json["items"]
+
+        # File already gone from disk but DB record still present (filesystem-level idempotence):
+        stale_submission = test_files["submissions"][1]
+        stale_submission_uuid = stale_submission.uuid
+        stale_submission_version = index.json["items"][stale_submission_uuid]
+        os.remove(app_storage.path(test_files["filesystem_id"], stale_submission.filename))
+        stale_event = Event(
+            id="410001",
+            target=ItemTarget(item_uuid=stale_submission_uuid, version=stale_submission_version),
+            type=EventType.ITEM_DELETED,
+        )
+        response = app.post(
+            url_for("api2.data"),
+            json={"events": [asdict(stale_event)]},
+            headers=get_api_headers(journalist_api_token),
+        )
+        assert response.json["events"][stale_event.id] == [200, None]
 
 
 def test_api2_source_deleted(
