@@ -127,12 +127,12 @@ zizmor:  ## Lint GitHub Actions workflows.
 lint: check-ruff ansible-config-lint app-lint html-lint shellcheck typelint yamllint zizmor check-strings check-supported-locales check-desktop-files ## Runs all lint checks
 
 # Semgrep is a static code analysis tool to detect security vulnerabilities in Python applications
-# This configuration uses the public "p/r2c-security-audit" ruleset
+# This configuration uses the public "p/r2c-security-audit" ruleset and local custom rules
 .PHONY: semgrep
 semgrep:
 	@command -v semgrep || (echo "Please run 'pip install -U semgrep'."; exit 1)
 	@echo "███ Running semgrep on securedrop/..."
-	@semgrep --exclude "securedrop/tests/" --error --strict --metrics off --max-chars-per-line 200 --verbose --config "p/r2c-security-audit" securedrop
+	@semgrep --exclude "securedrop/tests/" --error --strict --metrics off --max-chars-per-line 200 --verbose --config "p/r2c-security-audit" --config ".semgrep/" securedrop
 	@echo
 
 

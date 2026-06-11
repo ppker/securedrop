@@ -2,7 +2,7 @@ import typing
 from datetime import UTC, datetime, timedelta
 from json.decoder import JSONDecodeError
 from secrets import token_urlsafe
-from typing import Any
+from typing import Any, Final
 
 from flask import Flask, Request, Response
 from flask import current_app as app
@@ -19,7 +19,9 @@ from werkzeug.datastructures import CallbackDict
 class ServerSideSession(CallbackDict, SessionMixin):
     """Baseclass for server-side based sessions."""
 
-    def __init__(self, sid: str, token: str, lifetime: int = 0, initial: Any = None) -> None:
+    def __init__(
+        self, sid: str, token: str, lifetime: int = 0, initial: Any = None, is_api: bool = False
+    ) -> None:
         def on_update(self: ServerSideSession) -> None:
             self.modified = True
 
@@ -33,7 +35,7 @@ class ServerSideSession(CallbackDict, SessionMixin):
         self.sid = sid
         self.token: str = token
         self.lifetime = lifetime
-        self.is_api = False
+        self.is_api = is_api
         self.to_destroy = False
         self.to_regenerate = False
         self.modified = False
@@ -80,13 +82,15 @@ class ServerSideSession(CallbackDict, SessionMixin):
 
 
 class SessionInterface(FlaskSessionInterface):
+    """Class is required to be immutable for consistent state across mod_wsgi workers."""
+
     def _generate_sid(self) -> str:
         return token_urlsafe(32)
 
-    def _get_signer(self, app: Flask) -> URLSafeTimedSerializer:
+    def _get_signer(self, app: Flask, salt: str) -> URLSafeTimedSerializer:
         if not app.secret_key:
             raise RuntimeError("No secret key set")
-        return URLSafeTimedSerializer(app.secret_key, salt=self.salt)
+        return URLSafeTimedSerializer(app.secret_key, salt=salt)
 
     """Uses the Redis key-value store as a session backend.
 
@@ -109,19 +113,26 @@ class SessionInterface(FlaskSessionInterface):
         self.redis = redis
         self.lifetime = lifetime
         self.renew_count = renew_count
-        self.key_prefix = key_prefix
-        self.api_key_prefix = "api_" + key_prefix
-        self.salt = salt
-        self.api_salt = "api_" + salt
+
+        # set "immutable" session base parameters
+        self.web_key_prefix: Final = key_prefix
+        self.web_salt: Final = salt
+
+        self.api_key_prefix: Final = "api_" + key_prefix
+        self.api_salt: Final = "api_" + salt
+
         self.header_name = header_name
         self.new = False
 
-    def _new_session(self, is_api: bool = False, initial: Any = None) -> ServerSideSession:
+    def _new_session(
+        self, salt: str, is_api: bool = False, initial: Any = None
+    ) -> ServerSideSession:
         sid = self._generate_sid()
-        token: str = self._get_signer(app).dumps(sid)  # type: ignore
-        session = ServerSideSession(sid=sid, token=token, lifetime=self.lifetime, initial=initial)
+        token: str = self._get_signer(app, salt).dumps(sid)  # type: ignore
+        session = ServerSideSession(
+            sid=sid, token=token, lifetime=self.lifetime, initial=initial, is_api=is_api
+        )
         session.new = True
-        session.is_api = is_api
         return session
 
     def open_session(self, app: Flask, request: Request) -> ServerSideSession | None:
@@ -129,40 +140,40 @@ class SessionInterface(FlaskSessionInterface):
         beginning of each request.
         """
         is_api = request.path.split("/")[1] == "api"
+        key_prefix = self.api_key_prefix if is_api else self.web_key_prefix
+        salt = self.api_salt if is_api else self.web_salt
 
         if is_api:
-            self.key_prefix = self.api_key_prefix
-            self.salt = self.api_salt
             auth_header = request.headers.get(self.header_name)
             if auth_header:
                 split = auth_header.split(" ")
                 if len(split) != 2 or split[0] != "Token":
-                    return self._new_session(is_api)
+                    return self._new_session(salt, is_api=is_api)
                 sid: str | None = split[1]
             else:
-                return self._new_session(is_api)
+                return self._new_session(salt, is_api=is_api)
         else:
             sid = request.cookies.get(app.session_cookie_name)
         if sid:
             try:
-                sid = self._get_signer(app).loads(sid)
+                sid = self._get_signer(app, salt).loads(sid)
             except BadSignature:
                 sid = None
         if not sid:
-            return self._new_session(is_api)
+            return self._new_session(salt, is_api=is_api)
 
-        val = self.redis.get(self.key_prefix + sid)
+        val = self.redis.get(key_prefix + sid)
         if val is not None:
             try:
                 data = self.serializer.loads(val.decode("utf-8"))
-                token: str = self._get_signer(app).dumps(sid)  # type: ignore
-                return ServerSideSession(sid=sid, token=token, initial=data)
+                token: str = self._get_signer(app, salt).dumps(sid)  # type: ignore
+                return ServerSideSession(sid=sid, token=token, initial=data, is_api=is_api)
             except (JSONDecodeError, NotImplementedError):
-                return self._new_session(is_api)
+                return self._new_session(salt, is_api=is_api)
         # signed session_id provided in cookie is valid, but the session is not on the server
         # anymore so maybe here is the code path for a meaningful error message
         msg = gettext("You have been logged out due to inactivity.")
-        return self._new_session(is_api, initial={"_flashes": [("error", msg)]})
+        return self._new_session(salt, is_api=is_api, initial={"_flashes": [("error", msg)]})
 
     def save_session(  # type: ignore[override]
         self, app: Flask, session: ServerSideSession, response: Response
@@ -170,18 +181,21 @@ class SessionInterface(FlaskSessionInterface):
         """This is called at the end of each request, just
         before sending the response.
         """
+        key_prefix = self.api_key_prefix if session.is_api else self.web_key_prefix
+        salt = self.api_salt if session.is_api else self.web_salt
+
         domain = self.get_cookie_domain(app)
         path = self.get_cookie_path(app)
         if session.to_destroy:
             initial: dict[str, Any] = {"locale": session.locale}
             if session.flash:
                 initial["_flashes"] = [session.flash]
-            self.redis.delete(self.key_prefix + session.sid)
+            self.redis.delete(key_prefix + session.sid)
             if not session.is_api:
                 # Instead of deleting the cookie and send a new sid with the next request
                 # create the new session already, so we can pass along messages and locale
-                session = self._new_session(False, initial=initial)
-        expires = self.redis.ttl(name=self.key_prefix + session.sid)
+                session = self._new_session(salt, is_api=False, initial=initial)
+        expires = self.redis.ttl(name=key_prefix + session.sid)
         if session.new:
             session["renew_count"] = self.renew_count
             expires = self.lifetime
@@ -194,15 +208,15 @@ class SessionInterface(FlaskSessionInterface):
         samesite = self.get_cookie_samesite(app)
         val = self.serializer.dumps(dict(session))
         if session.to_regenerate:
-            self.redis.delete(self.key_prefix + session.sid)
+            self.redis.delete(key_prefix + session.sid)
             session.sid = self._generate_sid()
-            session.token = self._get_signer(app).dumps(session.sid)  # type: ignore
+            session.token = self._get_signer(app, salt).dumps(session.sid)  # type: ignore
         if session.new or session.to_regenerate:
-            self.redis.setex(name=self.key_prefix + session.sid, value=val, time=expires)
+            self.redis.setex(name=key_prefix + session.sid, value=val, time=expires)
         elif session.modified:
             # To prevent race conditions where session is delete by an admin in the middle of a req
             # accept to save the session object if and only if already exists using the xx flag
-            self.redis.set(name=self.key_prefix + session.sid, value=val, ex=expires, xx=True)
+            self.redis.set(name=key_prefix + session.sid, value=val, ex=expires, xx=True)
         if not session.is_api and (session.new or session.to_regenerate):
             response.headers.add("Vary", "Cookie")
             response.set_cookie(
@@ -216,8 +230,8 @@ class SessionInterface(FlaskSessionInterface):
             )
 
     def logout_user(self, uid: int) -> None:
-        for key in self.redis.keys(self.key_prefix + "*") + self.redis.keys(
-            "api_" + self.key_prefix + "*"
+        for key in self.redis.keys(self.web_key_prefix + "*") + self.redis.keys(
+            self.api_key_prefix + "*"
         ):
             found = self.redis.get(key)
             if found:

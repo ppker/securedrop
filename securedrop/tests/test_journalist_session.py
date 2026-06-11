@@ -347,6 +347,120 @@ def test_session_api_logout(journalist_app, test_journo, redis):
         assert resp.status_code == 403
 
 
+# test a standard login from API, then requests to the web interface, which should fail
+def test_session_api_breakout(journalist_app, test_journo, redis):
+    # Given a test client and a valid journalist user
+    with journalist_app.test_client() as app:
+        # When sending a valid login request and asking an API token
+        resp = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": TOTP(test_journo["otp_secret"]).now(),
+                }
+            ),
+            headers=get_api_headers(),
+        )
+
+        # Then the token is issued successfully with the correct attributed
+        assert resp.json["journalist_uuid"] == test_journo["uuid"]
+        assert resp.status_code == 200
+        token = resp.json["token"]
+        sid = _check_sig(token, journalist_app, api=True)
+
+        # When querying the web index
+        resp = app.get(url_for("main.index"), headers=get_api_headers(token))
+        # Then the request fails and the user is redirected to the login page
+        assert resp.status_code == 302
+        assert (redis.get(journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is None
+
+        # API session is still present:
+        assert (redis.get("api_" + journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is not None
+
+        # When sending a logout request using the API token
+        resp = app.post(url_for("api.logout"), headers=get_api_headers(token))
+        # Then it is successful
+        assert resp.status_code == 200
+        # Then the token and the corresponding payload no longer exist in redis
+        assert (redis.get("api_" + journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is None
+
+        # When sending an authenticated request with the deleted token
+        resp = app.get(url_for("api.get_current_user"), headers=get_api_headers(token))
+        # Then the request is unsuccessful
+        assert resp.status_code == 403
+
+
+# Test that session has correct prefix following web login/logout then api login sequence
+def test_session_prefix_consistent(journalist_app, test_journo, redis):
+    # Given a test client and a valid journalist user
+    with journalist_app.test_client() as app:
+        # When sending a correct login request
+        login_journalist(
+            app, test_journo["username"], test_journo["password"], test_journo["otp_secret"]
+        )
+        # Then check session
+        session_cookie = _session_from_cookiejar(app.cookie_jar, journalist_app)
+        assert session_cookie is not None
+
+        sid = _check_sig(session_cookie.value, journalist_app)
+        assert (redis.get(journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is not None
+
+        # When sending a logout request from a logged in journalist
+        resp = app.post(url_for("main.logout"), follow_redirects=False)
+        # Then it redirects to login
+        assert resp.status_code == 302
+        # Then the session no longer exists in redis
+        assert (redis.get(journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is None
+
+        # Then a request to the index redirects back to login
+        resp = app.get(url_for("main.index"), follow_redirects=False)
+        assert resp.status_code == 302
+
+        # When sending a valid login request and asking an API token
+        resp = app.post(
+            url_for("api.get_token"),
+            data=json.dumps(
+                {
+                    "username": test_journo["username"],
+                    "passphrase": test_journo["password"],
+                    "one_time_code": TOTP(test_journo["otp_secret"]).now(),
+                }
+            ),
+            headers=get_api_headers(),
+        )
+
+        # Then the token is issued successfully with the correct attributed
+        assert resp.json["journalist_uuid"] == test_journo["uuid"]
+        assert resp.status_code == 200
+        token = resp.json["token"]
+        sid = _check_sig(token, journalist_app, api=True)
+
+        # the API redis key exists
+        assert (redis.get("api_" + journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is not None
+        # but its web counterpart does not
+        assert (redis.get(journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is None
+
+        # And vice versa: When sending a logout request using the API token
+        resp = app.post(url_for("api.logout"), headers=get_api_headers(token))
+        # Then it is successful
+        assert resp.status_code == 200
+        # Then the token and the corresponding payload no longer exist in redis
+        assert (redis.get("api_" + journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is None
+        # then logging in via the web again...
+        login_journalist(
+            app, test_journo["username"], test_journo["password"], test_journo["otp_secret"]
+        )
+        # Then check session
+        session_cookie = _session_from_cookiejar(app.cookie_jar, journalist_app)
+        assert session_cookie is not None
+
+        sid = _check_sig(session_cookie.value, journalist_app)
+        assert (redis.get(journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is not None
+        assert (redis.get("api_" + journalist_app.config["SESSION_KEY_PREFIX"] + sid)) is None
+
+
 # Test a few cases of valid session token with bad signatures
 def test_session_bad_signature(journalist_app, test_journo):
     # Given a test client and a valid journalist user
