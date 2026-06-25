@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0"
-pyo3 = { version = "0.24.1", features = ["extension-module"] }
+pyo3 = { version = "0.29.0", features = ["extension-module"] }
 sequoia-openpgp = { version = "1.21.1", default-features = false, features = ["crypto-openssl", "compression"]}
 thiserror = "1.0.31"
 
