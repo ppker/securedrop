@@ -197,39 +197,29 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.pyo3]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-build-config]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-ffi]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-macros]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-macros-backend]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.regex]]
 version = "1.10.0"
