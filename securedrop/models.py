@@ -21,7 +21,15 @@ from flask_babel import gettext, ngettext
 from passphrases import PassphraseGenerator
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Load, Query, backref, configure_mappers, joinedload, relationship
+from sqlalchemy.orm import (
+    Load,
+    Query,
+    backref,
+    configure_mappers,
+    joinedload,
+    relationship,
+    selectinload,
+)
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from store import Storage
 
@@ -131,8 +139,8 @@ class Source(db.Model):
         base = base or Load(cls)
         return (
             joinedload(cls.star),
-            *Submission.query_options(joinedload(Source.submissions)),
-            *Reply.query_options(joinedload(Source.replies)),
+            *Submission.query_options(selectinload(Source.submissions)),
+            *Reply.query_options(selectinload(Source.replies)),
         )
 
     @property
@@ -281,8 +289,8 @@ class Submission(db.Model):
         base = base or Load(cls)
         return (
             base.joinedload(cls.source),  # type: ignore[attr-defined]
-            base.joinedload(cls.seen_files).joinedload(SeenFile.journalist),  # type: ignore[attr-defined]
-            base.joinedload(cls.seen_messages).joinedload(SeenMessage.journalist),  # type: ignore[attr-defined]
+            base.selectinload(cls.seen_files).joinedload(SeenFile.journalist),  # type: ignore[attr-defined]
+            base.selectinload(cls.seen_messages).joinedload(SeenMessage.journalist),  # type: ignore[attr-defined]
         )
 
     @property
@@ -414,7 +422,7 @@ class Reply(db.Model):
         return (
             base.joinedload(cls.source),  # type: ignore[attr-defined]
             base.joinedload(cls.journalist),  # type: ignore[attr-defined]
-            base.joinedload(cls.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
+            base.selectinload(cls.seen_replies).joinedload(SeenReply.journalist),  # type: ignore[attr-defined]
         )
 
     @property
