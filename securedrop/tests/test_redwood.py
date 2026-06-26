@@ -46,7 +46,7 @@ def test_encrypt_stream_bad(tmp_path, key_pair):
         redwood.encrypt_stream([public_key], not_stream, tmp_path / "file1.asc")
     # When `.read()` returns something other than bytes
     with pytest.raises(
-        redwood.RedwoodError, match="TypeError: 'str' object cannot be converted to 'PyBytes'"
+        redwood.RedwoodError, match="TypeError: 'str' object is not an instance of 'bytes'"
     ):
         redwood.encrypt_stream([public_key], StringIO(SECRET_MESSAGE), tmp_path / "file2.asc")
     with pytest.raises(redwood.RedwoodError, match='error: "RuntimeError: uhoh"'):

@@ -106,13 +106,6 @@ user-id = 539
 user-login = "cuviper"
 user-name = "Josh Stone"
 
-[[publisher.indoc]]
-version = "2.0.5"
-when = "2024-03-23"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
 [[publisher.is-terminal]]
 version = "0.4.12"
 when = "2024-02-09"
@@ -204,39 +197,29 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.pyo3]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-build-config]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-ffi]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-macros]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.pyo3-macros-backend]]
-version = "0.24.1"
-when = "2025-03-31"
-user-id = 6622
-user-login = "davidhewitt"
-user-name = "David Hewitt"
+version = "0.29.0"
+when = "2026-06-11"
+trusted-publisher = "github:PyO3/pyo3"
 
 [[publisher.regex]]
 version = "1.10.0"
@@ -309,8 +292,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.target-lexicon]]
-version = "0.13.2"
-when = "2025-02-07"
+version = "0.13.5"
+when = "2026-02-15"
 user-id = 6825
 user-login = "sunfishcode"
 user-name = "Dan Gohman"
@@ -332,13 +315,6 @@ user-name = "David Tolnay"
 [[publisher.unicode-ident]]
 version = "1.0.12"
 when = "2023-09-13"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.unindent]]
-version = "0.2.3"
-when = "2023-09-16"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -624,15 +600,9 @@ delta = "0.6.5 -> 0.7.1"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
 
 [[audits.google.audits.once_cell]]
-who = "crosvm"
+who = "Ying Hsu <yinghsu@chromium.org>"
 criteria = "safe-to-run"
-version = "1.17.0"
-aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.google.audits.once_cell]]
-who = "George Burgess IV <gbiv@google.com>"
-criteria = "safe-to-run"
-delta = "1.17.0 -> 1.18.0"
+version = "1.19.0"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
 
 [[audits.google.audits.openssl-macros]]
@@ -992,6 +962,23 @@ who = "David Cook <dcook@divviup.org>"
 criteria = "safe-to-deploy"
 delta = "0.10.6 -> 0.10.7"
 
+[[audits.isrg.audits.once_cell]]
+who = "David Cook <dcook@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.19.0 -> 1.20.1"
+
+[[audits.isrg.audits.once_cell]]
+who = "J.C. Jones <jc@insufficient.coffee>"
+criteria = "safe-to-deploy"
+delta = "1.21.1 -> 1.21.3"
+notes = "The unsafe code has moved from `compare_exchange` to a new `init` function, which makes it easier to reason about."
+
+[[audits.isrg.audits.once_cell]]
+who = "J.C. Jones <jc@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "1.21.3 -> 1.21.4"
+notes = "The addition is a safe while loop around prior behavior. I don't see any way for that to become malicious."
+
 [[audits.mozilla.wildcard-audits.core-foundation-sys]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
@@ -1251,6 +1238,25 @@ who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
 version = "1.0.4"
 notes = "This is a trivial crate."
+aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.once_cell]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.20.1 -> 1.20.2"
+notes = "This update works around a Cargo bug that forces the addition of `portable-atomic` into a lockfile, which we have never needed to use."
+aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.once_cell]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.20.2 -> 1.20.3"
+aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.once_cell]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.20.3 -> 1.21.1"
 aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
 
 [[audits.mozilla.audits.precomputed-hash]]

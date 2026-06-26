@@ -16,7 +16,7 @@ impl Stream<'_> {
         // In Python this is effectively calling `reader.read(len)`
         let args: Bound<PyTuple> = PyTuple::new(self.reader.py(), vec![len])?;
         let bytes: Bound<PyAny> = func.call1(args)?;
-        let bytes = bytes.downcast::<PyBytes>()?;
+        let bytes = bytes.cast::<PyBytes>()?;
         bytes.extract()
     }
 }
