@@ -9,8 +9,8 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.anyhow]]
-version = "1.0.93"
-when = "2024-11-06"
+version = "1.0.103"
+when = "2026-06-25"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
