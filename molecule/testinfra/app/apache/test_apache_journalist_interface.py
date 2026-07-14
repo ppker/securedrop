@@ -43,7 +43,15 @@ def test_apache_headers_journalist_interface(host, header, value):
         "XSendFilePath    /var/lib/securedrop/store/",
         "XSendFilePath    /var/lib/securedrop/tmp/",
         "ErrorLog /var/log/apache2/journalist-error.log",
-        "CustomLog /var/log/apache2/journalist-access.log combined",
+        (
+            'ErrorLogFormat "[%{u}t] [%-m:%l] [pid %P:tid %T] %7F: %E: [client\\ %a] '
+            '[request-id\\ %{X-Request-ID}i] %M% ,\\ referer\\ %{Referer}i"'
+        ),
+        (
+            'LogFormat "%h %l %u %t \\"%r\\" %>s %O \\"%{Referer}i\\" \\"%{User-Agent}i\\" '
+            '%{X-Request-ID}i" combined_request_id'
+        ),
+        "CustomLog /var/log/apache2/journalist-access.log combined_request_id",
     ],
 )
 def test_apache_config_journalist_interface(host, apache_opt):
