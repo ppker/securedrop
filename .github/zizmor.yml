@@ -3,3 +3,8 @@ rules:
     ignore:
       # not used for releases / sensitive artifacts
       - cargo-vet.yml
+  unpinned-uses:
+    config:
+      policies:
+        freedomofpress/actionslib/.github/workflows/oci-build.yaml: any
+        freedomofpress/actionslib/.github/workflows/update-k8s-trigger.yaml: any
