@@ -96,7 +96,7 @@ function maybe_use_tor() {
         ji_authkey="$(sudo -u debian-tor cat /tmp/k1.prv.key)"
         sdkey_fpr="$(gpg --with-fingerprint --with-colons ./tests/files/test_journalist_key.pub | grep -e '^fpr' | tr -d 'fpr:')"
 
-        cat > /tmp/qubes-config.json <<EOF
+        cat > "${REPOROOT}/config.json" <<EOF
 {
   "submission_key_fpr": "${sdkey_fpr}",
   "hidserv": {
@@ -117,10 +117,8 @@ EOF
         echo "Journalist Interface: http://${ji_address}"
         echo "Journalist Auth Key:  ${ji_authkey}"
         echo "--------"
-        echo
-        echo "SecureDrop Workstation config.json:"
-        echo "--------"
-        cat /tmp/qubes-config.json
+        echo "SecureDrop Workstation config.json written to ${REPOROOT}/config.json"
+        echo "Copy this file to dom0 in your SDW dev environment to configure the workstation."
         echo "--------"
     fi
 }
