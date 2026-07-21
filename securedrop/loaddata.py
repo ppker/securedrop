@@ -13,8 +13,10 @@ import os
 import random
 import secrets
 import string
+from functools import partial
 from itertools import cycle
 from pathlib import Path
+from unittest.mock import patch
 
 import journalist_app
 from db import db
@@ -37,8 +39,18 @@ from specialstrings import strings
 from sqlalchemy.exc import IntegrityError
 from store import Storage
 
+from redwood import generate_source_key_pair
+
 messages = cycle(strings)
 replies = cycle(strings)
+
+_key_cache: dict[str, tuple[str, str, str] | None] = {"result": None}
+
+
+def mock_keygen(reuse_reply_key: bool, *args, **kwargs):  # type: ignore
+    if _key_cache["result"] is None or not reuse_reply_key:
+        _key_cache["result"] = generate_source_key_pair(*args, **kwargs)
+    return _key_cache["result"]
 
 
 def fraction(s: str) -> float:
@@ -249,41 +261,20 @@ def add_reply(
         other_seen_reply = SeenReply(reply=reply, journalist=journalist_who_saw)
         db.session.add(other_seen_reply)
 
-    db.session.commit()
 
-
-def add_source(use_gpg: bool = False) -> tuple[Source, str]:
+def add_source(reuse_reply_key: bool) -> tuple[Source, str]:
     """
     Adds a single source.
     """
     codename = PassphraseGenerator.get_default().generate_passphrase()
-    source_user = create_source_user(
-        db_session=db.session,
-        source_passphrase=codename,
-        source_app_storage=Storage.get_default(),
-    )
-    source = source_user.get_db_record()
-    if use_gpg:
-        manager = EncryptionManager.get_default()
-        gen_key_input = manager.gpg().gen_key_input(
-            passphrase=source_user.gpg_secret,
-            name_email=source_user.filesystem_id,
-            key_type="RSA",
-            key_length=4096,
-            name_real="Source Key",
-            creation_date="2013-05-14",
-            # '0' is the magic value that tells GPG's batch key generation not
-            # to set an expiration date.
-            expire_date="0",
+    bound_mock_keygen = partial(mock_keygen, reuse_reply_key)
+    with patch("redwood.generate_source_key_pair", side_effect=bound_mock_keygen):
+        source_user = create_source_user(
+            db_session=db.session,
+            source_passphrase=codename,
+            source_app_storage=Storage.get_default(),
         )
-        manager.gpg().gen_key(gen_key_input)
-
-        # Delete the Sequoia-generated keys
-        source.pgp_public_key = None
-        source.pgp_fingerprint = None
-        source.pgp_secret_key = None
-        db.session.add(source)
-    db.session.commit()
+    source = source_user.get_db_record()
 
     return source, codename
 
@@ -294,7 +285,6 @@ def star_source(source: Source) -> None:
     """
     star = SourceStar(source, True)
     db.session.add(star)
-    db.session.commit()
 
 
 def create_default_journalists() -> tuple[Journalist, ...]:
@@ -356,7 +346,7 @@ def add_sources(args: argparse.Namespace, journalists: tuple[Journalist, ...]) -
     )
 
     for i in range(1, args.source_count + 1):
-        source, codename = add_source(use_gpg=args.gpg)
+        source, codename = add_source(reuse_reply_key=args.reuse_reply_keys)
 
         for _ in range(args.messages_per_source):
             submit_message(source, secrets.choice(journalists) if seen_message_count > 0 else None)
@@ -385,6 +375,7 @@ def add_sources(args: argparse.Namespace, journalists: tuple[Journalist, ...]) -
             f"files: {args.files_per_source}, messages: {args.messages_per_source}, "
             f"replies: {args.replies_per_source if i <= replied_sources_count else 0})"
         )
+    db.session.commit()
 
 
 def load(args: argparse.Namespace) -> None:
@@ -482,11 +473,15 @@ def parse_arguments() -> argparse.Namespace:
         help=("Random number seed (for reproducible datasets)"),
     )
     parser.add_argument(
-        "--gpg",
-        help="Create sources with a key pair stored in GPG",
+        "--reuse-reply-keys",
+        help=(
+            "Create sources with the same reply keypair - this is fast for large datasets"
+            ", but sources will not be able to read replies."
+        ),
         action="store_true",
         default=False,
     )
+
     parser.add_argument(
         "--random-file-size",
         help="Create random submission files with size specified (in KB)",
