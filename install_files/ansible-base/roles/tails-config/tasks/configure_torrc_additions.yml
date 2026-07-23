@@ -18,7 +18,7 @@
     msg: >-
       Failed to find Tor service info locally. Make sure you've installed SecureDrop
       on the servers, and that the `.auth_private` files are located in:
-      `{{ tails_config_ansible_base }}/`.
+      `{{ config_path }}/`.
 
 - name: Append ClientOnionAuthDir directive to torrc additions
   become: yes
