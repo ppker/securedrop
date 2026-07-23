@@ -26,9 +26,7 @@ from sqlalchemy.orm import (
     Query,
     backref,
     configure_mappers,
-    joinedload,
     relationship,
-    selectinload,
 )
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from store import Storage
@@ -138,9 +136,9 @@ class Source(db.Model):
         configure_mappers()
         base = base or Load(cls)
         return (
-            joinedload(cls.star),
-            *Submission.query_options(selectinload(Source.submissions)),
-            *Reply.query_options(selectinload(Source.replies)),
+            base.joinedload(cls.star),  # type: ignore[attr-defined]
+            *Submission.query_options(base.selectinload(Source.submissions)),  # type: ignore[attr-defined]
+            *Reply.query_options(base.selectinload(Source.replies)),  # type: ignore[attr-defined]
         )
 
     @property
