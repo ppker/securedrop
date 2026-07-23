@@ -55,7 +55,7 @@ jobs:
       matrix:
         ubuntu_version: [noble]
     runs-on: ubuntu-latest
-    container: debian:bookworm
+    container: debian:trixie
     needs:
       - build-debs
     steps:
