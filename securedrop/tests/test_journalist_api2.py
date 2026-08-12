@@ -95,6 +95,19 @@ def test_auth_required(journalist_app, endpoint, kwargs):
         assert response.status_code == 403
 
 
+def test_request_id_is_echoed(journalist_app):
+    """
+    Verify the app-level X-Request-ID echo covers APIv2, including error
+    responses (here a 403, rejected before the view runs)
+    """
+    request_id = "req-72d64b57-4632-4d3e-96b0-24a0428f7ec1"
+    with journalist_app.test_client() as app:
+        response = app.get(url_for("api2.index"), headers={"X-Request-ID": request_id})
+
+        assert response.status_code == 403
+        assert response.headers["X-Request-ID"] == request_id
+
+
 def test_index(journalist_app, test_files, journalist_api_token, app_storage):
     """
     Verify GET /index response and HTTP 304 behavior.

@@ -1,6 +1,7 @@
 import binascii
 import hashlib
 import json
+import logging
 import random
 from datetime import datetime
 from pathlib import Path
@@ -1534,3 +1535,58 @@ def test_login_calls_malloc_trim(mocker, journalist_app, test_journo):
         assert response.status_code == 200
 
     mock_libc.malloc_trim.assert_called_once_with(0)
+
+
+VALID_REQUEST_ID = "req-72d64b57-4632-4d3e-96b0-24a0428f7ec1"
+
+
+def test_valid_request_id_is_echoed_and_logged(journalist_app, caplog):
+    caplog.set_level(logging.INFO)
+    with journalist_app.test_client() as app:
+        response = app.get(url_for("api.get_endpoints"), headers={"X-Request-ID": VALID_REQUEST_ID})
+
+        assert response.status_code == 200
+        assert response.headers["X-Request-ID"] == VALID_REQUEST_ID
+        assert f"{VALID_REQUEST_ID} method=GET path=/api/v1/ status=200" in caplog.text
+
+
+def test_request_id_is_echoed_on_error_responses(journalist_app):
+    with journalist_app.test_client() as app:
+        # No auth token, so the request is rejected before the view runs
+        response = app.get(
+            url_for("api.get_all_sources"), headers={"X-Request-ID": VALID_REQUEST_ID}
+        )
+
+        assert response.status_code == 403
+        assert response.headers["X-Request-ID"] == VALID_REQUEST_ID
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        "not a request ID",
+        "req-72D64B57-4632-4D3E-96B0-24A0428F7EC1",
+        "req-injected message into the logs!",
+    ],
+)
+def test_invalid_request_id_is_not_echoed(journalist_app, caplog, invalid):
+    caplog.set_level(logging.INFO)
+    with journalist_app.test_client() as app:
+        response = app.get(url_for("api.get_endpoints"), headers={"X-Request-ID": invalid})
+
+        assert response.status_code == 200
+        assert "X-Request-ID" not in response.headers
+        # A warning is logged, but the value itself is not, so a client can't
+        # inject arbitrary strings into the logs
+        assert "ignoring invalid X-Request-ID header" in caplog.text
+        assert invalid not in caplog.text
+
+
+def test_missing_request_id_is_quiet(journalist_app, caplog):
+    caplog.set_level(logging.INFO)
+    with journalist_app.test_client() as app:
+        response = app.get(url_for("api.get_endpoints"))
+
+        assert response.status_code == 200
+        assert "X-Request-ID" not in response.headers
+        assert "X-Request-ID" not in caplog.text
