@@ -13,6 +13,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith( github.ref, 'refs/heads/release/' ) }}
 
+permissions:
+  contents: read
+
 jobs:
   locales:
     runs-on: ubuntu-latest
@@ -21,7 +24,7 @@ jobs:
     env:
       GITHUB_ACTOR: ${{ github.actor }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Generate locale list
@@ -55,7 +58,7 @@ jobs:
     env:
       LOCALES: ${{ matrix.locale }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Build image
@@ -65,7 +68,7 @@ jobs:
         run: |
           make translation-test
       - name: Save screenshots
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: screenshots-${{ matrix.locale }}
           path: securedrop/tests/functional/pageslayout/screenshots/
