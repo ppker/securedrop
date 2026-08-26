@@ -294,8 +294,8 @@ Broadly speaking, each event will terminate in one of the following states:
 
 2.  **Idempotence:** A client that subsequently resubmits $E' = E$ will receive
     only HTTP `208 Already Reported` and SHOULD apply the event locally as
-    confirmed. The server will not return data in this case, but the client
-    SHOULD already know the results of the operation once confirmed.
+    acknowledged. The server will not return data in this case, but the client
+    SHOULD already know the results of the operation once acknowledged.
     - Uniquely among the properties of this API, **event idempotence is a
       correctness property as well as a performance enhancement.** The server MUST
       preserve this property for all types of events with defined handlers.
